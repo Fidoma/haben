@@ -11,7 +11,14 @@ import type { Notice } from "../../../lib/use-action.ts";
 import { cancelPmsReservation, createPmsReservationInvoice, getReservationFormOptions, getReservations } from "../../../server/functions/pms.ts";
 
 export const Route = createFileRoute("/_app/pms/reservierungen")({
-  validateSearch: z.object({ edit: z.uuid().optional() }),
+  validateSearch: z.object({
+    edit: z.uuid().optional(),
+    q: z.string().optional(),
+    status: z.enum(["confirmed", "canceled", "all"]).optional(),
+    room: z.string().optional(),
+    from: z.string().optional(),
+    to: z.string().optional(),
+  }),
   loader: async () => {
     const [reservations, options] = await Promise.all([getReservations(), getReservationFormOptions()]);
     return { reservations, options };
@@ -25,7 +32,8 @@ const nights = (arrival: string, departure: string) => Math.round((Date.parse(`$
 
 function ReservationsPage() {
   const { reservations, options } = Route.useLoaderData();
-  const { edit } = Route.useSearch();
+  const search = Route.useSearch();
+  const { edit } = search;
   const router = useRouter();
   const cancel = useServerFn(cancelPmsReservation);
   const createInvoice = useServerFn(createPmsReservationInvoice);
@@ -33,11 +41,27 @@ function ReservationsPage() {
   const [creating, setCreating] = useState(false);
   const [confirming, setConfirming] = useState<Reservation | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
-  const [showCanceled, setShowCanceled] = useState(false);
   const [creatingInvoiceId, setCreatingInvoiceId] = useState<string | null>(null);
   const active = reservations.filter((reservation) => reservation.status === "confirmed");
   const canceled = reservations.filter((reservation) => reservation.status === "canceled");
-  const shown = showCanceled ? canceled : active;
+  const statusFilter = search.status ?? "confirmed";
+  const fromFilter = search.from ?? "";
+  const toFilter = search.to ?? "";
+  const query = (search.q ?? "").trim().toLocaleLowerCase("de");
+  const shown = reservations.filter((reservation) => {
+    if (statusFilter !== "all" && reservation.status !== statusFilter) return false;
+    if (
+      query &&
+      !`${reservation.contactName} ${reservation.items.map((item) => `${item.roomNumber} ${item.roomName} ${item.description}`).join(" ")}`
+        .toLocaleLowerCase("de")
+        .includes(query)
+    )
+      return false;
+    if (search.room && !reservation.items.some((item) => item.roomId === search.room)) return false;
+    if (fromFilter && !reservation.items.some((item) => item.departureDate > fromFilter)) return false;
+    if (toFilter && !reservation.items.some((item) => item.arrivalDate < toFilter)) return false;
+    return true;
+  });
   const formOpen = creating || editing !== null;
 
   useEffect(() => {
@@ -48,7 +72,6 @@ function ReservationsPage() {
       return;
     }
     if (reservation.status === "canceled") {
-      setShowCanceled(true);
       setNotice({ tone: "danger", text: "Eine stornierte Reservierung kann nicht bearbeitet werden." });
       return;
     }
@@ -119,17 +142,62 @@ function ReservationsPage() {
         )}
         <NoticeBanner notice={notice} />
         <section className="card" aria-label="Reservierungsliste">
-          <div className="chip-row" role="group" aria-label="Filter">
-            <button type="button" className={`chip${showCanceled ? "" : " active"}`} aria-pressed={!showCanceled} onClick={() => setShowCanceled(false)}>
-              Aktiv ({active.length})
+          <form
+            className="reservation-filters"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const data = new FormData(event.currentTarget);
+              void router.navigate({
+                to: "/pms/reservierungen",
+                search: {
+                  q: String(data.get("q") ?? ""),
+                  status: String(data.get("status") ?? "confirmed") as "confirmed" | "canceled" | "all",
+                  room: String(data.get("room") ?? ""),
+                  from: String(data.get("from") ?? ""),
+                  to: String(data.get("to") ?? ""),
+                },
+              });
+            }}
+          >
+            <label>
+              Suche
+              <input name="q" type="search" defaultValue={search.q ?? ""} placeholder="Kunde, Zimmer, Notiz" />
+            </label>
+            <label>
+              Status
+              <select name="status" defaultValue={statusFilter}>
+                <option value="confirmed">Aktiv ({active.length})</option>
+                <option value="canceled">Storniert ({canceled.length})</option>
+                <option value="all">Alle</option>
+              </select>
+            </label>
+            <label>
+              Zimmer
+              <select name="room" defaultValue={search.room ?? ""}>
+                <option value="">Alle Zimmer</option>
+                {options.rooms.map((room) => (
+                  <option key={room.id} value={room.id}>
+                    {room.number}
+                    {room.name ? ` · ${room.name}` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Von
+              <input name="from" type="date" defaultValue={search.from ?? ""} />
+            </label>
+            <label>
+              Bis
+              <input name="to" type="date" defaultValue={search.to ?? ""} />
+            </label>
+            <button type="submit" className="btn">
+              Filtern
             </button>
-            <button type="button" className={`chip${showCanceled ? " active" : ""}`} aria-pressed={showCanceled} onClick={() => setShowCanceled(true)}>
-              Storniert ({canceled.length})
-            </button>
-          </div>
+          </form>
           {shown.length === 0 ? (
             <p className="muted" style={{ margin: 0 }}>
-              {showCanceled ? "Keine stornierten Reservierungen." : "Noch keine Reservierungen. Lege die erste mit „Neue Reservierung“ an."}
+              Keine Reservierungen für diese Filter.
             </p>
           ) : (
             <div className="table">

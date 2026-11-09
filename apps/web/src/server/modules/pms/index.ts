@@ -29,3 +29,21 @@ export {
   type ScheduleEvent,
   type ScheduleRoom,
 } from "./schedule.ts";
+export {
+  cleaningStatuses,
+  listHousekeepingRooms,
+  runDueHousekeeping,
+  setCleaningStatus,
+  type CleaningStatus,
+} from "./housekeeping.ts";
+export {
+  getTourismReport,
+  prefillTourismReport,
+  saveTourismReport,
+  tourismCountries,
+  tourismCountryKey,
+  tourismReportCsv,
+  tourismReportInputSchema,
+  type TourismCountry,
+  type TourismReportInput,
+} from "./tourism-statistics.ts";
