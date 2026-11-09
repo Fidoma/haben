@@ -11,6 +11,7 @@ export {
 } from "./rooms.ts";
 export {
   cancelReservation,
+  createReservationInvoice,
   createReservation,
   listReservations,
   ReservationError,
