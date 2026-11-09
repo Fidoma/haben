@@ -67,6 +67,7 @@ import { Route as AppKontakteNeuRouteImport } from './routes/_app/kontakte/neu'
 import { Route as AppKontenIndexRouteImport } from './routes/_app/konten/index'
 import { Route as AppKontenKontoRouteImport } from './routes/_app/konten/$konto'
 import { Route as AppLohnIndexRouteImport } from './routes/_app/lohn/index'
+import { Route as AppPmsBelegungsplanRouteImport } from './routes/_app/pms/belegungsplan'
 import { Route as AppPmsReservierungenRouteImport } from './routes/_app/pms/reservierungen'
 import { Route as AppPmsZimmerRouteImport } from './routes/_app/pms/zimmer'
 import { Route as AppRechnungenIndexRouteImport } from './routes/_app/rechnungen/index'
@@ -426,6 +427,11 @@ const AppKontenKontoRoute = AppKontenKontoRouteImport.update({
 const AppLohnIndexRoute = AppLohnIndexRouteImport.update({
   id: '/lohn/',
   path: '/lohn/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPmsBelegungsplanRoute = AppPmsBelegungsplanRouteImport.update({
+  id: '/pms/belegungsplan',
+  path: '/pms/belegungsplan',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPmsReservierungenRoute = AppPmsReservierungenRouteImport.update({
@@ -819,6 +825,7 @@ export interface FileRoutesByFullPath {
   '/kontakte/$id': typeof AppKontakteIdRoute
   '/kontakte/neu': typeof AppKontakteNeuRoute
   '/konten/$konto': typeof AppKontenKontoRoute
+  '/pms/belegungsplan': typeof AppPmsBelegungsplanRoute
   '/pms/reservierungen': typeof AppPmsReservierungenRoute
   '/pms/zimmer': typeof AppPmsZimmerRoute
   '/rechnungen/$id': typeof AppRechnungenIdRoute
@@ -944,6 +951,7 @@ export interface FileRoutesByTo {
   '/kontakte/$id': typeof AppKontakteIdRoute
   '/kontakte/neu': typeof AppKontakteNeuRoute
   '/konten/$konto': typeof AppKontenKontoRoute
+  '/pms/belegungsplan': typeof AppPmsBelegungsplanRoute
   '/pms/reservierungen': typeof AppPmsReservierungenRoute
   '/pms/zimmer': typeof AppPmsZimmerRoute
   '/rechnungen/$id': typeof AppRechnungenIdRoute
@@ -1071,6 +1079,7 @@ export interface FileRoutesById {
   '/_app/kontakte/$id': typeof AppKontakteIdRoute
   '/_app/kontakte/neu': typeof AppKontakteNeuRoute
   '/_app/konten/$konto': typeof AppKontenKontoRoute
+  '/_app/pms/belegungsplan': typeof AppPmsBelegungsplanRoute
   '/_app/pms/reservierungen': typeof AppPmsReservierungenRoute
   '/_app/pms/zimmer': typeof AppPmsZimmerRoute
   '/_app/rechnungen/$id': typeof AppRechnungenIdRoute
@@ -1198,6 +1207,7 @@ export interface FileRouteTypes {
     | '/kontakte/$id'
     | '/kontakte/neu'
     | '/konten/$konto'
+    | '/pms/belegungsplan'
     | '/pms/reservierungen'
     | '/pms/zimmer'
     | '/rechnungen/$id'
@@ -1323,6 +1333,7 @@ export interface FileRouteTypes {
     | '/kontakte/$id'
     | '/kontakte/neu'
     | '/konten/$konto'
+    | '/pms/belegungsplan'
     | '/pms/reservierungen'
     | '/pms/zimmer'
     | '/rechnungen/$id'
@@ -1449,6 +1460,7 @@ export interface FileRouteTypes {
     | '/_app/kontakte/$id'
     | '/_app/kontakte/neu'
     | '/_app/konten/$konto'
+    | '/_app/pms/belegungsplan'
     | '/_app/pms/reservierungen'
     | '/_app/pms/zimmer'
     | '/_app/rechnungen/$id'
@@ -1997,6 +2009,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLohnIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/pms/belegungsplan': {
+      id: '/_app/pms/belegungsplan'
+      path: '/pms/belegungsplan'
+      fullPath: '/pms/belegungsplan'
+      preLoaderRoute: typeof AppPmsBelegungsplanRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/pms/reservierungen': {
       id: '/_app/pms/reservierungen'
       path: '/pms/reservierungen'
@@ -2495,6 +2514,7 @@ interface AppRouteChildren {
   AppKontakteIdRoute: typeof AppKontakteIdRoute
   AppKontakteNeuRoute: typeof AppKontakteNeuRoute
   AppKontenKontoRoute: typeof AppKontenKontoRoute
+  AppPmsBelegungsplanRoute: typeof AppPmsBelegungsplanRoute
   AppPmsReservierungenRoute: typeof AppPmsReservierungenRoute
   AppPmsZimmerRoute: typeof AppPmsZimmerRoute
   AppRechnungenIdRoute: typeof AppRechnungenIdRoute
@@ -2565,6 +2585,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppKontakteIdRoute: AppKontakteIdRoute,
   AppKontakteNeuRoute: AppKontakteNeuRoute,
   AppKontenKontoRoute: AppKontenKontoRoute,
+  AppPmsBelegungsplanRoute: AppPmsBelegungsplanRoute,
   AppPmsReservierungenRoute: AppPmsReservierungenRoute,
   AppPmsZimmerRoute: AppPmsZimmerRoute,
   AppRechnungenIdRoute: AppRechnungenIdRoute,
