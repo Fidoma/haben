@@ -1712,6 +1712,10 @@ export const pmsReservations = pgTable(
     contactId: uuid("contact_id")
       .notNull()
       .references(() => contacts.id),
+    /** Aus dieser Reservierung erzeugter Rechnungsentwurf; nach Löschen kann erneut erstellt werden */
+    invoiceId: uuid("invoice_id")
+      .unique()
+      .references(() => invoices.id, { onDelete: "set null" }),
     /** Kompatibilitätskopie der ersten Position für bestehende Installationen */
     arrivalDate: date("arrival_date", { mode: "string" }).notNull(),
     /** Kompatibilitätskopie der ersten Position für bestehende Installationen */

@@ -28,6 +28,17 @@ einer Reservierung auch mehrfach im gleichen Zeitraum stehen. Zwischen verschied
 aktiven Reservierungen verhindert Haben weiterhin überschneidende Belegungen, auch
 bei parallelem Speichern.
 
+## Rechnung aus einer Reservierung erstellen
+
+Wähle bei einer aktiven Reservierung **Rechnung erstellen**. Haben legt einen
+Rechnungsentwurf für den Kunden an und öffnet ihn zur Kontrolle. Jede
+Reservierungsposition wird zu einer Rechnungsposition. Der Artikel bildet die
+Positionsbezeichnung. Zimmer, Anreise, Abreise und die optionale Beschreibung stehen
+im Detailfeld darunter. Die Zahl der Übernachtungen zwischen Anreise und Abreise wird
+als Menge übernommen. Der in der Reservierung vereinbarte Preis bleibt der Einzelpreis.
+Danach öffnet **Rechnung anzeigen** die verknüpfte Rechnung. Wird der Rechnungsentwurf
+gelöscht, kann aus der Reservierung wieder eine neue Rechnung erstellt werden.
+
 ## Dauerhaft stornieren
 
 Wähle **Stornieren** und bestätige Kunde, Zimmer und Anzahl der Positionen im Dialog. Die Reservierung

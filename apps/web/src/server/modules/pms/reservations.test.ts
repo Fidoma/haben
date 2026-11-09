@@ -87,6 +87,53 @@ describe.skipIf(!testDatabaseUrl)("PMS-Reservierungen (Postgres)", () => {
     ).rejects.toThrow("Artikel ist archiviert");
   });
 
+  it("erstellt die vollständige Reservierung über die Rechnungsschnittstelle als Entwurf", async () => {
+    await sql`insert into company (id, name, strasse, plz, ort, email, telefon, steuernummer, ust_id, bundesland, iban, bic, bank)
+      values (1, 'Testhotel', 'Musterstraße 1', '93047', 'Regensburg', 'rechnung@example.com', '+49 941 123456',
+              '198/113/10010', 'DE123456789', 'BY', 'DE89370400440532013000', 'COBADEFFXXX', 'Commerzbank')`;
+    const firstRoom = await room("101");
+    const secondRoom = await room("102");
+    const contactId = await contact({ name: "Erika Muster" });
+    const articleId = await article("Doppelzimmer", 15_000);
+    await sql`update articles set number = 'LOGIS', unit = 'Tag', detail = 'Übernachtung mit Frühstück' where id = ${articleId}`;
+    const reservation = await reservations.createReservation(actor, {
+      contactId,
+      items: [
+        { roomId: firstRoom, articleId, unitPrice: 14_000, arrivalDate: "2027-01-10", departureDate: "2027-01-13", description: "Späte Anreise" },
+        { roomId: secondRoom, articleId, unitPrice: 15_000, arrivalDate: "2027-01-13", departureDate: "2027-01-15", description: "Balkon" },
+      ],
+    });
+    const invoice = await reservations.createReservationInvoice(actor, reservation.id, "2027-01-15");
+    const [head] = await sql`select status, contact_id, service_from, service_to from invoices where id = ${invoice.id}`;
+    const lines = await sql`
+      select description, detail, item_number, quantity, unit, unit_price
+      from invoice_lines where invoice_id = ${invoice.id} order by position
+    `;
+    expect(head).toMatchObject({ status: "draft", contact_id: contactId, service_from: "2027-01-10", service_to: "2027-01-15" });
+    expect(lines).toMatchObject([
+      {
+        description: "Doppelzimmer",
+        detail: "Zimmer 101 · 10.01.2027 – 13.01.2027 · Späte Anreise",
+        item_number: "LOGIS",
+        quantity: 3000,
+        unit: "Tag",
+        unit_price: 14_000,
+      },
+      {
+        description: "Doppelzimmer",
+        detail: "Zimmer 102 · 13.01.2027 – 15.01.2027 · Balkon",
+        item_number: "LOGIS",
+        quantity: 2000,
+        unit: "Tag",
+        unit_price: 15_000,
+      },
+    ]);
+    expect((await reservations.listReservations())[0]!.invoiceId).toBe(invoice.id);
+    await expect(reservations.createReservationInvoice(actor, reservation.id, "2027-01-15")).rejects.toThrow("bereits eine Rechnung");
+    await sql`delete from invoices where id = ${invoice.id}`;
+    expect((await reservations.listReservations())[0]!.invoiceId).toBeNull();
+  });
+
   it("verlangt ein aktives Zimmer und einen aktiven Kunden", async () => {
     const customerId = await contact();
     await expect(reservations.createReservation(actor, input(await room("1", true), customerId))).rejects.toThrow("Das Zimmer ist archiviert.");
