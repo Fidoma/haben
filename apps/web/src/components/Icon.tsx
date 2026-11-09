@@ -43,6 +43,12 @@ const PATHS = {
       <circle cx="7.5" cy="7.5" r="1.5" />
     </>
   ),
+  room: (
+    <>
+      <path d="M4 21V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v17M2 21h20" />
+      <path d="M8 7h2M14 7h2M8 11h2M14 11h2M8 15h2M14 15h2" />
+    </>
+  ),
   textblock: <path d="M4 5h16M4 9h16M4 13h10M4 17h7M15 15l2 2 4-4" />,
   // Person mit Lohnzettel
   payroll: (

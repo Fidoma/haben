@@ -98,6 +98,10 @@ const NAV_GROUPS = [
       { to: "/archiv", icon: "archive", label: "Archiv" },
     ],
   },
+  {
+    label: "PMS",
+    links: [{ to: "/pms/zimmer", icon: "room", label: "Zimmer" }],
+  },
 ] as const;
 
 /** Navigation der Steuerberatung: nur lesen */

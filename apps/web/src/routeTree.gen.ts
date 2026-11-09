@@ -59,6 +59,7 @@ import { Route as AppKontakteNeuRouteImport } from './routes/_app/kontakte/neu'
 import { Route as AppKontenIndexRouteImport } from './routes/_app/konten/index'
 import { Route as AppKontenKontoRouteImport } from './routes/_app/konten/$konto'
 import { Route as AppLohnIndexRouteImport } from './routes/_app/lohn/index'
+import { Route as AppPmsZimmerRouteImport } from './routes/_app/pms/zimmer'
 import { Route as AppRechnungenIndexRouteImport } from './routes/_app/rechnungen/index'
 import { Route as AppRechnungenIdRouteImport } from './routes/_app/rechnungen/$id'
 import { Route as AppRechnungenNeuRouteImport } from './routes/_app/rechnungen/neu'
@@ -365,6 +366,11 @@ const AppKontenKontoRoute = AppKontenKontoRouteImport.update({
 const AppLohnIndexRoute = AppLohnIndexRouteImport.update({
   id: '/lohn/',
   path: '/lohn/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPmsZimmerRoute = AppPmsZimmerRouteImport.update({
+  id: '/pms/zimmer',
+  path: '/pms/zimmer',
   getParentRoute: () => AppRoute,
 } as any)
 const AppRechnungenIndexRoute = AppRechnungenIndexRouteImport.update({
@@ -703,6 +709,7 @@ export interface FileRoutesByFullPath {
   '/kontakte/$id': typeof AppKontakteIdRoute
   '/kontakte/neu': typeof AppKontakteNeuRoute
   '/konten/$konto': typeof AppKontenKontoRoute
+  '/pms/zimmer': typeof AppPmsZimmerRoute
   '/rechnungen/$id': typeof AppRechnungenIdRoute
   '/rechnungen/neu': typeof AppRechnungenNeuRoute
   '/seiten/$id': typeof AppSeitenIdRoute
@@ -811,6 +818,7 @@ export interface FileRoutesByTo {
   '/kontakte/$id': typeof AppKontakteIdRoute
   '/kontakte/neu': typeof AppKontakteNeuRoute
   '/konten/$konto': typeof AppKontenKontoRoute
+  '/pms/zimmer': typeof AppPmsZimmerRoute
   '/rechnungen/$id': typeof AppRechnungenIdRoute
   '/rechnungen/neu': typeof AppRechnungenNeuRoute
   '/seiten/$id': typeof AppSeitenIdRoute
@@ -921,6 +929,7 @@ export interface FileRoutesById {
   '/_app/kontakte/$id': typeof AppKontakteIdRoute
   '/_app/kontakte/neu': typeof AppKontakteNeuRoute
   '/_app/konten/$konto': typeof AppKontenKontoRoute
+  '/_app/pms/zimmer': typeof AppPmsZimmerRoute
   '/_app/rechnungen/$id': typeof AppRechnungenIdRoute
   '/_app/rechnungen/neu': typeof AppRechnungenNeuRoute
   '/_app/seiten/$id': typeof AppSeitenIdRoute
@@ -1031,6 +1040,7 @@ export interface FileRouteTypes {
     | '/kontakte/$id'
     | '/kontakte/neu'
     | '/konten/$konto'
+    | '/pms/zimmer'
     | '/rechnungen/$id'
     | '/rechnungen/neu'
     | '/seiten/$id'
@@ -1139,6 +1149,7 @@ export interface FileRouteTypes {
     | '/kontakte/$id'
     | '/kontakte/neu'
     | '/konten/$konto'
+    | '/pms/zimmer'
     | '/rechnungen/$id'
     | '/rechnungen/neu'
     | '/seiten/$id'
@@ -1248,6 +1259,7 @@ export interface FileRouteTypes {
     | '/_app/kontakte/$id'
     | '/_app/kontakte/neu'
     | '/_app/konten/$konto'
+    | '/_app/pms/zimmer'
     | '/_app/rechnungen/$id'
     | '/_app/rechnungen/neu'
     | '/_app/seiten/$id'
@@ -1720,6 +1732,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLohnIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/pms/zimmer': {
+      id: '/_app/pms/zimmer'
+      path: '/pms/zimmer'
+      fullPath: '/pms/zimmer'
+      preLoaderRoute: typeof AppPmsZimmerRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/rechnungen/': {
       id: '/_app/rechnungen/'
       path: '/rechnungen'
@@ -2152,6 +2171,7 @@ interface AppRouteChildren {
   AppKontakteIdRoute: typeof AppKontakteIdRoute
   AppKontakteNeuRoute: typeof AppKontakteNeuRoute
   AppKontenKontoRoute: typeof AppKontenKontoRoute
+  AppPmsZimmerRoute: typeof AppPmsZimmerRoute
   AppRechnungenIdRoute: typeof AppRechnungenIdRoute
   AppRechnungenNeuRoute: typeof AppRechnungenNeuRoute
   AppSeitenIdRoute: typeof AppSeitenIdRoute
@@ -2216,6 +2236,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppKontakteIdRoute: AppKontakteIdRoute,
   AppKontakteNeuRoute: AppKontakteNeuRoute,
   AppKontenKontoRoute: AppKontenKontoRoute,
+  AppPmsZimmerRoute: AppPmsZimmerRoute,
   AppRechnungenIdRoute: AppRechnungenIdRoute,
   AppRechnungenNeuRoute: AppRechnungenNeuRoute,
   AppSeitenIdRoute: AppSeitenIdRoute,
