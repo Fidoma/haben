@@ -1695,6 +1695,28 @@ export const articles = pgTable("articles", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** Zimmerstamm des PMS; Zimmer werden archiviert statt gelöscht */
+export const pmsRooms = pgTable(
+  "pms_rooms",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** Kurze, im Betrieb verwendete Zimmernummer */
+    number: text("number").notNull(),
+    /** Optionale ergänzende Bezeichnung; leer = keine */
+    name: text("name").notNull().default(""),
+    capacity: smallint("capacity").notNull().default(1),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("pms_rooms_number_unique").on(sql`lower(${t.number})`),
+    check("pms_rooms_number_length", sql`char_length(${t.number}) between 1 and 50`),
+    check("pms_rooms_name_length", sql`char_length(${t.name}) <= 100`),
+    check("pms_rooms_capacity", sql`${t.capacity} between 1 and 100`),
+  ],
+);
+
 export const textBlockKinds = ["kopf", "fuss"] as const;
 export type TextBlockKind = (typeof textBlockKinds)[number];
 
