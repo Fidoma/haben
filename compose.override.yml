@@ -1,0 +1,9 @@
+services:
+  app:
+    environment:
+      # Muss der Adresse entsprechen, die andere Geräte im Browser verwenden.
+      BETTER_AUTH_URL: http://192.168.2.45:3000
+    ports: !override
+      # Nur die Web-App im lokalen Netz freigeben. PostgreSQL bleibt auf
+      # 127.0.0.1 gebunden, wie in compose.yml definiert.
+      - "0.0.0.0:3000:3000"
