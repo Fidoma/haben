@@ -63,6 +63,11 @@ export interface NavGroup {
 /** Hauptnavigation nach Arbeitsbereichen; geteilt von Seitenleiste und Befehlspalette (#617) */
 export const NAV_GROUPS: readonly NavGroup[] = [
   {
+    label: "PMS",
+    icon: "room",
+    links: [{ to: "/pms/zimmer", icon: "room", label: "Zimmer" }],
+  },
+  {
     label: "Verkauf",
     icon: "store",
     links: [
