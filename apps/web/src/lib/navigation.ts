@@ -70,6 +70,11 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     links: [{ to: "/webmail", icon: "mail", label: "Web-Mail" }],
   },
   {
+    label: "PMS",
+    icon: "room",
+    links: [{ to: "/pms/zimmer", icon: "room", label: "Zimmer" }],
+  },
+  {
     label: "Verkauf",
     icon: "store",
     hinweis: "Was du anbietest und in Rechnung stellst, samt allem, was du dafür brauchst",

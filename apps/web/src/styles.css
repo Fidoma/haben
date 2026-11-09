@@ -813,6 +813,9 @@ a.table-row:hover { background: var(--ground); color: var(--ink); }
 .service-cols { grid-template-columns: 90px minmax(0, 1fr) 90px 90px 100px 184px; }
 /* Abrechnen (#1933): vorn die Spalte für das Kästchen, wie bei den Überweisungen */
 .service-cols.service-pick { grid-template-columns: 28px 90px minmax(0, 1fr) 90px 90px 100px 184px; }
+.room-cols { grid-template-columns: minmax(90px, 0.5fr) minmax(0, 1.5fr) 90px auto; }
+.room-form { max-width: 720px; }
+.room-actions { justify-content: flex-end; flex-wrap: nowrap; }
 .proof-cols { grid-template-columns: 90px minmax(0, 1fr) 90px; }
 .own-account-cols { grid-template-columns: 70px minmax(0, 1fr) minmax(0, 0.8fr) auto; }
 .own-account-rename input { flex: 1 1 140px; min-width: 0; }
@@ -880,6 +883,13 @@ a.table-row:hover { background: var(--ground); color: var(--ink); }
   .service-pick > :nth-child(5) { grid-column: 3; }
   .service-pick > :nth-child(6) { grid-column: 4; }
   .service-pick > :nth-child(7) { justify-content: flex-start !important; }
+  .room-cols { grid-template-columns: minmax(0, 1fr) auto; row-gap: 4px; padding-top: 8px; padding-bottom: 8px; }
+  .room-cols .room-number { grid-column: 1; grid-row: 1; font-weight: 500; }
+  .room-cols .room-capacity { grid-column: 2; grid-row: 1; }
+  .room-cols .room-capacity::before { content: "Kapazität "; font-family: var(--sans); color: var(--muted); }
+  .room-cols .room-name { grid-column: 1 / -1; grid-row: 2; }
+  .room-cols .room-actions { grid-column: 1 / -1; grid-row: 3; justify-content: flex-start; }
+  .table-row.head.room-cols { display: none; }
   .own-account-cols { grid-template-columns: 70px minmax(0, 1fr); row-gap: 6px; }
   .own-account-cols > :nth-child(3), .own-account-cols > :nth-child(4) { grid-column: 1 / -1; }
   .own-account-cols > :nth-child(4) { justify-content: flex-start !important; }
