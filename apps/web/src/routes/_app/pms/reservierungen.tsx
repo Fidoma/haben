@@ -1,7 +1,8 @@
 import { formatEuro } from "@haben/core";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { z } from "zod";
 import { ConfirmDialog } from "../../../components/ConfirmDialog.tsx";
 import { NoticeBanner } from "../../../components/NoticeBanner.tsx";
 import { ReservationForm } from "../../../components/pms/ReservationForm.tsx";
@@ -10,6 +11,7 @@ import type { Notice } from "../../../lib/use-action.ts";
 import { cancelPmsReservation, createPmsReservationInvoice, getReservationFormOptions, getReservations } from "../../../server/functions/pms.ts";
 
 export const Route = createFileRoute("/_app/pms/reservierungen")({
+  validateSearch: z.object({ edit: z.uuid().optional() }),
   loader: async () => {
     const [reservations, options] = await Promise.all([getReservations(), getReservationFormOptions()]);
     return { reservations, options };
@@ -23,6 +25,7 @@ const nights = (arrival: string, departure: string) => Math.round((Date.parse(`$
 
 function ReservationsPage() {
   const { reservations, options } = Route.useLoaderData();
+  const { edit } = Route.useSearch();
   const router = useRouter();
   const cancel = useServerFn(cancelPmsReservation);
   const createInvoice = useServerFn(createPmsReservationInvoice);
@@ -36,6 +39,23 @@ function ReservationsPage() {
   const canceled = reservations.filter((reservation) => reservation.status === "canceled");
   const shown = showCanceled ? canceled : active;
   const formOpen = creating || editing !== null;
+
+  useEffect(() => {
+    if (!edit) return;
+    const reservation = reservations.find((candidate) => candidate.id === edit);
+    if (!reservation) {
+      setNotice({ tone: "danger", text: "Reservierung nicht gefunden." });
+      return;
+    }
+    if (reservation.status === "canceled") {
+      setShowCanceled(true);
+      setNotice({ tone: "danger", text: "Eine stornierte Reservierung kann nicht bearbeitet werden." });
+      return;
+    }
+    setCreating(false);
+    setEditing(reservation);
+    setNotice(null);
+  }, [edit, reservations]);
 
   async function cancelReservation(id: string) {
     try {
@@ -93,6 +113,7 @@ function ReservationsPage() {
               setEditing(null);
               setCreating(false);
               setNotice(nextNotice);
+              if (edit) void router.navigate({ to: "/pms/reservierungen", search: {} });
             }}
           />
         )}

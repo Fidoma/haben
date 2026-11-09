@@ -19,3 +19,12 @@ Commercial license
 To use Haben without the obligations of the AGPL, for example in a
 closed-source product or service, ask for a commercial license:
 https://teufel-it.de
+
+Third-party software
+--------------------
+
+DayPilot Lite 2026.3.856-lite
+Copyright (c) 2005-2026 Annpoint s.r.o.
+https://www.daypilot.org/
+Licensed under the Apache License, Version 2.0. See
+apps/web/public/vendor/daypilot/LICENSE.

@@ -6,8 +6,10 @@ import {
   createReservationInvoice,
   createReservation,
   createRoom,
+  defaultScheduleRange,
   listReservations,
   listRooms,
+  reservationSchedule,
   reservationFormOptions,
   reservationInputSchema,
   roomInputSchema,
@@ -16,6 +18,21 @@ import {
   updateRoom,
 } from "../modules/pms/index.ts";
 import { today } from "../today.ts";
+
+const scheduleInputSchema = z.object({
+  start: z.string().optional(),
+  end: z.string().optional(),
+});
+
+export const getReservationSchedule = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .validator(scheduleInputSchema)
+  .handler(async ({ data }) => {
+    const currentDay = today();
+    const defaults = defaultScheduleRange(currentDay);
+    const explicitRange = data.start && data.end ? { startDate: data.start, endDate: data.end } : defaults;
+    return reservationSchedule(explicitRange.startDate, explicitRange.endDate, currentDay);
+  });
 
 export const getReservations = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
