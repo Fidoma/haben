@@ -7,7 +7,7 @@ import { NoticeBanner } from "../../../components/NoticeBanner.tsx";
 import { ReservationForm } from "../../../components/pms/ReservationForm.tsx";
 import { errorMessage, formatDate } from "../../../lib/format.ts";
 import type { Notice } from "../../../lib/use-action.ts";
-import { cancelPmsReservation, getReservationFormOptions, getReservations } from "../../../server/functions/pms.ts";
+import { cancelPmsReservation, createPmsReservationInvoice, getReservationFormOptions, getReservations } from "../../../server/functions/pms.ts";
 
 export const Route = createFileRoute("/_app/pms/reservierungen")({
   loader: async () => {
@@ -25,11 +25,13 @@ function ReservationsPage() {
   const { reservations, options } = Route.useLoaderData();
   const router = useRouter();
   const cancel = useServerFn(cancelPmsReservation);
+  const createInvoice = useServerFn(createPmsReservationInvoice);
   const [editing, setEditing] = useState<Reservation | null>(null);
   const [creating, setCreating] = useState(false);
   const [confirming, setConfirming] = useState<Reservation | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
   const [showCanceled, setShowCanceled] = useState(false);
+  const [creatingInvoiceId, setCreatingInvoiceId] = useState<string | null>(null);
   const active = reservations.filter((reservation) => reservation.status === "confirmed");
   const canceled = reservations.filter((reservation) => reservation.status === "canceled");
   const shown = showCanceled ? canceled : active;
@@ -42,6 +44,18 @@ function ReservationsPage() {
       setNotice({ tone: "ok", text: "Reservierung storniert." });
     } catch (cause) {
       setNotice({ tone: "danger", text: errorMessage(cause) });
+    }
+  }
+
+  async function invoiceReservation(id: string) {
+    setCreatingInvoiceId(id);
+    setNotice(null);
+    try {
+      const invoice = await createInvoice({ data: { id } });
+      await router.navigate({ to: "/rechnungen/$id", params: { id: invoice.id } });
+    } catch (cause) {
+      setNotice({ tone: "danger", text: errorMessage(cause) });
+      setCreatingInvoiceId(null);
     }
   }
 
@@ -115,6 +129,12 @@ function ReservationsPage() {
                     setNotice(null);
                   }}
                   onCancel={() => setConfirming(reservation)}
+                  onInvoice={() =>
+                    reservation.invoiceId
+                      ? void router.navigate({ to: "/rechnungen/$id", params: { id: reservation.invoiceId } })
+                      : void invoiceReservation(reservation.id)
+                  }
+                  creatingInvoice={creatingInvoiceId === reservation.id}
                 />
               ))}
             </div>
@@ -144,7 +164,19 @@ function ReservationsPage() {
   );
 }
 
-function ReservationRow({ reservation, onEdit, onCancel }: { reservation: Reservation; onEdit: () => void; onCancel: () => void }) {
+function ReservationRow({
+  reservation,
+  onEdit,
+  onCancel,
+  onInvoice,
+  creatingInvoice,
+}: {
+  reservation: Reservation;
+  onEdit: () => void;
+  onCancel: () => void;
+  onInvoice: () => void;
+  creatingInvoice: boolean;
+}) {
   return (
     <div className="table-row reservation-cols">
       <div className="reservation-period">
@@ -176,6 +208,9 @@ function ReservationRow({ reservation, onEdit, onCancel }: { reservation: Reserv
       <div className="actions reservation-actions">
         {reservation.status === "confirmed" && (
           <>
+            <button type="button" className="btn btn-sm btn-primary" disabled={creatingInvoice} onClick={onInvoice}>
+              {creatingInvoice ? "Erstelle …" : reservation.invoiceId ? "Rechnung anzeigen" : "Rechnung erstellen"}
+            </button>
             <button type="button" className="btn btn-sm" aria-label={`Reservierung für ${reservation.contactName} bearbeiten`} onClick={onEdit}>
               Bearbeiten
             </button>

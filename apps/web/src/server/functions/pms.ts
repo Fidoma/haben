@@ -3,6 +3,7 @@ import { z } from "zod";
 import { authMiddleware } from "../middleware.ts";
 import {
   cancelReservation,
+  createReservationInvoice,
   createReservation,
   createRoom,
   listReservations,
@@ -14,6 +15,7 @@ import {
   updateReservation,
   updateRoom,
 } from "../modules/pms/index.ts";
+import { today } from "../today.ts";
 
 export const getReservations = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
@@ -37,6 +39,14 @@ export const cancelPmsReservation = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await cancelReservation(context.user.id, data.id);
     return { ok: true };
+  });
+
+export const createPmsReservationInvoice = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator(z.object({ id: z.uuid() }))
+  .handler(async ({ data, context }) => {
+    const invoice = await createReservationInvoice(context.user.id, data.id, today());
+    return { id: invoice.id };
   });
 
 export const getRooms = createServerFn({ method: "GET" })
