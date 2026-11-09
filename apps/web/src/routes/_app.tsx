@@ -102,6 +102,7 @@ const NAV_GROUPS = [
     label: "PMS",
     links: [
       { to: "/pms/reservierungen", icon: "calendar", label: "Reservierungen" },
+      { to: "/pms/belegungsplan", icon: "calendar", label: "Belegungsplan" },
       { to: "/pms/zimmer", icon: "room", label: "Zimmer" },
     ],
   },

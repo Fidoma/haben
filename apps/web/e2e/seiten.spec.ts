@@ -31,6 +31,7 @@ async function routes(page: Page): Promise<[string, string | null][]> {
     ["artikel", "/artikel"],
     ["leistungen", "/leistungen"],
     ["pms-reservierungen", "/pms/reservierungen"],
+    ["pms-belegungsplan", "/pms/belegungsplan"],
     ["pms-zimmer", "/pms/zimmer"],
     ["textbausteine", "/textbausteine"],
     ["belege", "/belege"],

@@ -12,7 +12,19 @@ import { ReservationPositions, type ReservationPositionDraft } from "./Reservati
 type Reservation = Awaited<ReturnType<typeof getReservations>>[number];
 type Options = Awaited<ReturnType<typeof getReservationFormOptions>>;
 
-export function ReservationForm({ reservation, options, onDone }: { reservation: Reservation | null; options: Options; onDone: (notice: Notice) => void }) {
+export function ReservationForm({
+  reservation,
+  options,
+  prefill,
+  inDialog = false,
+  onDone,
+}: {
+  reservation: Reservation | null;
+  options: Options;
+  prefill?: Partial<Pick<ReservationPositionDraft, "roomId" | "arrivalDate" | "departureDate">>;
+  inDialog?: boolean;
+  onDone: (notice: Notice) => void;
+}) {
   const router = useRouter();
   const save = useServerFn(saveReservation);
   const [contactId, setContactId] = useState(reservation?.contactId ?? "");
@@ -28,7 +40,17 @@ export function ReservationForm({ reservation, options, onDone }: { reservation:
           departureDate: item.departureDate,
           description: item.description,
         }))
-      : [{ key: 1, roomId: "", articleId: "", unitPrice: "", arrivalDate: "", departureDate: "", description: "" }],
+      : [
+          {
+            key: 1,
+            roomId: prefill?.roomId ?? "",
+            articleId: "",
+            unitPrice: "",
+            arrivalDate: prefill?.arrivalDate ?? "",
+            departureDate: prefill?.departureDate ?? "",
+            description: "",
+          },
+        ],
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +113,7 @@ export function ReservationForm({ reservation, options, onDone }: { reservation:
         onPickExisting={setContactId}
         onClose={() => setNewContactName(null)}
       />
-      <form className="card reservation-form" onSubmit={onSubmit} aria-label={formName}>
+      <form className={`card reservation-form${inDialog ? " contact-form" : ""}`} onSubmit={onSubmit} aria-label={formName}>
         <h2 style={{ margin: 0, fontSize: 16 }}>{formName}</h2>
         <div className="form-row">
           <div className="field">
@@ -115,7 +137,7 @@ export function ReservationForm({ reservation, options, onDone }: { reservation:
             {error}
           </div>
         )}
-        <div className="actions">
+        <div className={`actions${inDialog ? " form-footer" : ""}`}>
           <button type="submit" className="btn btn-primary" disabled={busy}>
             {reservation ? "Speichern" : "Anlegen"}
           </button>
