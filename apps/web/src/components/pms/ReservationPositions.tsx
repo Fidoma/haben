@@ -1,8 +1,12 @@
+import type { ArticleOption } from "../ArticleCombobox.tsx";
+import { ArticleSelectCombobox } from "../ArticleCombobox.tsx";
 import { Icon } from "../Icon.tsx";
 
 export interface ReservationPositionDraft {
   key: number;
   roomId: string;
+  articleId: string;
+  unitPrice: string;
   arrivalDate: string;
   departureDate: string;
   description: string;
@@ -18,11 +22,13 @@ interface RoomOption {
 export function ReservationPositions({
   positions,
   rooms,
+  articles,
   disabled,
   onChange,
 }: {
   positions: ReservationPositionDraft[];
   rooms: RoomOption[];
+  articles: ArticleOption[];
   disabled: boolean;
   onChange: (positions: ReservationPositionDraft[]) => void;
 }) {
@@ -37,6 +43,8 @@ export function ReservationPositions({
       {
         key: Math.max(0, ...positions.map((position) => position.key)) + 1,
         roomId: "",
+        articleId: "",
+        unitPrice: "",
         arrivalDate: last?.arrivalDate ?? "",
         departureDate: last?.departureDate ?? "",
         description: "",
@@ -49,6 +57,8 @@ export function ReservationPositions({
       <h3 id="reservation-positions-heading">Positionen</h3>
       <div className="reservation-position-row head" aria-hidden="true">
         <div>Zimmer</div>
+        <div>Artikel</div>
+        <div className="num">Preis</div>
         <div>Anreise</div>
         <div>Abreise</div>
         <div>Beschreibung</div>
@@ -73,6 +83,32 @@ export function ReservationPositions({
                 </option>
               ))}
             </select>
+          </label>
+          <div className="field">
+            <span className="reservation-position-label">Artikel</span>
+            <ArticleSelectCombobox
+              label={`Artikel Position ${index + 1}`}
+              articleId={position.articleId}
+              articles={articles}
+              disabled={disabled}
+              onPick={(article) =>
+                update(position.key, {
+                  articleId: article?.id ?? "",
+                  ...(article ? { unitPrice: (article.unitPrice / 100).toFixed(2).replace(".", ",") } : {}),
+                })
+              }
+            />
+          </div>
+          <label className="field">
+            <span className="reservation-position-label">Preis</span>
+            <input
+              aria-label={`Preis Position ${index + 1} in Euro`}
+              inputMode="decimal"
+              value={position.unitPrice}
+              required
+              disabled={disabled}
+              onChange={(event) => update(position.key, { unitPrice: event.target.value })}
+            />
           </label>
           <label className="field">
             <span className="reservation-position-label">Anreise</span>

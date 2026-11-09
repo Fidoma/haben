@@ -1,3 +1,4 @@
+import { formatEuro } from "@haben/core";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -159,6 +160,13 @@ function ReservationRow({ reservation, onEdit, onCancel }: { reservation: Reserv
           <span key={item.id}>
             <span className="mono">{item.roomNumber}</span>
             {item.roomName && <span className="muted small"> · {item.roomName}</span>}
+            {item.articleDescription && (
+              <span className="muted small">
+                {" · "}
+                {item.articleNumber ? `${item.articleNumber} · ` : ""}
+                {item.articleDescription} · {formatEuro(item.unitPrice)}
+              </span>
+            )}
             {item.description && <span className="muted small"> · {item.description}</span>}
           </span>
         ))}

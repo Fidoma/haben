@@ -1,3 +1,4 @@
+import { formatDecimal, parseEuro } from "@haben/core";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent } from "react";
@@ -21,11 +22,13 @@ export function ReservationForm({ reservation, options, onDone }: { reservation:
       ? reservation.items.map((item, index) => ({
           key: index + 1,
           roomId: item.roomId,
+          articleId: item.articleId ?? "",
+          unitPrice: formatDecimal(item.unitPrice),
           arrivalDate: item.arrivalDate,
           departureDate: item.departureDate,
           description: item.description,
         }))
-      : [{ key: 1, roomId: "", arrivalDate: "", departureDate: "", description: "" }],
+      : [{ key: 1, roomId: "", articleId: "", unitPrice: "", arrivalDate: "", departureDate: "", description: "" }],
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +40,14 @@ export function ReservationForm({ reservation, options, onDone }: { reservation:
       setError(`In Position ${invalidPosition + 1} muss die Abreise nach der Anreise liegen.`);
       return;
     }
+    const invalidPrice = positions.findIndex((position) => {
+      const price = parseEuro(position.unitPrice);
+      return price === null || price < 0;
+    });
+    if (invalidPrice >= 0) {
+      setError(`In Position ${invalidPrice + 1} muss der Preis ein gültiger, nicht negativer Betrag sein.`);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -45,8 +56,10 @@ export function ReservationForm({ reservation, options, onDone }: { reservation:
           id: reservation?.id ?? null,
           reservation: {
             contactId,
-            items: positions.map(({ roomId, arrivalDate, departureDate, description }) => ({
+            items: positions.map(({ roomId, articleId, unitPrice, arrivalDate, departureDate, description }) => ({
               roomId,
+              articleId: articleId || null,
+              unitPrice: parseEuro(unitPrice)!,
               arrivalDate,
               departureDate,
               description: description.trim(),
@@ -95,7 +108,7 @@ export function ReservationForm({ reservation, options, onDone }: { reservation:
             />
             <input type="hidden" name="contactId" value={contactId} />
           </div>
-          <ReservationPositions positions={positions} rooms={options.rooms} disabled={busy} onChange={setPositions} />
+          <ReservationPositions positions={positions} rooms={options.rooms} articles={options.articles} disabled={busy} onChange={setPositions} />
         </div>
         {error && (
           <div className="banner banner-danger" role="alert">
