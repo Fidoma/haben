@@ -104,6 +104,8 @@ const NAV_GROUPS = [
       { to: "/pms/reservierungen", icon: "calendar", label: "Reservierungen" },
       { to: "/pms/belegungsplan", icon: "calendar", label: "Belegungsplan" },
       { to: "/pms/zimmer", icon: "room", label: "Zimmer" },
+      { to: "/pms/housekeeping", icon: "room", label: "Housekeeping" },
+      { to: "/pms/tourismusstatistik", icon: "reports", label: "Tourismusstatistik" },
     ],
   },
 ] as const;

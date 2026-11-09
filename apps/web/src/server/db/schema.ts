@@ -1686,6 +1686,9 @@ export const pmsRooms = pgTable(
     /** Optionale ergänzende Bezeichnung; leer = keine */
     name: text("name").notNull().default(""),
     capacity: smallint("capacity").notNull().default(1),
+    cleaningStatus: text("cleaning_status", { enum: ["clean", "dirty"] })
+      .notNull()
+      .default("clean"),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -1695,6 +1698,7 @@ export const pmsRooms = pgTable(
     check("pms_rooms_number_length", sql`char_length(${t.number}) between 1 and 50`),
     check("pms_rooms_name_length", sql`char_length(${t.name}) <= 100`),
     check("pms_rooms_capacity", sql`${t.capacity} between 1 and 100`),
+    check("pms_rooms_cleaning_status", sql`${t.cleaningStatus} in ('clean', 'dirty')`),
   ],
 );
 
@@ -1763,6 +1767,8 @@ export const pmsReservationItems = pgTable(
     description: text("description").notNull().default(""),
     /** Bei Storno gesetzt; damit gibt die Exclusion-Constraint das Zimmer wieder frei */
     canceledAt: timestamp("canceled_at", { withTimezone: true }),
+    /** Genau einmal gesetzte Marke der automatischen Verschmutzung nach Abreise */
+    dirtyProcessedAt: timestamp("dirty_processed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -1773,6 +1779,46 @@ export const pmsReservationItems = pgTable(
     check("pms_reservation_items_period", sql`${t.departureDate} > ${t.arrivalDate}`),
     check("pms_reservation_items_description_length", sql`char_length(${t.description}) <= 2000`),
     check("pms_reservation_items_unit_price", sql`${t.unitPrice} between 0 and 999999999`),
+  ],
+);
+
+/** Monatliche Meldung der Beherbergungsstatistik; Länderwerte stehen separat. */
+export const pmsTourismReports = pgTable(
+  "pms_tourism_reports",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    year: smallint("year").notNull(),
+    month: smallint("month").notNull(),
+    bedsOffered: integer("beds_offered").notNull().default(0),
+    availableGuestRoomDays: integer("available_guest_room_days").notNull().default(0),
+    occupiedGuestRoomDays: integer("occupied_guest_room_days").notNull().default(0),
+    remarks: text("remarks").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("pms_tourism_reports_period_unique").on(t.year, t.month),
+    check("pms_tourism_reports_year", sql`${t.year} between 2000 and 2200`),
+    check("pms_tourism_reports_month", sql`${t.month} between 1 and 12`),
+    check("pms_tourism_reports_values", sql`${t.bedsOffered} >= 0 and ${t.availableGuestRoomDays} >= 0 and ${t.occupiedGuestRoomDays} >= 0`),
+    check("pms_tourism_reports_remarks", sql`char_length(${t.remarks}) <= 1000`),
+  ],
+);
+
+export const pmsTourismCountryValues = pgTable(
+  "pms_tourism_country_values",
+  {
+    reportId: uuid("report_id")
+      .notNull()
+      .references(() => pmsTourismReports.id, { onDelete: "cascade" }),
+    countryKey: text("country_key").notNull(),
+    arrivals: integer("arrivals").notNull().default(0),
+    overnightStays: integer("overnight_stays").notNull().default(0),
+  },
+  (t) => [
+    primaryKey({ columns: [t.reportId, t.countryKey] }),
+    check("pms_tourism_country_values_key", sql`char_length(${t.countryKey}) between 1 and 50`),
+    check("pms_tourism_country_values_amounts", sql`${t.arrivals} >= 0 and ${t.overnightStays} >= ${t.arrivals}`),
   ],
 );
 
