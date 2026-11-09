@@ -31,6 +31,7 @@ const PAGES = [
   "/angebote/neu",
   "/artikel",
   "/leistungen",
+  "/pms/reservierungen",
   "/pms/zimmer",
   "/kontakte",
   "/kontakte/neu",

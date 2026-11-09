@@ -124,6 +124,7 @@ const gruppen: Record<(typeof MIT_DATEN)[number], { testMatch: string[]; grepInv
       "firmenname.spec.ts",
       "gestaltung.spec.ts",
       "kopfzeile.spec.ts",
+      "pms-reservierungen.spec.ts",
       "pms-zimmer.spec.ts",
       "seiten.spec.ts",
       "vorschau.spec.ts",

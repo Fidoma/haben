@@ -1,7 +1,43 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { authMiddleware } from "../middleware.ts";
-import { createRoom, listRooms, roomInputSchema, setRoomArchived, updateRoom } from "../modules/pms/index.ts";
+import {
+  cancelReservation,
+  createReservation,
+  createRoom,
+  listReservations,
+  listRooms,
+  reservationFormOptions,
+  reservationInputSchema,
+  roomInputSchema,
+  setRoomArchived,
+  updateReservation,
+  updateRoom,
+} from "../modules/pms/index.ts";
+
+export const getReservations = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(() => listReservations());
+
+export const getReservationFormOptions = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(() => reservationFormOptions());
+
+export const saveReservation = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator(z.object({ id: z.uuid().nullable(), reservation: reservationInputSchema }))
+  .handler(async ({ data, context }) => {
+    const row = data.id ? await updateReservation(context.user.id, data.id, data.reservation) : await createReservation(context.user.id, data.reservation);
+    return { id: row.id };
+  });
+
+export const cancelPmsReservation = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator(z.object({ id: z.uuid() }))
+  .handler(async ({ data, context }) => {
+    await cancelReservation(context.user.id, data.id);
+    return { ok: true };
+  });
 
 export const getRooms = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
