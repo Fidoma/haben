@@ -1,8 +1,10 @@
+import { convertPrice, type TaxRate, type UnitLabel } from "@haben/core";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { withActor } from "../../db/actor.ts";
 import { db, schema } from "../../db/index.ts";
 import { UserError } from "../../errors.ts";
+import { createDraft, deleteDraft, newDraftDefaults } from "../rechnungen/index.ts";
 
 export class ReservationError extends UserError {}
 
@@ -42,6 +44,7 @@ export async function listReservations() {
       .select({
         id: schema.pmsReservations.id,
         contactId: schema.pmsReservations.contactId,
+        invoiceId: schema.pmsReservations.invoiceId,
         status: schema.pmsReservations.status,
         canceledAt: schema.pmsReservations.canceledAt,
         contactName: schema.contacts.name,
@@ -58,6 +61,9 @@ export async function listReservations() {
         unitPrice: schema.pmsReservationItems.unitPrice,
         articleNumber: schema.articles.number,
         articleDescription: schema.articles.description,
+        articleUnit: schema.articles.unit,
+        articleTaxRate: schema.articles.taxRate,
+        articlePriceIncludesTax: schema.articles.priceIncludesTax,
         arrivalDate: schema.pmsReservationItems.arrivalDate,
         departureDate: schema.pmsReservationItems.departureDate,
         description: schema.pmsReservationItems.description,
@@ -236,4 +242,69 @@ export async function cancelReservation(actor: string, id: string): Promise<void
       .where(and(eq(schema.pmsReservations.id, id), eq(schema.pmsReservations.status, "confirmed")));
     await tx.update(schema.pmsReservationItems).set({ canceledAt, updatedAt: canceledAt }).where(eq(schema.pmsReservationItems.reservationId, id));
   });
+}
+
+const stayDays = (arrivalDate: string, departureDate: string) =>
+  Math.round((Date.parse(`${departureDate}T00:00:00Z`) - Date.parse(`${arrivalDate}T00:00:00Z`)) / 86_400_000);
+
+const germanDate = (value: string) => `${value.slice(8, 10)}.${value.slice(5, 7)}.${value.slice(0, 4)}`;
+
+/** Erstellt aus allen Aufenthaltspositionen einen Rechnungsentwurf über die öffentliche Rechnungsschnittstelle. */
+export async function createReservationInvoice(actor: string, id: string, issueDate: string) {
+  const reservation = (await listReservations()).find((candidate) => candidate.id === id);
+  if (!reservation) throw new ReservationError("Reservierung nicht gefunden.");
+  if (reservation.status === "canceled") throw new ReservationError("Für eine stornierte Reservierung kann keine Rechnung erstellt werden.");
+  if (reservation.invoiceId) throw new ReservationError("Für diese Reservierung wurde bereits eine Rechnung erstellt.");
+  if (reservation.items.length === 0) throw new ReservationError("Die Reservierung enthält keine Positionen.");
+
+  const defaults = await newDraftDefaults(issueDate);
+  const fallback = defaults.lines[0]!;
+  const serviceFrom = reservation.items.map((item) => item.arrivalDate).sort()[0]!;
+  const serviceTo = reservation.items
+    .map((item) => item.departureDate)
+    .sort()
+    .at(-1)!;
+  const lines = reservation.items.map((item) => {
+    const detail = [
+      `Zimmer ${item.roomNumber}${item.roomName ? ` (${item.roomName})` : ""}`,
+      `${germanDate(item.arrivalDate)} – ${germanDate(item.departureDate)}`,
+      item.description,
+    ]
+      .filter(Boolean)
+      .join(" · ")
+      .slice(0, 2000);
+    const taxRate = (item.articleTaxRate ?? fallback.taxRate) as TaxRate;
+    const unitPrice = item.articleId
+      ? convertPrice(item.unitPrice, taxRate, item.articlePriceIncludesTax ? "brutto" : "netto", defaults.priceMode)
+      : item.unitPrice;
+    return {
+      description: item.articleDescription || "Übernachtung",
+      detail,
+      itemNumber: item.articleNumber ?? "",
+      quantity: stayDays(item.arrivalDate, item.departureDate) * 1000,
+      unit: (item.articleUnit ?? "Tag") as UnitLabel,
+      unitPrice,
+      taxRate,
+      discount: null,
+    };
+  });
+  const invoice = await createDraft(actor, {
+    ...defaults,
+    contactId: reservation.contactId,
+    serviceFrom,
+    serviceTo,
+    lines,
+  });
+  const linked = await withActor(actor, (tx) =>
+    tx
+      .update(schema.pmsReservations)
+      .set({ invoiceId: invoice.id, updatedAt: new Date() })
+      .where(and(eq(schema.pmsReservations.id, id), isNull(schema.pmsReservations.invoiceId)))
+      .returning({ id: schema.pmsReservations.id }),
+  );
+  if (linked.length === 0) {
+    await deleteDraft(actor, invoice.id);
+    throw new ReservationError("Für diese Reservierung wurde bereits eine Rechnung erstellt.");
+  }
+  return invoice;
 }

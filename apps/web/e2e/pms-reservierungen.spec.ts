@@ -48,7 +48,14 @@ test("Reservierung anlegen, bearbeiten und dauerhaft stornieren", async ({ page 
   await expect(page.getByText("Reservierung gespeichert.")).toBeVisible();
   await expect(row).toContainText("6");
 
-  await row.getByRole("button", { name: /stornieren/ }).click();
+  await row.getByRole("button", { name: "Rechnung erstellen" }).click();
+  await expect(page).toHaveURL(/\/rechnungen\/[0-9a-f-]+$/);
+  await expect(page.getByText("E2E-R1")).toBeVisible();
+
+  await page.goto("/pms/reservierungen");
+  const updatedRow = page.locator(".reservation-cols", { hasText: "E2E-R1" });
+  await expect(updatedRow.getByRole("button", { name: "Rechnung anzeigen" })).toBeVisible();
+  await updatedRow.getByRole("button", { name: /stornieren/ }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toContainText("E2E-R1");
   await dialog.getByRole("button", { name: "Stornieren" }).click();

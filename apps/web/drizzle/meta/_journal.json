@@ -1597,6 +1597,13 @@
       "when": 1794241984555,
       "tag": "0192_exotic_chronomancer",
       "breakpoints": true
+    },
+    {
+      "idx": 193,
+      "version": "7",
+      "when": 1794243748371,
+      "tag": "0193_bitter_red_hulk",
+      "breakpoints": true
     }
   ]
 }
