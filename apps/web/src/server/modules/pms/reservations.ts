@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { withActor } from "../../db/actor.ts";
 import { db, schema } from "../../db/index.ts";
@@ -12,15 +12,22 @@ function validIsoDate(value: string): boolean {
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
-export const reservationInputSchema = z
+export const reservationItemInputSchema = z
   .object({
     roomId: z.uuid("Bitte ein Zimmer auswählen."),
-    contactId: z.uuid("Bitte einen Kunden auswählen."),
     arrivalDate: z.string().refine(validIsoDate, "Die Anreise muss ein gültiges Datum sein."),
     departureDate: z.string().refine(validIsoDate, "Die Abreise muss ein gültiges Datum sein."),
-    note: z.string().trim().max(2000, "Die interne Notiz darf höchstens 2.000 Zeichen lang sein.").default(""),
+    description: z.string().trim().max(2000, "Die Beschreibung darf höchstens 2.000 Zeichen lang sein.").default(""),
   })
   .refine((input) => input.departureDate > input.arrivalDate, { message: "Die Abreise muss nach der Anreise liegen.", path: ["departureDate"] });
+
+export const reservationInputSchema = z.object({
+  contactId: z.uuid("Bitte einen Kunden auswählen."),
+  items: z
+    .array(reservationItemInputSchema)
+    .min(1, "Mindestens eine Position ist erforderlich.")
+    .max(100, "Eine Reservierung darf höchstens 100 Positionen haben."),
+});
 
 export type ReservationInput = z.input<typeof reservationInputSchema>;
 export type Reservation = Awaited<ReturnType<typeof listReservations>>[number];
@@ -28,25 +35,49 @@ export type Reservation = Awaited<ReturnType<typeof listReservations>>[number];
 const roomNumberCollator = new Intl.Collator("de", { numeric: true, sensitivity: "base" });
 
 export async function listReservations() {
-  const rows = await db
-    .select({
-      id: schema.pmsReservations.id,
-      roomId: schema.pmsReservations.roomId,
-      contactId: schema.pmsReservations.contactId,
-      arrivalDate: schema.pmsReservations.arrivalDate,
-      departureDate: schema.pmsReservations.departureDate,
-      status: schema.pmsReservations.status,
-      note: schema.pmsReservations.note,
-      canceledAt: schema.pmsReservations.canceledAt,
-      roomNumber: schema.pmsRooms.number,
-      roomName: schema.pmsRooms.name,
-      contactName: schema.contacts.name,
-    })
-    .from(schema.pmsReservations)
-    .innerJoin(schema.pmsRooms, eq(schema.pmsReservations.roomId, schema.pmsRooms.id))
-    .innerJoin(schema.contacts, eq(schema.pmsReservations.contactId, schema.contacts.id))
-    .orderBy(asc(schema.pmsReservations.arrivalDate));
-  return rows.sort((left, right) => left.arrivalDate.localeCompare(right.arrivalDate) || roomNumberCollator.compare(left.roomNumber, right.roomNumber));
+  const [heads, items] = await Promise.all([
+    db
+      .select({
+        id: schema.pmsReservations.id,
+        contactId: schema.pmsReservations.contactId,
+        status: schema.pmsReservations.status,
+        canceledAt: schema.pmsReservations.canceledAt,
+        contactName: schema.contacts.name,
+      })
+      .from(schema.pmsReservations)
+      .innerJoin(schema.contacts, eq(schema.pmsReservations.contactId, schema.contacts.id)),
+    db
+      .select({
+        id: schema.pmsReservationItems.id,
+        reservationId: schema.pmsReservationItems.reservationId,
+        position: schema.pmsReservationItems.position,
+        roomId: schema.pmsReservationItems.roomId,
+        arrivalDate: schema.pmsReservationItems.arrivalDate,
+        departureDate: schema.pmsReservationItems.departureDate,
+        description: schema.pmsReservationItems.description,
+        roomNumber: schema.pmsRooms.number,
+        roomName: schema.pmsRooms.name,
+      })
+      .from(schema.pmsReservationItems)
+      .innerJoin(schema.pmsRooms, eq(schema.pmsReservationItems.roomId, schema.pmsRooms.id))
+      .orderBy(asc(schema.pmsReservationItems.position)),
+  ]);
+  const byReservation = new Map<string, typeof items>();
+  for (const item of items) {
+    const reservationItems = byReservation.get(item.reservationId) ?? [];
+    reservationItems.push(item);
+    byReservation.set(item.reservationId, reservationItems);
+  }
+  return heads
+    .map((head) => ({ ...head, items: byReservation.get(head.id) ?? [] }))
+    .sort((left, right) => {
+      const firstLeft = left.items[0];
+      const firstRight = right.items[0];
+      return (
+        (firstLeft?.arrivalDate ?? "").localeCompare(firstRight?.arrivalDate ?? "") ||
+        roomNumberCollator.compare(firstLeft?.roomNumber ?? "", firstRight?.roomNumber ?? "")
+      );
+    });
 }
 
 export async function reservationFormOptions() {
@@ -56,7 +87,14 @@ export async function reservationFormOptions() {
       .from(schema.pmsRooms)
       .where(isNull(schema.pmsRooms.archivedAt)),
     db
-      .select({ id: schema.contacts.id, name: schema.contacts.name })
+      .select({
+        id: schema.contacts.id,
+        name: schema.contacts.name,
+        ort: schema.contacts.ort,
+        kundennummer: schema.contacts.kundennummer,
+        isCustomer: schema.contacts.isCustomer,
+        ustId: schema.contacts.ustId,
+      })
       .from(schema.contacts)
       .where(and(isNull(schema.contacts.archivedAt), eq(schema.contacts.isCustomer, true)))
       .orderBy(asc(schema.contacts.name)),
@@ -66,15 +104,20 @@ export async function reservationFormOptions() {
 }
 
 async function validateReferences(input: z.output<typeof reservationInputSchema>): Promise<void> {
-  const [[room], [contact]] = await Promise.all([
-    db.select({ archivedAt: schema.pmsRooms.archivedAt }).from(schema.pmsRooms).where(eq(schema.pmsRooms.id, input.roomId)),
+  const roomIds = [...new Set(input.items.map((item) => item.roomId))];
+  const [rooms, [contact]] = await Promise.all([
+    db.select({ id: schema.pmsRooms.id, archivedAt: schema.pmsRooms.archivedAt }).from(schema.pmsRooms).where(inArray(schema.pmsRooms.id, roomIds)),
     db
       .select({ archivedAt: schema.contacts.archivedAt, isCustomer: schema.contacts.isCustomer })
       .from(schema.contacts)
       .where(eq(schema.contacts.id, input.contactId)),
   ]);
-  if (!room) throw new ReservationError("Zimmer nicht gefunden.");
-  if (room.archivedAt) throw new ReservationError("Das Zimmer ist archiviert.");
+  const roomsById = new Map(rooms.map((room) => [room.id, room]));
+  for (const roomId of roomIds) {
+    const room = roomsById.get(roomId);
+    if (!room) throw new ReservationError("Zimmer nicht gefunden.");
+    if (room.archivedAt) throw new ReservationError("Das Zimmer ist archiviert.");
+  }
   if (!contact) throw new ReservationError("Kontakt nicht gefunden.");
   if (!contact.isCustomer) throw new ReservationError("Der Kontakt besitzt keine Kundenrolle.");
   if (contact.archivedAt) throw new ReservationError("Der Kunde ist archiviert.");
@@ -82,7 +125,7 @@ async function validateReferences(input: z.output<typeof reservationInputSchema>
 
 function isOverlap(error: unknown): boolean {
   const pg = (error as { cause?: { code?: string; constraint_name?: string } } | null)?.cause;
-  return pg?.code === "23P01" && pg.constraint_name === "pms_reservations_no_overlap";
+  return pg?.code === "23P01" && ["pms_reservations_no_overlap", "pms_reservation_items_no_overlap"].includes(pg.constraint_name ?? "");
 }
 
 async function translateOverlap<T>(operation: () => Promise<T>): Promise<T> {
@@ -94,13 +137,29 @@ async function translateOverlap<T>(operation: () => Promise<T>): Promise<T> {
   }
 }
 
+const itemRows = (reservationId: string, items: z.output<typeof reservationItemInputSchema>[]) =>
+  items.map((item, index) => ({ ...item, reservationId, position: index + 1 }));
+
 export async function createReservation(actor: string, input: ReservationInput) {
   const values = reservationInputSchema.parse(input);
   await validateReferences(values);
-  return translateOverlap(async () => {
-    const [row] = await withActor(actor, (tx) => tx.insert(schema.pmsReservations).values(values).returning());
-    return row!;
-  });
+  return translateOverlap(() =>
+    withActor(actor, async (tx) => {
+      const first = values.items[0]!;
+      const [row] = await tx
+        .insert(schema.pmsReservations)
+        .values({
+          contactId: values.contactId,
+          roomId: first.roomId,
+          arrivalDate: first.arrivalDate,
+          departureDate: first.departureDate,
+          note: first.description,
+        })
+        .returning();
+      await tx.insert(schema.pmsReservationItems).values(itemRows(row!.id, values.items));
+      return { ...row!, items: values.items };
+    }),
+  );
 }
 
 async function editableReservation(id: string) {
@@ -114,24 +173,36 @@ export async function updateReservation(actor: string, id: string, input: Reserv
   await editableReservation(id);
   const values = reservationInputSchema.parse(input);
   await validateReferences(values);
-  return translateOverlap(async () => {
-    const [row] = await withActor(actor, (tx) =>
-      tx
+  return translateOverlap(() =>
+    withActor(actor, async (tx) => {
+      const first = values.items[0]!;
+      const [row] = await tx
         .update(schema.pmsReservations)
-        .set({ ...values, updatedAt: new Date() })
+        .set({
+          contactId: values.contactId,
+          roomId: first.roomId,
+          arrivalDate: first.arrivalDate,
+          departureDate: first.departureDate,
+          note: first.description,
+          updatedAt: new Date(),
+        })
         .where(eq(schema.pmsReservations.id, id))
-        .returning(),
-    );
-    return row!;
-  });
+        .returning();
+      await tx.delete(schema.pmsReservationItems).where(eq(schema.pmsReservationItems.reservationId, id));
+      await tx.insert(schema.pmsReservationItems).values(itemRows(id, values.items));
+      return { ...row!, items: values.items };
+    }),
+  );
 }
 
 export async function cancelReservation(actor: string, id: string): Promise<void> {
   await editableReservation(id);
-  await withActor(actor, (tx) =>
-    tx
+  await withActor(actor, async (tx) => {
+    const canceledAt = new Date();
+    await tx
       .update(schema.pmsReservations)
-      .set({ status: "canceled", canceledAt: new Date(), updatedAt: new Date() })
-      .where(and(eq(schema.pmsReservations.id, id), eq(schema.pmsReservations.status, "confirmed"))),
-  );
+      .set({ status: "canceled", canceledAt, updatedAt: canceledAt })
+      .where(and(eq(schema.pmsReservations.id, id), eq(schema.pmsReservations.status, "confirmed")));
+    await tx.update(schema.pmsReservationItems).set({ canceledAt, updatedAt: canceledAt }).where(eq(schema.pmsReservationItems.reservationId, id));
+  });
 }

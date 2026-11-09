@@ -1719,21 +1719,24 @@ export const pmsRooms = pgTable(
 
 export const pmsReservationStatuses = ["confirmed", "canceled"] as const;
 
-/** Einfache Zimmerreservierung des PMS; Stornierungen bleiben dauerhaft erhalten */
+/** Kopf einer PMS-Reservierung; Zimmer und Aufenthaltszeitraum stehen in den Positionen */
 export const pmsReservations = pgTable(
   "pms_reservations",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /** Kompatibilitätskopie der ersten Position für bestehende Installationen */
     roomId: uuid("room_id")
       .notNull()
       .references(() => pmsRooms.id),
     contactId: uuid("contact_id")
       .notNull()
       .references(() => contacts.id),
+    /** Kompatibilitätskopie der ersten Position für bestehende Installationen */
     arrivalDate: date("arrival_date", { mode: "string" }).notNull(),
+    /** Kompatibilitätskopie der ersten Position für bestehende Installationen */
     departureDate: date("departure_date", { mode: "string" }).notNull(),
     status: text("status", { enum: pmsReservationStatuses }).notNull().default("confirmed"),
-    /** Interne Notiz; erscheint nicht auf Belegen oder gegenüber dem Gast */
+    /** Kompatibilitätskopie der Beschreibung der ersten Position */
     note: text("note").notNull().default(""),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -1750,6 +1753,36 @@ export const pmsReservations = pgTable(
       "pms_reservations_canceled_at",
       sql`(${t.status} = 'confirmed' and ${t.canceledAt} is null) or (${t.status} = 'canceled' and ${t.canceledAt} is not null)`,
     ),
+  ],
+);
+
+/** Zimmer und Zeitraum einer Reservierung; eine Reservierung kann mehrere Aufenthaltspositionen besitzen */
+export const pmsReservationItems = pgTable(
+  "pms_reservation_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    reservationId: uuid("reservation_id")
+      .notNull()
+      .references(() => pmsReservations.id),
+    position: smallint("position").notNull(),
+    roomId: uuid("room_id")
+      .notNull()
+      .references(() => pmsRooms.id),
+    arrivalDate: date("arrival_date", { mode: "string" }).notNull(),
+    departureDate: date("departure_date", { mode: "string" }).notNull(),
+    /** Interne Beschreibung dieser Aufenthaltsposition */
+    description: text("description").notNull().default(""),
+    /** Bei Storno gesetzt; damit gibt die Exclusion-Constraint das Zimmer wieder frei */
+    canceledAt: timestamp("canceled_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("pms_reservation_items_position_unique").on(t.reservationId, t.position),
+    index("pms_reservation_items_room_period").on(t.roomId, t.arrivalDate, t.departureDate),
+    check("pms_reservation_items_position", sql`${t.position} between 1 and 100`),
+    check("pms_reservation_items_period", sql`${t.departureDate} > ${t.arrivalDate}`),
+    check("pms_reservation_items_description_length", sql`char_length(${t.description}) <= 2000`),
   ],
 );
 
