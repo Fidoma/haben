@@ -66,7 +66,7 @@ function ReservationsPage() {
         )}
       </div>
       <p className="muted small" style={{ margin: 0, maxWidth: 760 }}>
-        Aufenthalte einem Kunden und einem Zimmer zuordnen. Stornierte Reservierungen bleiben nachvollziehbar erhalten.
+        Einen oder mehrere Zimmeraufenthalte einem Kunden zuordnen. Stornierte Reservierungen bleiben nachvollziehbar erhalten.
       </p>
       <div className="stack" style={{ gap: 16 }}>
         {formOpen && (
@@ -122,14 +122,15 @@ function ReservationsPage() {
       </div>
       <ConfirmDialog
         open={confirming !== null}
-        title={`Reservierung für Zimmer ${confirming?.roomNumber ?? ""} stornieren?`}
+        title="Reservierung stornieren?"
         confirmLabel="Stornieren"
         danger
         facts={
           confirming
             ? [
-                { label: "Zimmer", value: `${confirming.roomNumber}${confirming.roomName ? ` · ${confirming.roomName}` : ""}` },
-                { label: "Zeitraum", value: `${formatDate(confirming.arrivalDate)} – ${formatDate(confirming.departureDate)}` },
+                { label: "Kunde", value: confirming.contactName },
+                { label: "Positionen", value: String(confirming.items.length) },
+                { label: "Zimmer", value: confirming.items.map((item) => item.roomNumber).join(", ") },
               ]
             : undefined
         }
@@ -146,22 +147,31 @@ function ReservationRow({ reservation, onEdit, onCancel }: { reservation: Reserv
   return (
     <div className="table-row reservation-cols">
       <div className="reservation-period">
-        {formatDate(reservation.arrivalDate)} – {formatDate(reservation.departureDate)}
+        {reservation.items.map((item) => (
+          <span key={item.id}>
+            {formatDate(item.arrivalDate)} – {formatDate(item.departureDate)}
+          </span>
+        ))}
         {reservation.status === "canceled" && <span className="reservation-status">Storniert</span>}
       </div>
-      <div>
-        <span className="mono">{reservation.roomNumber}</span>
-        {reservation.roomName && <span className="muted small"> · {reservation.roomName}</span>}
+      <div className="reservation-room-list">
+        {reservation.items.map((item) => (
+          <span key={item.id}>
+            <span className="mono">{item.roomNumber}</span>
+            {item.roomName && <span className="muted small"> · {item.roomName}</span>}
+            {item.description && <span className="muted small"> · {item.description}</span>}
+          </span>
+        ))}
       </div>
       <div>{reservation.contactName}</div>
-      <div className="num">{nights(reservation.arrivalDate, reservation.departureDate)}</div>
+      <div className="num">{reservation.items.reduce((sum, item) => sum + nights(item.arrivalDate, item.departureDate), 0)}</div>
       <div className="actions reservation-actions">
         {reservation.status === "confirmed" && (
           <>
-            <button type="button" className="btn btn-sm" aria-label={`Reservierung für Zimmer ${reservation.roomNumber} bearbeiten`} onClick={onEdit}>
+            <button type="button" className="btn btn-sm" aria-label={`Reservierung für ${reservation.contactName} bearbeiten`} onClick={onEdit}>
               Bearbeiten
             </button>
-            <button type="button" className="btn btn-sm" aria-label={`Reservierung für Zimmer ${reservation.roomNumber} stornieren`} onClick={onCancel}>
+            <button type="button" className="btn btn-sm" aria-label={`Reservierung für ${reservation.contactName} stornieren`} onClick={onCancel}>
               Stornieren
             </button>
           </>

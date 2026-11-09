@@ -164,7 +164,8 @@ Alle Tabellen stehen in `apps/web/src/server/db/schema.ts`. Beträge sind ganze 
 | `document_cancellations` | Storno eines gebuchten Belegs: Beleg, Gegenbuchung, Datum der Gegenbuchung (im noch nicht gemeldeten Zeitraum der Belegbuchung deren Datum, sonst Tag des Stornos), Grund; je Beleg höchstens einer. Der Beleg selbst bleibt unverändert; Voranmeldung und EÜR zählen den Storno an diesem Datum, offene Posten und Bankabgleich lassen den Beleg weg (`documentNotCancelled`) | nur anhängen, Audit, Siegel |
 | `articles` | Artikel und Leistungen zum Einfügen in Rechnungen und Angebote: Bezeichnung (`description`), optionaler mehrzeiliger Text (`detail`), Preis netto oder brutto (`price_includes_tax`), Steuersatz, archivierbar | änderbar, Audit |
 | `pms_rooms` | Zimmerstamm des PMS: eindeutige Zimmernummer, optionale Bezeichnung, Kapazität und Archivstatus | änderbar, Audit |
-| `pms_reservations` | Einfache Reservierungen mit aktivem Zimmer, Kundenkontakt, halb offenem Aufenthaltszeitraum, Notiz und dauerhaftem Storno; PostgreSQL verhindert parallele Doppelbelegung | änderbar bis Storno, Audit |
+| `pms_reservations` | Kopf einer Reservierung mit Kundenkontakt und dauerhaftem Storno; die bisherigen Aufenthaltsfelder spiegeln während der kompatiblen Umstellung die erste Position | änderbar bis Storno, Audit |
+| `pms_reservation_items` | Geordnete Aufenthaltspositionen einer Reservierung mit Zimmer, halb offenem Zeitraum und interner Beschreibung; innerhalb eines Kopfes sind gleiche Zimmer und Zeiträume erlaubt, zwischen verschiedenen Reservierungen verhindert PostgreSQL parallele Doppelbelegung | änderbar bis Storno, Audit |
 | `text_blocks` | Textbausteine: Kopf- oder Fußtext zum Einfügen in Rechnungen, Angebote und wiederkehrende Rechnungen, optional einem Kunden zugeordnet, archivierbar; eingefügt wird eine Kopie | änderbar, Audit |
 
 ### Buchhaltung, Bank und Umsatzsteuer
