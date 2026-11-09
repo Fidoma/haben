@@ -481,10 +481,10 @@ a.table-row:hover { background: var(--ground); color: var(--ink); }
 .room-cols { grid-template-columns: minmax(90px, 0.5fr) minmax(0, 1.5fr) 90px auto; }
 .room-form { max-width: 720px; }
 .room-actions { justify-content: flex-end; flex-wrap: nowrap; }
-.reservation-form { max-width: 1180px; }
+.reservation-form { max-width: 1440px; }
 .reservation-positions { display: grid; gap: 10px; }
 .reservation-positions h3 { margin: 4px 0 0; font-size: 15px; }
-.reservation-position-row { display: grid; grid-template-columns: minmax(150px, .8fr) minmax(145px, .7fr) minmax(145px, .7fr) minmax(180px, 1.2fr) 36px; gap: 8px; align-items: end; }
+.reservation-position-row { display: grid; grid-template-columns: minmax(130px, .7fr) minmax(190px, 1fr) minmax(110px, .55fr) minmax(135px, .65fr) minmax(135px, .65fr) minmax(160px, .9fr) 36px; gap: 8px; align-items: end; }
 .reservation-position-row.head { color: var(--muted); font-size: 12px; font-weight: 600; padding: 0 1px; }
 .reservation-position-row .field { min-width: 0; }
 .reservation-position-label { display: none; }

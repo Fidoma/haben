@@ -1768,6 +1768,10 @@ export const pmsReservationItems = pgTable(
     roomId: uuid("room_id")
       .notNull()
       .references(() => pmsRooms.id),
+    /** Gewählter Katalogartikel; der Preis bleibt als Kopie erhalten */
+    articleId: uuid("article_id").references(() => articles.id),
+    /** Preis der Position in Cent, wie bei der Reservierung vereinbart */
+    unitPrice: integer("unit_price").notNull().default(0),
     arrivalDate: date("arrival_date", { mode: "string" }).notNull(),
     departureDate: date("departure_date", { mode: "string" }).notNull(),
     /** Interne Beschreibung dieser Aufenthaltsposition */
@@ -1783,6 +1787,7 @@ export const pmsReservationItems = pgTable(
     check("pms_reservation_items_position", sql`${t.position} between 1 and 100`),
     check("pms_reservation_items_period", sql`${t.departureDate} > ${t.arrivalDate}`),
     check("pms_reservation_items_description_length", sql`char_length(${t.description}) <= 2000`),
+    check("pms_reservation_items_unit_price", sql`${t.unitPrice} between 0 and 999999999`),
   ],
 );
 
