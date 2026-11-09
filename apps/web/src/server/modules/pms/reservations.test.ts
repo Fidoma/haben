@@ -15,7 +15,7 @@ describe.skipIf(!testDatabaseUrl)("PMS-Reservierungen (Postgres)", () => {
   afterAll(async () => sql?.end());
 
   beforeEach(async () => {
-    await sql`truncate pms_reservations, pms_rooms, contacts cascade`;
+    await sql`truncate pms_reservation_items, pms_reservations, pms_rooms, contacts cascade`;
   });
 
   async function room(number = "101", archived = false) {
@@ -32,19 +32,23 @@ describe.skipIf(!testDatabaseUrl)("PMS-Reservierungen (Postgres)", () => {
   }
 
   const input = (roomId: string, contactId: string, arrivalDate = "2027-01-10", departureDate = "2027-01-12") => ({
-    roomId,
     contactId,
-    arrivalDate,
-    departureDate,
-    note: "  Ruhiges Zimmer  ",
+    items: [{ roomId, arrivalDate, departureDate, description: "  Ruhiges Zimmer  " }],
   });
 
-  it("legt eine Reservierung getrimmt an und listet Zimmer und Kunde", async () => {
-    const roomId = await room();
+  it("legt mehrere Positionen getrimmt an und listet Zimmer und Kunde", async () => {
+    const roomId = await room("101");
+    const secondRoomId = await room("102");
     const contactId = await contact({ name: "Erika Muster" });
-    const created = await reservations.createReservation(actor, input(roomId, contactId));
-    expect(created).toMatchObject({ roomId, contactId, note: "Ruhiges Zimmer", status: "confirmed" });
-    expect(await reservations.listReservations()).toMatchObject([{ roomNumber: "101", contactName: "Erika Muster" }]);
+    const created = await reservations.createReservation(actor, {
+      contactId,
+      items: [
+        input(roomId, contactId).items[0]!,
+        { roomId: secondRoomId, arrivalDate: "2027-01-12", departureDate: "2027-01-15", description: "  Mit Balkon  " },
+      ],
+    });
+    expect(created).toMatchObject({ contactId, status: "confirmed", items: [{ description: "Ruhiges Zimmer" }, { description: "Mit Balkon" }] });
+    expect(await reservations.listReservations()).toMatchObject([{ contactName: "Erika Muster", items: [{ roomNumber: "101" }, { roomNumber: "102" }] }]);
   });
 
   it("verlangt ein aktives Zimmer und einen aktiven Kunden", async () => {
@@ -60,12 +64,17 @@ describe.skipIf(!testDatabaseUrl)("PMS-Reservierungen (Postgres)", () => {
     await expect(reservations.createReservation(actor, input(await room(), unknown))).rejects.toThrow("Kontakt nicht gefunden");
   });
 
-  it("weist ungültige Zeiträume und zu lange Notizen ab", async () => {
+  it("weist ungültige Zeiträume und zu lange Beschreibungen ab", async () => {
     const roomId = await room();
     const contactId = await contact();
     await expect(reservations.createReservation(actor, input(roomId, contactId, "2027-01-10", "2027-01-10"))).rejects.toThrow("nach der Anreise");
-    await expect(reservations.createReservation(actor, { ...input(roomId, contactId), arrivalDate: "2027-02-30" })).rejects.toThrow("gültiges Datum");
-    await expect(reservations.createReservation(actor, { ...input(roomId, contactId), note: "x".repeat(2001) })).rejects.toThrow("2.000");
+    await expect(
+      reservations.createReservation(actor, { contactId, items: [{ ...input(roomId, contactId).items[0]!, arrivalDate: "2027-02-30" }] }),
+    ).rejects.toThrow("gültiges Datum");
+    await expect(
+      reservations.createReservation(actor, { contactId, items: [{ ...input(roomId, contactId).items[0]!, description: "x".repeat(2001) }] }),
+    ).rejects.toThrow("2.000");
+    await expect(reservations.createReservation(actor, { contactId, items: [] })).rejects.toThrow("Mindestens eine Position");
   });
 
   it("erlaubt angrenzende Aufenthalte und gleiche Zeiträume in verschiedenen Zimmern", async () => {
@@ -85,7 +94,7 @@ describe.skipIf(!testDatabaseUrl)("PMS-Reservierungen (Postgres)", () => {
     await expect(reservations.createReservation(actor, input(roomId, contactId, "2027-01-11", "2027-01-13"))).rejects.toThrow(
       "Das Zimmer ist in diesem Zeitraum bereits reserviert.",
     );
-    await sql`truncate pms_reservations`;
+    await sql`truncate pms_reservation_items, pms_reservations`;
     const outcomes = await Promise.allSettled([
       reservations.createReservation(actor, input(roomId, contactId)),
       reservations.createReservation(actor, input(roomId, contactId)),
@@ -99,7 +108,17 @@ describe.skipIf(!testDatabaseUrl)("PMS-Reservierungen (Postgres)", () => {
     const contactId = await contact();
     const created = await reservations.createReservation(actor, input(roomId, contactId));
     const updated = await reservations.updateReservation(actor, created.id, input(roomId, contactId, "2027-01-11", "2027-01-13"));
-    expect(updated.arrivalDate).toBe("2027-01-11");
+    expect(updated.items[0]!.arrivalDate).toBe("2027-01-11");
+  });
+
+  it("erlaubt dasselbe Zimmer im selben Zeitraum mehrfach innerhalb einer Reservierung", async () => {
+    const roomId = await room();
+    const contactId = await contact();
+    const created = await reservations.createReservation(actor, {
+      contactId,
+      items: [input(roomId, contactId).items[0]!, input(roomId, contactId).items[0]!],
+    });
+    expect(created.items).toHaveLength(2);
   });
 
   it("storniert dauerhaft und gibt den Zeitraum wieder frei", async () => {
@@ -113,15 +132,26 @@ describe.skipIf(!testDatabaseUrl)("PMS-Reservierungen (Postgres)", () => {
   });
 
   it("protokolliert Anlage, Änderung und Stornierung mit Akteur", async () => {
+    const startId = Number((await sql`select coalesce(max(id), 0)::int as start_id from audit_log`)[0]!.start_id);
     const roomId = await room();
     const contactId = await contact();
     const created = await reservations.createReservation(actor, input(roomId, contactId));
-    await reservations.updateReservation(actor, created.id, { ...input(roomId, contactId), note: "Geändert" });
+    await reservations.updateReservation(actor, created.id, {
+      contactId,
+      items: [{ ...input(roomId, contactId).items[0]!, description: "Geändert" }],
+    });
     await reservations.cancelReservation(actor, created.id);
     const log = await sql`select action, actor from audit_log where table_name = 'pms_reservations' and row_id = ${created.id} order by id`;
     expect(log.map((row) => [row.action, row.actor])).toEqual([
       ["INSERT", actor],
       ["UPDATE", actor],
+      ["UPDATE", actor],
+    ]);
+    const itemLog = await sql`select action, actor from audit_log where table_name = 'pms_reservation_items' and id > ${startId} order by id`;
+    expect(itemLog.map((row) => [row.action, row.actor])).toEqual([
+      ["INSERT", actor],
+      ["DELETE", actor],
+      ["INSERT", actor],
       ["UPDATE", actor],
     ]);
   });
