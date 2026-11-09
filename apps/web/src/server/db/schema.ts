@@ -1717,6 +1717,42 @@ export const pmsRooms = pgTable(
   ],
 );
 
+export const pmsReservationStatuses = ["confirmed", "canceled"] as const;
+
+/** Einfache Zimmerreservierung des PMS; Stornierungen bleiben dauerhaft erhalten */
+export const pmsReservations = pgTable(
+  "pms_reservations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    roomId: uuid("room_id")
+      .notNull()
+      .references(() => pmsRooms.id),
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id),
+    arrivalDate: date("arrival_date", { mode: "string" }).notNull(),
+    departureDate: date("departure_date", { mode: "string" }).notNull(),
+    status: text("status", { enum: pmsReservationStatuses }).notNull().default("confirmed"),
+    /** Interne Notiz; erscheint nicht auf Belegen oder gegenüber dem Gast */
+    note: text("note").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    canceledAt: timestamp("canceled_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("pms_reservations_room_period").on(t.roomId, t.arrivalDate, t.departureDate),
+    index("pms_reservations_contact").on(t.contactId),
+    index("pms_reservations_status").on(t.status),
+    check("pms_reservations_period", sql`${t.departureDate} > ${t.arrivalDate}`),
+    check("pms_reservations_note_length", sql`char_length(${t.note}) <= 2000`),
+    check("pms_reservations_status", sql`${t.status} in ('confirmed', 'canceled')`),
+    check(
+      "pms_reservations_canceled_at",
+      sql`(${t.status} = 'confirmed' and ${t.canceledAt} is null) or (${t.status} = 'canceled' and ${t.canceledAt} is not null)`,
+    ),
+  ],
+);
+
 export const textBlockKinds = ["kopf", "fuss"] as const;
 export type TextBlockKind = (typeof textBlockKinds)[number];
 

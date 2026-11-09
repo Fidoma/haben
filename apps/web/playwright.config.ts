@@ -102,6 +102,7 @@ export default defineConfig({
         "datumsfelder.spec.ts",
         "kopfzeile.spec.ts",
         "knopfreihenfolge.spec.ts",
+        "pms-reservierungen.spec.ts",
         "pms-zimmer.spec.ts",
         "rechtsform.spec.ts",
         "seiten.spec.ts",
