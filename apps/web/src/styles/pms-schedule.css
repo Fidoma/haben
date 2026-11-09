@@ -42,17 +42,37 @@
 
 .schedule-empty { align-items: flex-start; }
 .schedule-empty p { margin: 0; }
-.schedule-list { gap: 12px; }
-.schedule-list ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
-.schedule-list a { display: flex; flex-direction: column; gap: 2px; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); text-decoration: none; }
-.schedule-list a:hover { border-color: var(--line-strong); background: var(--accent-tint); }
-.schedule-list a span { color: var(--muted); font-size: 12px; }
-
 .form-dialog > .reservation-form.contact-form { flex: 1 1 auto; min-height: 0; max-width: none; overflow: auto; border: 0; border-radius: 0; background: none; scroll-padding-bottom: 89px; }
 .form-dialog > .reservation-form.contact-form > h2 { display: none; }
+
+.housekeeping-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.schedule-housekeeping { margin-top: 4px; }
+.schedule-housekeeping .housekeeping-room { min-height: 48px; padding: 6px 10px 6px 12px; }
+.schedule-housekeeping .housekeeping-transfer { width: 36px; min-width: 36px; min-height: 36px; }
+.housekeeping-group h2 { margin-top: 0; }
+.housekeeping-list { display: grid; gap: 12px; }
+.housekeeping-room { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; }
+.housekeeping-room.dirty { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, var(--surface)); }
+.housekeeping-room.clean { border-color: var(--success); background: color-mix(in srgb, var(--success) 7%, var(--surface)); }
+.housekeeping-action { min-height: 44px; }
+.housekeeping-transfer { width: 44px; min-width: 44px; min-height: 44px; padding: 0; font-size: 22px; line-height: 1; }
+.tourism-period { display: flex; align-items: end; gap: 12px; margin-bottom: 16px; }
+.tourism-period label { max-width: 150px; }
+.tourism-summary { margin-bottom: 16px; }
+.tourism-cols { grid-template-columns: minmax(180px, 1fr) 140px 160px; }
+.tourism-cols input { width: 100%; }
+.reservation-filters { display: grid; grid-template-columns: minmax(180px, 2fr) repeat(4, minmax(120px, 1fr)) auto; align-items: end; gap: 10px; margin-bottom: 16px; }
 
 @media (max-width: 640px) {
   .reservation-scheduler-card { border-radius: 8px; }
   .schedule-legend { gap: 8px 12px; }
-  .schedule-list ul { grid-template-columns: 1fr; }
+  .housekeeping-columns { grid-template-columns: 1fr; }
+  .housekeeping-room { align-items: stretch; flex-direction: column; }
+  .housekeeping-action { width: 100%; min-height: 52px; }
+  .schedule-housekeeping .housekeeping-room { align-items: center; flex-direction: row; }
+  .tourism-period { align-items: stretch; flex-direction: column; }
+  .tourism-period label { max-width: none; }
+  .tourism-countries { overflow-x: auto; }
+  .tourism-cols { min-width: 560px; }
+  .reservation-filters { grid-template-columns: 1fr; }
 }
