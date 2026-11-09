@@ -68,7 +68,9 @@ import { Route as AppKontenIndexRouteImport } from './routes/_app/konten/index'
 import { Route as AppKontenKontoRouteImport } from './routes/_app/konten/$konto'
 import { Route as AppLohnIndexRouteImport } from './routes/_app/lohn/index'
 import { Route as AppPmsBelegungsplanRouteImport } from './routes/_app/pms/belegungsplan'
+import { Route as AppPmsHousekeepingRouteImport } from './routes/_app/pms/housekeeping'
 import { Route as AppPmsReservierungenRouteImport } from './routes/_app/pms/reservierungen'
+import { Route as AppPmsTourismusstatistikRouteImport } from './routes/_app/pms/tourismusstatistik'
 import { Route as AppPmsZimmerRouteImport } from './routes/_app/pms/zimmer'
 import { Route as AppRechnungenIndexRouteImport } from './routes/_app/rechnungen/index'
 import { Route as AppRechnungenIdRouteImport } from './routes/_app/rechnungen/$id'
@@ -434,11 +436,22 @@ const AppPmsBelegungsplanRoute = AppPmsBelegungsplanRouteImport.update({
   path: '/pms/belegungsplan',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPmsHousekeepingRoute = AppPmsHousekeepingRouteImport.update({
+  id: '/pms/housekeeping',
+  path: '/pms/housekeeping',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPmsReservierungenRoute = AppPmsReservierungenRouteImport.update({
   id: '/pms/reservierungen',
   path: '/pms/reservierungen',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPmsTourismusstatistikRoute =
+  AppPmsTourismusstatistikRouteImport.update({
+    id: '/pms/tourismusstatistik',
+    path: '/pms/tourismusstatistik',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppPmsZimmerRoute = AppPmsZimmerRouteImport.update({
   id: '/pms/zimmer',
   path: '/pms/zimmer',
@@ -826,7 +839,9 @@ export interface FileRoutesByFullPath {
   '/kontakte/neu': typeof AppKontakteNeuRoute
   '/konten/$konto': typeof AppKontenKontoRoute
   '/pms/belegungsplan': typeof AppPmsBelegungsplanRoute
+  '/pms/housekeeping': typeof AppPmsHousekeepingRoute
   '/pms/reservierungen': typeof AppPmsReservierungenRoute
+  '/pms/tourismusstatistik': typeof AppPmsTourismusstatistikRoute
   '/pms/zimmer': typeof AppPmsZimmerRoute
   '/rechnungen/$id': typeof AppRechnungenIdRoute
   '/rechnungen/neu': typeof AppRechnungenNeuRoute
@@ -952,7 +967,9 @@ export interface FileRoutesByTo {
   '/kontakte/neu': typeof AppKontakteNeuRoute
   '/konten/$konto': typeof AppKontenKontoRoute
   '/pms/belegungsplan': typeof AppPmsBelegungsplanRoute
+  '/pms/housekeeping': typeof AppPmsHousekeepingRoute
   '/pms/reservierungen': typeof AppPmsReservierungenRoute
+  '/pms/tourismusstatistik': typeof AppPmsTourismusstatistikRoute
   '/pms/zimmer': typeof AppPmsZimmerRoute
   '/rechnungen/$id': typeof AppRechnungenIdRoute
   '/rechnungen/neu': typeof AppRechnungenNeuRoute
@@ -1080,7 +1097,9 @@ export interface FileRoutesById {
   '/_app/kontakte/neu': typeof AppKontakteNeuRoute
   '/_app/konten/$konto': typeof AppKontenKontoRoute
   '/_app/pms/belegungsplan': typeof AppPmsBelegungsplanRoute
+  '/_app/pms/housekeeping': typeof AppPmsHousekeepingRoute
   '/_app/pms/reservierungen': typeof AppPmsReservierungenRoute
+  '/_app/pms/tourismusstatistik': typeof AppPmsTourismusstatistikRoute
   '/_app/pms/zimmer': typeof AppPmsZimmerRoute
   '/_app/rechnungen/$id': typeof AppRechnungenIdRoute
   '/_app/rechnungen/neu': typeof AppRechnungenNeuRoute
@@ -1208,7 +1227,9 @@ export interface FileRouteTypes {
     | '/kontakte/neu'
     | '/konten/$konto'
     | '/pms/belegungsplan'
+    | '/pms/housekeeping'
     | '/pms/reservierungen'
+    | '/pms/tourismusstatistik'
     | '/pms/zimmer'
     | '/rechnungen/$id'
     | '/rechnungen/neu'
@@ -1334,7 +1355,9 @@ export interface FileRouteTypes {
     | '/kontakte/neu'
     | '/konten/$konto'
     | '/pms/belegungsplan'
+    | '/pms/housekeeping'
     | '/pms/reservierungen'
+    | '/pms/tourismusstatistik'
     | '/pms/zimmer'
     | '/rechnungen/$id'
     | '/rechnungen/neu'
@@ -1461,7 +1484,9 @@ export interface FileRouteTypes {
     | '/_app/kontakte/neu'
     | '/_app/konten/$konto'
     | '/_app/pms/belegungsplan'
+    | '/_app/pms/housekeeping'
     | '/_app/pms/reservierungen'
+    | '/_app/pms/tourismusstatistik'
     | '/_app/pms/zimmer'
     | '/_app/rechnungen/$id'
     | '/_app/rechnungen/neu'
@@ -2016,11 +2041,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPmsBelegungsplanRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/pms/housekeeping': {
+      id: '/_app/pms/housekeeping'
+      path: '/pms/housekeeping'
+      fullPath: '/pms/housekeeping'
+      preLoaderRoute: typeof AppPmsHousekeepingRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/pms/reservierungen': {
       id: '/_app/pms/reservierungen'
       path: '/pms/reservierungen'
       fullPath: '/pms/reservierungen'
       preLoaderRoute: typeof AppPmsReservierungenRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/pms/tourismusstatistik': {
+      id: '/_app/pms/tourismusstatistik'
+      path: '/pms/tourismusstatistik'
+      fullPath: '/pms/tourismusstatistik'
+      preLoaderRoute: typeof AppPmsTourismusstatistikRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/pms/zimmer': {
@@ -2515,7 +2554,9 @@ interface AppRouteChildren {
   AppKontakteNeuRoute: typeof AppKontakteNeuRoute
   AppKontenKontoRoute: typeof AppKontenKontoRoute
   AppPmsBelegungsplanRoute: typeof AppPmsBelegungsplanRoute
+  AppPmsHousekeepingRoute: typeof AppPmsHousekeepingRoute
   AppPmsReservierungenRoute: typeof AppPmsReservierungenRoute
+  AppPmsTourismusstatistikRoute: typeof AppPmsTourismusstatistikRoute
   AppPmsZimmerRoute: typeof AppPmsZimmerRoute
   AppRechnungenIdRoute: typeof AppRechnungenIdRoute
   AppRechnungenNeuRoute: typeof AppRechnungenNeuRoute
@@ -2586,7 +2627,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppKontakteNeuRoute: AppKontakteNeuRoute,
   AppKontenKontoRoute: AppKontenKontoRoute,
   AppPmsBelegungsplanRoute: AppPmsBelegungsplanRoute,
+  AppPmsHousekeepingRoute: AppPmsHousekeepingRoute,
   AppPmsReservierungenRoute: AppPmsReservierungenRoute,
+  AppPmsTourismusstatistikRoute: AppPmsTourismusstatistikRoute,
   AppPmsZimmerRoute: AppPmsZimmerRoute,
   AppRechnungenIdRoute: AppRechnungenIdRoute,
   AppRechnungenNeuRoute: AppRechnungenNeuRoute,
