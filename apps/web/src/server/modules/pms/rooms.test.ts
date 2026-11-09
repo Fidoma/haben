@@ -17,7 +17,7 @@ describe.skipIf(!testDatabaseUrl)("PMS-Zimmer (Postgres)", () => {
   });
 
   beforeEach(async () => {
-    await sql`truncate pms_rooms`;
+    await sql`truncate pms_rooms cascade`;
   });
 
   it("legt Zimmer getrimmt an und sortiert Nummern natürlich", async () => {
