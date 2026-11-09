@@ -9,3 +9,14 @@ export {
   type Room,
   type RoomInput,
 } from "./rooms.ts";
+export {
+  cancelReservation,
+  createReservation,
+  listReservations,
+  ReservationError,
+  reservationFormOptions,
+  reservationInputSchema,
+  updateReservation,
+  type Reservation,
+  type ReservationInput,
+} from "./reservations.ts";

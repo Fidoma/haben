@@ -100,7 +100,10 @@ const NAV_GROUPS = [
   },
   {
     label: "PMS",
-    links: [{ to: "/pms/zimmer", icon: "room", label: "Zimmer" }],
+    links: [
+      { to: "/pms/reservierungen", icon: "calendar", label: "Reservierungen" },
+      { to: "/pms/zimmer", icon: "room", label: "Zimmer" },
+    ],
   },
 ] as const;
 

@@ -455,6 +455,11 @@ a.table-row:hover { background: var(--ground); color: var(--ink); }
 .room-cols { grid-template-columns: minmax(90px, 0.5fr) minmax(0, 1.5fr) 90px auto; }
 .room-form { max-width: 720px; }
 .room-actions { justify-content: flex-end; flex-wrap: nowrap; }
+.reservation-form { max-width: 720px; }
+.reservation-cols { grid-template-columns: minmax(185px, 1.2fr) minmax(120px, .8fr) minmax(150px, 1fr) 70px minmax(190px, auto); }
+.reservation-period { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.reservation-status { font-size: 12px; color: var(--muted); border: 1px solid var(--line-strong); border-radius: 999px; padding: 2px 7px; }
+.reservation-actions { justify-content: flex-end; flex-wrap: nowrap; }
 .contact-cols { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.2fr) minmax(0, 1fr) 200px; }
 .table-row .row-title { font-weight: 500; color: var(--accent-ink); }
 .plan-cols { grid-template-columns: 60px repeat(5, minmax(0, 1fr)) 80px; }
@@ -514,6 +519,12 @@ a.table-row:hover { background: var(--ground); color: var(--ink); }
   .room-cols .room-name { grid-column: 1 / -1; grid-row: 2; }
   .room-cols .room-actions { grid-column: 1 / -1; grid-row: 3; justify-content: flex-start; }
   .table-row.head.room-cols { display: none; }
+  .reservation-cols { grid-template-columns: minmax(0, 1fr) auto; row-gap: 4px; padding-top: 8px; padding-bottom: 8px; }
+  .reservation-cols > :nth-child(2), .reservation-cols > :nth-child(3) { grid-column: 1; }
+  .reservation-cols > :nth-child(4) { grid-column: 2; grid-row: 1; }
+  .reservation-cols > :nth-child(5) { grid-column: 1 / -1; }
+  .reservation-actions { justify-content: flex-start; }
+  .table-row.head.reservation-cols { display: none; }
   .contact-cols { grid-template-columns: minmax(0, 1fr) auto; padding-top: 8px; padding-bottom: 8px; }
   .contact-cols > :nth-child(2), .contact-cols > :nth-child(4) { display: none; }
   .table-row.head.contact-cols { display: none; }

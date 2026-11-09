@@ -99,6 +99,7 @@ export default defineConfig({
         "bestaetigung.spec.ts",
         "datumsfelder.spec.ts",
         "kopfzeile.spec.ts",
+        "pms-reservierungen.spec.ts",
         "pms-zimmer.spec.ts",
         "rechtsform.spec.ts",
         "seiten.spec.ts",
