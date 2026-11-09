@@ -1555,6 +1555,13 @@
       "when": 1794241153800,
       "tag": "0191_pms_positionen_gleiches_zimmer",
       "breakpoints": true
+    },
+    {
+      "idx": 192,
+      "version": "7",
+      "when": 1794241984555,
+      "tag": "0192_exotic_chronomancer",
+      "breakpoints": true
     }
   ]
 }

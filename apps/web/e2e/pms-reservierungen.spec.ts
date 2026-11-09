@@ -25,11 +25,13 @@ test("Reservierung anlegen, bearbeiten und dauerhaft stornieren", async ({ page 
   await createForm.getByLabel("Kunde").fill("Nordwerk");
   await createForm.getByRole("option", { name: /Nordwerk Software GmbH/ }).click();
   await createForm.getByLabel("Zimmer Position 1").selectOption({ label: "E2E-R1 · Gartenseite" });
+  await createForm.getByLabel("Preis Position 1 in Euro").fill("125,00");
   await createForm.getByLabel("Anreise Position 1").fill(day(20));
   await createForm.getByLabel("Abreise Position 1").fill(day(22));
   await createForm.getByLabel("Beschreibung Position 1 (optional)").fill("Späte Anreise");
   await createForm.getByRole("button", { name: "Position hinzufügen" }).click();
   await createForm.getByLabel("Zimmer Position 2").selectOption({ label: "E2E-R2" });
+  await createForm.getByLabel("Preis Position 2 in Euro").fill("95,00");
   await createForm.getByLabel("Anreise Position 2").fill(day(22));
   await createForm.getByLabel("Abreise Position 2").fill(day(25));
   await createForm.getByRole("button", { name: "Anlegen" }).click();

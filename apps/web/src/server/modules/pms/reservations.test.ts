@@ -15,7 +15,7 @@ describe.skipIf(!testDatabaseUrl)("PMS-Reservierungen (Postgres)", () => {
   afterAll(async () => sql?.end());
 
   beforeEach(async () => {
-    await sql`truncate pms_reservation_items, pms_reservations, pms_rooms, contacts cascade`;
+    await sql`truncate pms_reservation_items, pms_reservations, pms_rooms, contacts, articles cascade`;
   });
 
   async function room(number = "101", archived = false) {
@@ -27,6 +27,14 @@ describe.skipIf(!testDatabaseUrl)("PMS-Reservierungen (Postgres)", () => {
     const [row] = await sql`
       insert into contacts (name, is_customer, is_supplier, archived_at)
       values (${name}, ${customer}, ${!customer}, ${archived ? "2026-11-09T12:00:00Z" : null}) returning id
+    `;
+    return row!.id as string;
+  }
+
+  async function article(description = "Übernachtung", unitPrice = 12_500, archived = false) {
+    const [row] = await sql`
+      insert into articles (description, unit, unit_price, tax_rate, archived_at)
+      values (${description}, 'Nacht', ${unitPrice}, 1900, ${archived ? "2026-11-09T12:00:00Z" : null}) returning id
     `;
     return row!.id as string;
   }
@@ -49,6 +57,34 @@ describe.skipIf(!testDatabaseUrl)("PMS-Reservierungen (Postgres)", () => {
     });
     expect(created).toMatchObject({ contactId, status: "confirmed", items: [{ description: "Ruhiges Zimmer" }, { description: "Mit Balkon" }] });
     expect(await reservations.listReservations()).toMatchObject([{ contactName: "Erika Muster", items: [{ roomNumber: "101" }, { roomNumber: "102" }] }]);
+  });
+
+  it("speichert Artikel und vereinbarten Preis unabhängig vom aktuellen Artikelpreis", async () => {
+    const roomId = await room();
+    const contactId = await contact();
+    const articleId = await article("Doppelzimmer", 15_000);
+    const created = await reservations.createReservation(actor, {
+      contactId,
+      items: [{ ...input(roomId, contactId).items[0]!, articleId, unitPrice: 13_500 }],
+    });
+    await sql`update articles set unit_price = 18000 where id = ${articleId}`;
+    expect(created.items[0]).toMatchObject({ articleId, unitPrice: 13_500 });
+    expect((await reservations.listReservations())[0]!.items[0]).toMatchObject({ articleId, articleDescription: "Doppelzimmer", unitPrice: 13_500 });
+  });
+
+  it("weist unbekannte und archivierte Artikel ab", async () => {
+    const roomId = await room();
+    const contactId = await contact();
+    const unknown = "00000000-0000-4000-8000-000000000000";
+    await expect(
+      reservations.createReservation(actor, { contactId, items: [{ ...input(roomId, contactId).items[0]!, articleId: unknown, unitPrice: 1000 }] }),
+    ).rejects.toThrow("Artikel nicht gefunden");
+    await expect(
+      reservations.createReservation(actor, {
+        contactId,
+        items: [{ ...input(roomId, contactId).items[0]!, articleId: await article("Alt", 1000, true), unitPrice: 1000 }],
+      }),
+    ).rejects.toThrow("Artikel ist archiviert");
   });
 
   it("verlangt ein aktives Zimmer und einen aktiven Kunden", async () => {
