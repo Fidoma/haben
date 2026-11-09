@@ -65,7 +65,10 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   {
     label: "PMS",
     icon: "room",
-    links: [{ to: "/pms/zimmer", icon: "room", label: "Zimmer" }],
+    links: [
+      { to: "/pms/reservierungen", icon: "calendar", label: "Reservierungen" },
+      { to: "/pms/zimmer", icon: "room", label: "Zimmer" },
+    ],
   },
   {
     label: "Verkauf",

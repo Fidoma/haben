@@ -103,7 +103,9 @@ nav:
       - REST-API: api.md
       - Dokumentenarchiv: dokumentenarchiv.md
       - Eigene Seiten: eigene-seiten.md
+      - "PMS: Reservierungen": pms-reservierungen.md
       - "PMS: Zimmer": pms-zimmer.md
+      - "PMS: Reservierungen": pms-reservierungen.md
   - Hintergrund:
       - Buchhaltung in Haben: buchhaltung.md
       - Verfahrensdokumentation: verfahrensdokumentation.md
