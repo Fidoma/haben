@@ -15,6 +15,8 @@ function validIsoDate(value: string): boolean {
 export const reservationItemInputSchema = z
   .object({
     roomId: z.uuid("Bitte ein Zimmer auswählen."),
+    articleId: z.uuid("Bitte einen gültigen Artikel auswählen.").nullable().default(null),
+    unitPrice: z.number().int().min(0, "Der Preis darf nicht negativ sein.").max(999_999_999, "Der Preis ist zu hoch.").default(0),
     arrivalDate: z.string().refine(validIsoDate, "Die Anreise muss ein gültiges Datum sein."),
     departureDate: z.string().refine(validIsoDate, "Die Abreise muss ein gültiges Datum sein."),
     description: z.string().trim().max(2000, "Die Beschreibung darf höchstens 2.000 Zeichen lang sein.").default(""),
@@ -52,6 +54,10 @@ export async function listReservations() {
         reservationId: schema.pmsReservationItems.reservationId,
         position: schema.pmsReservationItems.position,
         roomId: schema.pmsReservationItems.roomId,
+        articleId: schema.pmsReservationItems.articleId,
+        unitPrice: schema.pmsReservationItems.unitPrice,
+        articleNumber: schema.articles.number,
+        articleDescription: schema.articles.description,
         arrivalDate: schema.pmsReservationItems.arrivalDate,
         departureDate: schema.pmsReservationItems.departureDate,
         description: schema.pmsReservationItems.description,
@@ -60,6 +66,7 @@ export async function listReservations() {
       })
       .from(schema.pmsReservationItems)
       .innerJoin(schema.pmsRooms, eq(schema.pmsReservationItems.roomId, schema.pmsRooms.id))
+      .leftJoin(schema.articles, eq(schema.pmsReservationItems.articleId, schema.articles.id))
       .orderBy(asc(schema.pmsReservationItems.position)),
   ]);
   const byReservation = new Map<string, typeof items>();
@@ -81,7 +88,7 @@ export async function listReservations() {
 }
 
 export async function reservationFormOptions() {
-  const [rooms, contacts] = await Promise.all([
+  const [rooms, contacts, articles] = await Promise.all([
     db
       .select({ id: schema.pmsRooms.id, number: schema.pmsRooms.number, name: schema.pmsRooms.name })
       .from(schema.pmsRooms)
@@ -98,19 +105,37 @@ export async function reservationFormOptions() {
       .from(schema.contacts)
       .where(and(isNull(schema.contacts.archivedAt), eq(schema.contacts.isCustomer, true)))
       .orderBy(asc(schema.contacts.name)),
+    db
+      .select({
+        id: schema.articles.id,
+        number: schema.articles.number,
+        description: schema.articles.description,
+        detail: schema.articles.detail,
+        unit: schema.articles.unit,
+        unitPrice: schema.articles.unitPrice,
+        taxRate: schema.articles.taxRate,
+        priceIncludesTax: schema.articles.priceIncludesTax,
+      })
+      .from(schema.articles)
+      .where(isNull(schema.articles.archivedAt))
+      .orderBy(asc(schema.articles.description)),
   ]);
   rooms.sort((left, right) => roomNumberCollator.compare(left.number, right.number));
-  return { rooms, contacts };
+  return { rooms, contacts, articles };
 }
 
 async function validateReferences(input: z.output<typeof reservationInputSchema>): Promise<void> {
   const roomIds = [...new Set(input.items.map((item) => item.roomId))];
-  const [rooms, [contact]] = await Promise.all([
+  const articleIds = [...new Set(input.items.flatMap((item) => (item.articleId ? [item.articleId] : [])))];
+  const [rooms, [contact], articles] = await Promise.all([
     db.select({ id: schema.pmsRooms.id, archivedAt: schema.pmsRooms.archivedAt }).from(schema.pmsRooms).where(inArray(schema.pmsRooms.id, roomIds)),
     db
       .select({ archivedAt: schema.contacts.archivedAt, isCustomer: schema.contacts.isCustomer })
       .from(schema.contacts)
       .where(eq(schema.contacts.id, input.contactId)),
+    articleIds.length === 0
+      ? Promise.resolve([])
+      : db.select({ id: schema.articles.id, archivedAt: schema.articles.archivedAt }).from(schema.articles).where(inArray(schema.articles.id, articleIds)),
   ]);
   const roomsById = new Map(rooms.map((room) => [room.id, room]));
   for (const roomId of roomIds) {
@@ -121,6 +146,12 @@ async function validateReferences(input: z.output<typeof reservationInputSchema>
   if (!contact) throw new ReservationError("Kontakt nicht gefunden.");
   if (!contact.isCustomer) throw new ReservationError("Der Kontakt besitzt keine Kundenrolle.");
   if (contact.archivedAt) throw new ReservationError("Der Kunde ist archiviert.");
+  const articlesById = new Map(articles.map((article) => [article.id, article]));
+  for (const articleId of articleIds) {
+    const article = articlesById.get(articleId);
+    if (!article) throw new ReservationError("Artikel nicht gefunden.");
+    if (article.archivedAt) throw new ReservationError("Der Artikel ist archiviert.");
+  }
 }
 
 function isOverlap(error: unknown): boolean {

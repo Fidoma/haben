@@ -13,7 +13,10 @@ zu einem aktiven Kunden und enthält eine oder mehrere Zimmerpositionen.
 1. Wähle **Neue Reservierung**.
 2. Suche den **Kunden** nach Name, Kundennummer oder Ort. In derselben Auswahl kannst
    du bei Bedarf einen neuen Kunden anlegen.
-3. Wähle in der ersten Position das **Zimmer** und trage **Anreise** und **Abreise** ein.
+3. Wähle in der ersten Position das **Zimmer** und optional einen **Artikel**. Bei der
+   Artikelauswahl übernimmt Haben dessen aktuellen Preis; der Preis bleibt in der
+   Reservierung frei änderbar und wird auch bei späteren Änderungen am Artikel nicht angepasst.
+   Trage anschließend **Anreise** und **Abreise** ein.
    Der Abreisetag zählt nicht als Übernachtung
    und kann deshalb schon der Anreisetag der nächsten Reservierung sein.
 4. Ergänze bei Bedarf eine Beschreibung. Mit **Position hinzufügen** kannst du weitere
