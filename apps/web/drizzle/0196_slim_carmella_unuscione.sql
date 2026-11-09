@@ -1,0 +1,1 @@
+ALTER TABLE "pms_rooms" ADD CONSTRAINT "pms_rooms_cleaning_status" CHECK ("pms_rooms"."cleaning_status" in ('clean', 'dirty'));

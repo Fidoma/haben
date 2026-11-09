@@ -10,6 +10,7 @@ import { type Job, recordJobRun } from "./metriken.ts";
 import { applyPublishedRates, runDueDauerbelege, runDueInboxFetch } from "./modules/belege/index.ts";
 import { runDueExchangeRates } from "./modules/stammdaten/index.ts";
 import { runDueFristenMails, runDuePostfachFetch } from "./modules/finanzamt/index.ts";
+import { runDueHousekeeping } from "./modules/pms/index.ts";
 import { applyPublishedRatesToDrafts, runDueBaseRate, runDueRecurring } from "./modules/rechnungen/index.ts";
 import { runDueEtsySyncs } from "./modules/etsy/index.ts";
 import { runDueStoreSyncs } from "./modules/stores/index.ts";
@@ -186,6 +187,15 @@ const JOBS: ScheduledJob[] = [
     run: async () => {
       const result = await runDueInboxFetch();
       if (result?.messages) console.log(`Belege per E-Mail: ${result.messages} Mails, ${result.documents} neue Belege`);
+      return true;
+    },
+  },
+  {
+    task: "pms_housekeeping",
+    label: "PMS-Housekeeping",
+    run: async () => {
+      const result = await runDueHousekeeping();
+      if (result.processed > 0) console.log(`Housekeeping: ${result.processed} Abreise(n) als schmutzig markiert`);
       return true;
     },
   },

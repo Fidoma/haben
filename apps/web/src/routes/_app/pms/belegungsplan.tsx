@@ -1,13 +1,14 @@
 import { Link, createFileRoute, useRouter } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useState } from "react";
 import { z } from "zod";
 import { FormDialog } from "../../../components/FormDialog.tsx";
 import { NoticeBanner } from "../../../components/NoticeBanner.tsx";
 import { ReservationForm } from "../../../components/pms/ReservationForm.tsx";
 import { ReservationSchedule, type ScheduleSelection } from "../../../components/pms/ReservationSchedule.tsx";
-import { formatDate } from "../../../lib/format.ts";
+import { errorMessage, formatDate } from "../../../lib/format.ts";
 import type { Notice } from "../../../lib/use-action.ts";
-import { getReservationFormOptions, getReservationSchedule } from "../../../server/functions/pms.ts";
+import { getHousekeepingRooms, getReservationFormOptions, getReservationSchedule, updateCleaningStatus } from "../../../server/functions/pms.ts";
 import styles from "../../../styles/pms-schedule.css?url";
 
 const searchSchema = z.object({ start: z.string().optional(), end: z.string().optional() });
@@ -16,18 +17,25 @@ export const Route = createFileRoute("/_app/pms/belegungsplan")({
   validateSearch: searchSchema,
   loaderDeps: ({ search }) => search,
   loader: async ({ deps }) => {
-    const [schedule, options] = await Promise.all([getReservationSchedule({ data: { start: deps.start, end: deps.end } }), getReservationFormOptions()]);
-    return { schedule, options };
+    const [schedule, options, housekeepingRooms] = await Promise.all([
+      getReservationSchedule({ data: { start: deps.start, end: deps.end } }),
+      getReservationFormOptions(),
+      getHousekeepingRooms(),
+    ]);
+    return { schedule, options, housekeepingRooms };
   },
   head: () => ({ meta: [{ title: "Belegungsplan · Haben" }], links: [{ rel: "stylesheet", href: styles }] }),
   component: SchedulePage,
 });
 
 function SchedulePage() {
-  const { schedule, options } = Route.useLoaderData();
+  const { schedule, options, housekeepingRooms } = Route.useLoaderData();
   const router = useRouter();
+  const saveCleaningStatus = useServerFn(updateCleaningStatus);
   const [selection, setSelection] = useState<ScheduleSelection | null>(null);
   const [creating, setCreating] = useState(false);
+  const [rooms, setRooms] = useState(housekeepingRooms);
+  const [pendingRoom, setPendingRoom] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
   const formOpen = creating || selection !== null;
 
@@ -40,6 +48,19 @@ function SchedulePage() {
     setSelection(next);
     setNotice(null);
   }, []);
+
+  async function changeCleaningStatus(roomId: string, status: "clean" | "dirty") {
+    setPendingRoom(roomId);
+    setNotice(null);
+    try {
+      await saveCleaningStatus({ data: { roomId, status } });
+      setRooms((current) => current.map((room) => (room.id === roomId ? { ...room, cleaningStatus: status } : room)));
+    } catch (cause) {
+      setNotice({ tone: "danger", text: errorMessage(cause) });
+    } finally {
+      setPendingRoom(null);
+    }
+  }
 
   return (
     <>
@@ -89,32 +110,42 @@ function SchedulePage() {
       ) : (
         <ReservationSchedule data={schedule} onEvent={openReservation} onSelect={selectRange} />
       )}
-      <section className="card schedule-list" aria-labelledby="schedule-list-heading">
-        <h2 id="schedule-list-heading">Belegungen im Zeitraum</h2>
-        {schedule.events.length === 0 ? (
-          <p className="muted">In diesem Zeitraum gibt es keine Reservierungen.</p>
-        ) : (
-          <ul>
-            {schedule.events.map((event) => {
-              const room = schedule.rooms.find((candidate) => candidate.id === event.roomId);
-              return (
-                <li key={event.id}>
-                  <Link to="/pms/reservierungen" search={{ edit: event.reservationId }}>
-                    <strong>{event.contactName}</strong>
-                    <span>
-                      Zimmer {room?.number ?? "–"} · {formatDate(event.arrivalDate)} – {formatDate(event.departureDate)}
-                    </span>
-                    <span>
-                      {event.reservationStatusLabel} · {event.billingStatusLabel}
-                      {event.invoiceNumber ? ` #${event.invoiceNumber}` : ""}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
+      <div className="housekeeping-columns schedule-housekeeping" aria-label="Zimmerstatus">
+        {[
+          { title: "Saubere Zimmer", status: "clean" as const, nextStatus: "dirty" as const, arrow: "→", action: "Als schmutzig markieren" },
+          { title: "Schmutzige Zimmer", status: "dirty" as const, nextStatus: "clean" as const, arrow: "←", action: "Als sauber markieren" },
+        ].map((group) => {
+          const groupedRooms = rooms.filter((room) => room.cleaningStatus === group.status);
+          return (
+            <section className="card housekeeping-group" key={group.status}>
+              <h2>
+                {group.title} ({groupedRooms.length})
+              </h2>
+              {groupedRooms.length === 0 ? (
+                <p className="muted">Keine Zimmer.</p>
+              ) : (
+                <div className="housekeeping-list">
+                  {groupedRooms.map((room) => (
+                    <article className={`housekeeping-room ${group.status}`} key={room.id}>
+                      <strong className="mono">Zimmer {room.number}</strong>
+                      <button
+                        type="button"
+                        className="btn housekeeping-transfer"
+                        aria-label={`Zimmer ${room.number}: ${group.action}`}
+                        title={group.action}
+                        disabled={pendingRoom === room.id}
+                        onClick={() => void changeCleaningStatus(room.id, group.nextStatus)}
+                      >
+                        <span aria-hidden="true">{pendingRoom === room.id ? "…" : group.arrow}</span>
+                      </button>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+          );
+        })}
+      </div>
       <FormDialog
         open={formOpen}
         title="Neue Reservierung"

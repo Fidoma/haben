@@ -21,6 +21,7 @@ export const JOBS = [
   "exchange_rates",
   "base_rate",
   "receipt_inbox",
+  "pms_housekeeping",
   "vat_id_check",
   "deadline_mails",
   "file_check",

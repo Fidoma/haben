@@ -115,6 +115,8 @@ nav:
       - "PMS: Zimmer": pms-zimmer.md
       - "PMS: Reservierungen": pms-reservierungen.md
       - "PMS: Belegungsplan": pms-belegungsplan.md
+      - "PMS: Housekeeping": pms-housekeeping.md
+      - "PMS: Tourismusstatistik": pms-tourismusstatistik.md
   - Hintergrund:
       - Buchhaltung in Haben: buchhaltung.md
       - Verfahrensdokumentation: verfahrensdokumentation.md
