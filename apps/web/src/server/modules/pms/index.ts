@@ -21,3 +21,11 @@ export {
   type Reservation,
   type ReservationInput,
 } from "./reservations.ts";
+export {
+  defaultScheduleRange,
+  reservationSchedule,
+  type ReservationScheduleData,
+  type ScheduleBillingStatus,
+  type ScheduleEvent,
+  type ScheduleRoom,
+} from "./schedule.ts";
