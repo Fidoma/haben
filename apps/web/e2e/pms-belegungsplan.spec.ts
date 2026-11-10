@@ -11,6 +11,7 @@ test("Belegungsplan lädt DayPilot und bietet die barrierefreie Alternative", as
   await expect(page.getByRole("navigation", { name: "Hauptnavigation" }).getByRole("link", { name: "Zimmer", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "+ Reservierung" })).toBeVisible();
   await expect(page.getByRole("button", { name: "+ Zimmer" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Hotelstatistik" })).toBeVisible();
   await expect(page.getByRole("searchbox", { name: "Reservierungen suchen" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Neue Reservierung" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Belegungen im Zeitraum" })).toBeVisible();
@@ -18,4 +19,14 @@ test("Belegungsplan lädt DayPilot und bietet die barrierefreie Alternative", as
   if ((await page.locator(".reservation-scheduler-card").count()) > 0) {
     await expect(page.locator(".scheduler_default_main")).toBeVisible();
   }
+});
+
+test("Hotelstatistik öffnet die Gesamtsicht im Belegungsplan", async ({ page }) => {
+  await page.goto("/pms/belegungsplan");
+  await page.getByRole("button", { name: "Hotelstatistik" }).click();
+
+  await expect(page.getByRole("heading", { name: "Hotelstatistik" })).toBeVisible();
+  await expect(page.getByLabel("Zeitraum")).toHaveValue("current-year");
+  await expect(page.getByText("Hotelumsatz")).toBeVisible();
+  await expect(page.getByText("Zimmernächte")).toBeVisible();
 });

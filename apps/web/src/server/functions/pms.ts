@@ -8,6 +8,7 @@ import {
   createRoom,
   defaultScheduleRange,
   getTourismReport,
+  hotelStatistics,
   prefillTourismReport,
   listReservations,
   listRooms,
@@ -83,6 +84,11 @@ export const getRoomStatistics = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .validator(z.object({ roomId: z.uuid(), period: z.enum(roomStatisticsPeriods) }))
   .handler(({ data }) => roomStatistics(data.roomId, data.period, today()));
+
+export const getHotelStatistics = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .validator(z.object({ period: z.enum(roomStatisticsPeriods) }))
+  .handler(({ data }) => hotelStatistics(data.period, today()));
 
 const tourismPeriodSchema = z.object({ year: z.number().int().min(2000).max(2200), month: z.number().int().min(1).max(12) });
 
