@@ -7,7 +7,7 @@ import { saveRoom, type getRooms } from "../../server/functions/pms.ts";
 
 type Room = Awaited<ReturnType<typeof getRooms>>[number];
 
-export function RoomForm({ room, onDone }: { room: Room | null; onDone: (notice: Notice) => void }) {
+export function RoomForm({ room, inDialog = false, onDone }: { room: Room | null; inDialog?: boolean; onDone: (notice: Notice) => void }) {
   const router = useRouter();
   const save = useServerFn(saveRoom);
   const [busy, setBusy] = useState(false);
@@ -45,7 +45,7 @@ export function RoomForm({ room, onDone }: { room: Room | null; onDone: (notice:
 
   const formName = room ? "Zimmer bearbeiten" : "Neues Zimmer";
   return (
-    <form className="card room-form" onSubmit={onSubmit} aria-label={formName}>
+    <form className={`card room-form${inDialog ? " contact-form" : ""}`} onSubmit={onSubmit} aria-label={formName}>
       <h2 style={{ margin: 0, fontSize: 16 }}>{formName}</h2>
       <div className="form-row cols-2">
         <label className="field">
@@ -66,7 +66,7 @@ export function RoomForm({ room, onDone }: { room: Room | null; onDone: (notice:
           {error}
         </div>
       )}
-      <div className="actions">
+      <div className={`actions${inDialog ? " form-footer" : ""}`}>
         <button type="submit" className="btn btn-primary" disabled={busy}>
           {room ? "Speichern" : "Anlegen"}
         </button>

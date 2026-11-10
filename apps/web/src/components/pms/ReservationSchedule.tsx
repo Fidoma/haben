@@ -46,6 +46,7 @@ function schedulerConfig(
   data: ReservationScheduleData,
   onEvent: (reservationId: string) => void,
   onSelect: (selection: ScheduleSelection) => void,
+  onRoom: (roomId: string) => void,
 ): Record<string, unknown> {
   return {
     locale: "de-de",
@@ -71,6 +72,8 @@ function schedulerConfig(
     eventDeleteHandling: "Disabled",
     timeRangeSelectedHandling: "Enabled",
     onEventClicked: (args: { e: { data: { reservationId: string } } }) => onEvent(args.e.data.reservationId),
+    rowClickHandling: "Enabled",
+    onRowClicked: (args: { row: { id?: string; data?: { id?: string } } }) => onRoom(String(args.row.data?.id ?? args.row.id ?? "").replace(/^room-/, "")),
     onBeforeCellRender: (args: { cell: { start: { getDayOfWeek(): number }; cssClass?: string } }) => {
       const day = args.cell.start.getDayOfWeek();
       if (day === 0 || day === 6) args.cell.cssClass = "reservation-scheduler-weekend";
@@ -124,10 +127,12 @@ export function ReservationSchedule({
   data,
   onEvent,
   onSelect,
+  onRoom,
 }: {
   data: ReservationScheduleData;
   onEvent: (reservationId: string) => void;
   onSelect: (selection: ScheduleSelection) => void;
+  onRoom: (roomId: string) => void;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const scheduler = useRef<DayPilotSchedulerInstance | null>(null);
@@ -143,10 +148,16 @@ export function ReservationSchedule({
         container.current.replaceChildren();
         const instance = new DayPilot.Scheduler(
           container.current,
-          schedulerConfig(DayPilot, data, onEvent, (selection) => {
-            onSelect(selection);
-            instance.clearSelection();
-          }),
+          schedulerConfig(
+            DayPilot,
+            data,
+            onEvent,
+            (selection) => {
+              onSelect(selection);
+              instance.clearSelection();
+            },
+            onRoom,
+          ),
         );
         scheduler.current = instance;
         instance.init();
@@ -159,7 +170,7 @@ export function ReservationSchedule({
       scheduler.current = null;
       container.current?.replaceChildren();
     };
-  }, [data, onEvent, onSelect]);
+  }, [data, onEvent, onRoom, onSelect]);
 
   return (
     <>

@@ -6,7 +6,6 @@ import { applyPublishedRates, runDueDauerbelege, runDueInboxFetch } from "./modu
 import { runDueExchangeRates } from "./modules/stammdaten/index.ts";
 import { runDueFristenMails, runDuePruefwertMail } from "./modules/mail/index.ts";
 import { runDuePostfachFetch } from "./modules/finanzamt/index.ts";
-import { runDueHousekeeping } from "./modules/pms/index.ts";
 import { applyPublishedRatesToDrafts, runDueBaseRate, runDueRecurring } from "./modules/rechnungen/index.ts";
 import { runDueStoreSyncs } from "./modules/stores/index.ts";
 import { today } from "./today.ts";
@@ -91,12 +90,6 @@ export async function runScheduledJobs(): Promise<void> {
     if (result?.sent) console.log(`Fristen-Erinnerung: ${result.sent} Frist(en) per E-Mail erinnert`);
   } catch (error) {
     console.error("Fristen-Erinnerung", error);
-  }
-  try {
-    const result = await runDueHousekeeping();
-    if (result.processed > 0) console.log(`Housekeeping: ${result.processed} Abreise(n) als schmutzig markiert`);
-  } catch (error) {
-    console.error("Housekeeping", error);
   }
   try {
     const result = await runDuePruefwertMail();

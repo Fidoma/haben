@@ -79,3 +79,11 @@ export async function setRoomArchived(actor: string, id: string, archived: boole
   );
   if (!row) throw new RoomError("Zimmer nicht gefunden.");
 }
+
+/** Ändert den kompakten Zimmerstatus im Belegungsplan. */
+export async function setRoomCleaningStatus(actor: string, id: string, status: "clean" | "dirty"): Promise<void> {
+  const [row] = await withActor(actor, (tx) =>
+    tx.update(schema.pmsRooms).set({ cleaningStatus: status, updatedAt: new Date() }).where(eq(schema.pmsRooms.id, id)).returning({ id: schema.pmsRooms.id }),
+  );
+  if (!row) throw new RoomError("Zimmer nicht gefunden.");
+}

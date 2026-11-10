@@ -1,12 +1,13 @@
 ---
-title: "PMS: Reservierungen verwalten"
+title: "PMS: Reservierungen im Belegungsplan"
 description: Zimmerreservierungen mit Kunde und mehreren Aufenthaltspositionen anlegen, bearbeiten und dauerhaft stornieren.
 ---
 
-# PMS: Reservierungen verwalten
+# PMS: Reservierungen im Belegungsplan
 
-Unter **PMS › Reservierungen** verwaltest du Aufenthalte. Jede Reservierung gehört
-zu einem aktiven Kunden und enthält eine oder mehrere Zimmerpositionen.
+Im **PMS › Belegungsplan** verwaltest du Aufenthalte zentral. Eine separate
+Reservierungsliste gibt es nicht. Jede Reservierung gehört zu einem aktiven Kunden
+und enthält eine oder mehrere Zimmerpositionen.
 
 ## Reservierung anlegen und bearbeiten
 

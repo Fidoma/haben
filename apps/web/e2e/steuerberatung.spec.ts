@@ -111,10 +111,6 @@ test("Einladung, lesen ja, ändern nein, sperren", async ({ page: owner, browser
   await stb.waitForURL(/\/steuerberatung$/);
   await stb.goto("/buchungen/neu");
   await stb.waitForURL(/\/steuerberatung$/);
-  await stb.goto("/pms/zimmer");
-  await stb.waitForURL(/\/steuerberatung$/);
-  await stb.goto("/pms/reservierungen");
-  await stb.waitForURL(/\/steuerberatung$/);
   expect((await stb.request.get("/api/ueberweisung/00000000-0000-4000-8000-000000000000")).status()).toBe(403);
 
   // Eine schreibende Server Function, wie sie der Inhaber aufruft (Einladung zurückziehen), mit der Sitzung der Steuerberatung

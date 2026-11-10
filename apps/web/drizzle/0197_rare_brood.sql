@@ -1,0 +1,1 @@
+ALTER TABLE "pms_reservation_items" DROP COLUMN "dirty_processed_at";
