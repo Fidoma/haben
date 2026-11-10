@@ -13,7 +13,9 @@ Zimmern erscheint deshalb in mehreren Zeilen.
 
 Er ist die zentrale PMS-Arbeitsoberfläche. Über die Toolbar legst du Reservierungen
 und Zimmer an, suchst nach Gast oder Reservierungskennung und erreichst unter **⋯**
-die vollständigen Verwaltungslisten sowie die Tourismusstatistik.
+die vollständigen Verwaltungslisten. Der Button **Hotelstatistik** öffnet die
+betriebswirtschaftliche Gesamtsicht; daneben bleibt die amtliche Tourismusstatistik
+erreichbar.
 
 ## Belegungen lesen
 
@@ -72,6 +74,19 @@ und künftig geplante Nächte werden getrennt ausgewiesen.
 Unterhalb des Plans zeigt der **Zimmerstatus** links saubere Zimmer und rechts
 Zimmer, die zu reinigen sind. Ein Klick verschiebt das Zimmer direkt in die jeweils
 andere Gruppe.
+
+## Hotelstatistik
+
+Die Hotelstatistik bündelt die Kennzahlen aller aktiven Zimmer im gewählten
+Zeitraum. Sie zeigt den eindeutig zugeordneten Netto-Hotelumsatz, belegte und
+verfügbare Zimmernächte, Auslastung und Stornierungen sowie ADR, RevPAR und die
+durchschnittliche Aufenthaltsdauer. Umsatzentwicklung, umsatzstärkste Zimmer und
+Top-Kunden helfen beim Vergleich, ohne den Belegungsplan zu verlassen.
+
+Mehrzimmerreservierungen zählen je Zimmernacht, eine stornierte Reservierung aber
+nur einmal. Archivierte Zimmer fließen nicht in die aktuelle Hotelkapazität ein.
+Für den Umsatz gelten dieselben Regeln wie in der Zimmerakte: Entwürfe und nicht
+eindeutig zuordenbare Rechnungen werden nicht geschätzt.
 
 Der Belegungsplan ändert Reservierungen nicht per Drag-and-drop. Zimmer und Zeitraum
 werden weiterhin im Reservierungsformular bearbeitet, wo Haben auch eine mögliche

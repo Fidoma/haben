@@ -15,6 +15,7 @@ export function ScheduleToolbar({
   onCreateReservation,
   onCreateRoom,
   onArchivedRooms,
+  onHotelStatistics,
   onTourismStatistics,
 }: {
   reservations: Reservation[];
@@ -24,6 +25,7 @@ export function ScheduleToolbar({
   onCreateReservation: () => void;
   onCreateRoom: () => void;
   onArchivedRooms: () => void;
+  onHotelStatistics: () => void;
   onTourismStatistics: () => void;
 }) {
   const results = useMemo(() => {
@@ -47,6 +49,9 @@ export function ScheduleToolbar({
         </button>
         <button type="button" className="btn" aria-label="Archivierte Zimmer" title="Archivierte Zimmer" onClick={onArchivedRooms}>
           <Icon name="archive" size={17} />
+        </button>
+        <button type="button" className="btn" aria-label="Hotelstatistik" title="Hotelstatistik" onClick={onHotelStatistics}>
+          <Icon name="overview" size={17} />
         </button>
         <button type="button" className="btn" aria-label="Tourismusstatistik" title="Tourismusstatistik" onClick={onTourismStatistics}>
           <Icon name="reports" size={17} />
