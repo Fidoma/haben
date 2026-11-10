@@ -18,6 +18,7 @@ export function FormDialog({ open, title, onClose, children }: { open: boolean; 
 
 function OpenFormDialog({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const pressedBeside = useRef(false);
 
   useEffect(() => {
     const dialog = ref.current;
@@ -25,7 +26,18 @@ function OpenFormDialog({ title, onClose, children }: { title: string; onClose: 
   }, []);
 
   return (
-    <dialog ref={ref} className="form-dialog" aria-labelledby="form-dialog-title" onClose={onClose}>
+    <dialog
+      ref={ref}
+      className="form-dialog"
+      aria-labelledby="form-dialog-title"
+      onClose={onClose}
+      onPointerDown={(event) => {
+        pressedBeside.current = event.target === event.currentTarget;
+      }}
+      onClick={(event) => {
+        if (event.target === event.currentTarget && pressedBeside.current) event.currentTarget.close();
+      }}
+    >
       <h2 id="form-dialog-title">{title}</h2>
       {children}
     </dialog>

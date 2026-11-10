@@ -106,6 +106,12 @@ const PATHS = {
   pin: <path d="M9 3h6M10 3v6l-3 4h10l-3-4V3M12 13v8" />,
   expand: <path d="M14 4h6v6M10 20H4v-6M20 4l-6.5 6.5M4 20l6.5-6.5" />,
   plus: <path d="M12 5v14M5 12h14" />,
+  search: (
+    <>
+      <circle cx="11" cy="11" r="7" />
+      <path d="M16 16l5 5" />
+    </>
+  ),
   alert: (
     <>
       <path d="M12 3l9.5 17h-19z" />

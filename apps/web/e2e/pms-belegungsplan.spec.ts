@@ -7,6 +7,11 @@ test("Belegungsplan lädt DayPilot und bietet die barrierefreie Alternative", as
   await page.goto("/pms/belegungsplan");
   await expect(page.getByRole("heading", { level: 1, name: "Belegungsplan" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Hauptnavigation" }).getByRole("link", { name: "Belegungsplan" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Hauptnavigation" }).getByRole("link", { name: "Reservierungen" })).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Hauptnavigation" }).getByRole("link", { name: "Zimmer", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "+ Reservierung" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "+ Zimmer" })).toBeVisible();
+  await expect(page.getByRole("searchbox", { name: "Reservierungen suchen" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Neue Reservierung" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Belegungen im Zeitraum" })).toBeVisible();
 

@@ -1786,8 +1786,6 @@ export const pmsReservationItems = pgTable(
     description: text("description").notNull().default(""),
     /** Bei Storno gesetzt; damit gibt die Exclusion-Constraint das Zimmer wieder frei */
     canceledAt: timestamp("canceled_at", { withTimezone: true }),
-    /** Genau einmal gesetzte Marke der automatischen Verschmutzung nach Abreise */
-    dirtyProcessedAt: timestamp("dirty_processed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
