@@ -147,4 +147,46 @@ describe.skipIf(!testDatabaseUrl)("PMS-Zimmerstatistik (Postgres)", () => {
 
     expect(await statistics.roomStatistics(firstRoom, "current-year", "2026-04-01")).toMatchObject({ revenue: 0, unattributedReservations: 1 });
   });
+
+  it("aggregiert Umsatz und Zimmernächte aller aktiven Zimmer", async () => {
+    const firstRoom = await room("101");
+    const secondRoom = await room("102");
+    const guest = await contact("Hotelgast");
+    await reservation(
+      guest,
+      [
+        { roomId: firstRoom, arrival: "2026-02-01", departure: "2026-02-03" },
+        { roomId: secondRoom, arrival: "2026-02-01", departure: "2026-02-04" },
+      ],
+      { invoiceId: await invoice([20_000, 45_000]) },
+    );
+
+    const result = await statistics.hotelStatistics("current-year", "2026-04-01");
+    expect(result).toMatchObject({ activeRooms: 2, revenue: 65_000, occupiedNights: 5, availableNights: 180, adr: 13_000 });
+    expect(result.topRooms).toMatchObject([
+      { number: "102", nights: 3, revenue: 45_000 },
+      { number: "101", nights: 2, revenue: 20_000 },
+    ]);
+    expect(result.topCustomers).toMatchObject([{ name: "Hotelgast", nights: 5, revenue: 65_000 }]);
+  });
+
+  it("zählt eine stornierte Mehrzimmerreservierung in der Hotelstatistik nur einmal", async () => {
+    const firstRoom = await room("101");
+    const secondRoom = await room("102");
+    const guest = await contact("Stornogast");
+    await reservation(
+      guest,
+      [
+        { roomId: firstRoom, arrival: "2026-02-01", departure: "2026-02-03" },
+        { roomId: secondRoom, arrival: "2026-02-01", departure: "2026-02-03" },
+      ],
+      { canceled: true },
+    );
+
+    expect(await statistics.hotelStatistics("current-year", "2026-04-01")).toMatchObject({
+      occupiedNights: 0,
+      canceledReservations: 1,
+      cancellationBasisPoints: 10_000,
+    });
+  });
 });

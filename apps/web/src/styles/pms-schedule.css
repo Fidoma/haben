@@ -32,6 +32,7 @@
 .room-status-list p { margin: 4px 0; }
 
 .room-dashboard { display: grid; gap: 18px; }
+.hotel-dashboard { display: grid; gap: 18px; }
 .room-dashboard-summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .room-dashboard-summary > div:first-child { display: grid; gap: 3px; }
 .room-dashboard-summary strong { font-size: 16px; }
@@ -74,6 +75,7 @@
 .room-reservation-list button > span:first-child { display: grid; gap: 2px; min-width: 0; }
 .room-reservation-list small { color: var(--muted); }
 .room-cleaning-actions { flex: none; }
+.hotel-ranking-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
 
 .reservation-scheduler-card { min-height: 260px; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: 0 1px 2px rgb(0 0 0 / 0.04); }
 .reservation-scheduler-card .scheduler_default_main { border: 0; font-family: var(--sans); }
@@ -113,7 +115,10 @@
 .form-dialog > .reservation-form.contact-form { flex: 1 1 auto; min-width: 0; min-height: 0; max-width: none; overflow-x: hidden; overflow-y: auto; border: 0; border-radius: 0; background: none; scroll-padding-bottom: 89px; }
 .form-dialog > .reservation-form.contact-form > h2 { display: none; }
 .form-dialog:has(> .tourism-dialog-content) { width: min(1180px, calc(100vw - 24px)); max-width: none; height: calc(100dvh - 16px); max-height: none; margin: 8px auto; box-sizing: border-box; }
+.form-dialog:has(> .hotel-dialog-content) { width: min(1000px, calc(100vw - 24px)); max-width: none; height: calc(100dvh - 16px); max-height: none; margin: 8px auto; box-sizing: border-box; }
+.hotel-dialog-content,
 .tourism-dialog-content { display: flex; min-height: 0; flex: 1 1 auto; flex-direction: column; gap: 16px; padding: 16px 20px 0; overflow-x: hidden; overflow-y: auto; }
+.hotel-dialog-content > .form-footer,
 .tourism-dialog-content > .form-footer { position: sticky; bottom: 0; margin: auto -20px 0; padding: 12px 20px; border-top: 1px solid var(--line); background: var(--surface); }
 
 .tourism-period { display: flex; align-items: end; gap: 12px; margin-bottom: 16px; }
@@ -133,6 +138,7 @@
 @media (max-width: 640px) {
   .form-dialog:has(> .reservation-form) { width: 100vw; height: 100dvh; margin: 0; border-width: 0; border-radius: 0; }
   .form-dialog:has(> .tourism-dialog-content) { width: 100vw; height: 100dvh; margin: 0; border-width: 0; border-radius: 0; }
+  .form-dialog:has(> .hotel-dialog-content) { width: 100vw; height: 100dvh; margin: 0; border-width: 0; border-radius: 0; }
   .form-dialog > .reservation-form .reservation-position-row { grid-template-columns: 1fr; }
   .schedule-toolbar { align-items: stretch; flex-direction: column; }
   .schedule-toolbar-actions { width: 100%; }
@@ -145,6 +151,7 @@
   .room-period { grid-template-columns: 1fr; }
   .room-dashboard-section-head { align-items: flex-start; }
   .room-dashboard-section-head:has(.room-cleaning-actions) { flex-direction: column; }
+  .hotel-ranking-grid { grid-template-columns: 1fr; }
   .tourism-period { align-items: stretch; flex-direction: column; }
   .tourism-period label { max-width: none; }
   .tourism-countries { overflow-x: auto; }

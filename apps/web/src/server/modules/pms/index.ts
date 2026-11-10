@@ -30,7 +30,7 @@ export {
   type ScheduleEvent,
   type ScheduleRoom,
 } from "./schedule.ts";
-export { roomStatistics, roomStatisticsPeriods, roomStatisticsRange, type RoomStatisticsPeriod } from "./room-statistics.ts";
+export { hotelStatistics, roomStatistics, roomStatisticsPeriods, roomStatisticsRange, type RoomStatisticsPeriod } from "./room-statistics.ts";
 export {
   getTourismReport,
   prefillTourismReport,

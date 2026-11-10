@@ -6,6 +6,7 @@ import { ConfirmDialog } from "../../../components/ConfirmDialog.tsx";
 import { FormDialog } from "../../../components/FormDialog.tsx";
 import { NoticeBanner } from "../../../components/NoticeBanner.tsx";
 import { SideDialog } from "../../../components/SideDialog.tsx";
+import { HotelDashboard } from "../../../components/pms/HotelDashboard.tsx";
 import { ReservationDetails } from "../../../components/pms/ReservationDetails.tsx";
 import { ReservationForm } from "../../../components/pms/ReservationForm.tsx";
 import { ReservationSchedule, type ScheduleSelection } from "../../../components/pms/ReservationSchedule.tsx";
@@ -68,6 +69,7 @@ function SchedulePage() {
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [editingRoom, setEditingRoom] = useState(false);
   const [showingArchivedRooms, setShowingArchivedRooms] = useState(false);
+  const [showingHotelStatistics, setShowingHotelStatistics] = useState(false);
   const [showingTourismStatistics, setShowingTourismStatistics] = useState(false);
   const [pendingRoomStatus, setPendingRoomStatus] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<Reservation | null>(null);
@@ -163,6 +165,7 @@ function SchedulePage() {
         }}
         onCreateRoom={() => setCreatingRoom(true)}
         onArchivedRooms={() => setShowingArchivedRooms(true)}
+        onHotelStatistics={() => setShowingHotelStatistics(true)}
         onTourismStatistics={() => setShowingTourismStatistics(true)}
       />
       <NoticeBanner notice={notice} />
@@ -345,6 +348,16 @@ function SchedulePage() {
           )}
           <div className="actions form-footer">
             <button type="button" className="btn" onClick={() => setShowingArchivedRooms(false)}>
+              Schließen
+            </button>
+          </div>
+        </div>
+      </FormDialog>
+      <FormDialog open={showingHotelStatistics} title="Hotelstatistik" onClose={() => setShowingHotelStatistics(false)}>
+        <div className="hotel-dialog-content">
+          <HotelDashboard />
+          <div className="actions form-footer">
+            <button type="button" className="btn" onClick={() => setShowingHotelStatistics(false)}>
               Schließen
             </button>
           </div>
