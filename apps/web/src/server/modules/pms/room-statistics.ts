@@ -1,4 +1,4 @@
-import { eq, inArray, or } from "drizzle-orm";
+import { eq, inArray, isNull, or } from "drizzle-orm";
 import { db, schema } from "../../db/index.ts";
 
 export const roomStatisticsPeriods = ["current-year", "last-year", "current-month", "last-month", "all"] as const;
@@ -8,6 +8,8 @@ type Stay = {
   id: string;
   reservationId: string;
   position: number;
+  roomId: string;
+  roomNumber: string;
   contactId: string;
   contactName: string;
   invoiceId: string | null;
@@ -146,14 +148,14 @@ async function attributableRevenue(stays: Stay[]) {
   return { byItem, unattributedReservations };
 }
 
-export async function roomStatistics(roomId: string, period: RoomStatisticsPeriod, today: string) {
-  const [room] = await db.select().from(schema.pmsRooms).where(eq(schema.pmsRooms.id, roomId));
-  if (!room) return null;
-  const stays: Stay[] = await db
+async function loadStays(filter: { roomId: string } | { reservationIds: string[] } | null = null) {
+  return db
     .select({
       id: schema.pmsReservationItems.id,
       reservationId: schema.pmsReservations.id,
       position: schema.pmsReservationItems.position,
+      roomId: schema.pmsReservationItems.roomId,
+      roomNumber: schema.pmsRooms.number,
       contactId: schema.pmsReservations.contactId,
       contactName: schema.contacts.name,
       invoiceId: schema.pmsReservations.invoiceId,
@@ -162,9 +164,22 @@ export async function roomStatistics(roomId: string, period: RoomStatisticsPerio
       departure: schema.pmsReservationItems.departureDate,
     })
     .from(schema.pmsReservationItems)
+    .innerJoin(schema.pmsRooms, eq(schema.pmsReservationItems.roomId, schema.pmsRooms.id))
     .innerJoin(schema.pmsReservations, eq(schema.pmsReservationItems.reservationId, schema.pmsReservations.id))
     .innerJoin(schema.contacts, eq(schema.pmsReservations.contactId, schema.contacts.id))
-    .where(eq(schema.pmsReservationItems.roomId, roomId));
+    .where(
+      filter && "roomId" in filter
+        ? eq(schema.pmsReservationItems.roomId, filter.roomId)
+        : filter
+          ? inArray(schema.pmsReservations.id, filter.reservationIds)
+          : undefined,
+    );
+}
+
+export async function roomStatistics(roomId: string, period: RoomStatisticsPeriod, today: string) {
+  const [room] = await db.select().from(schema.pmsRooms).where(eq(schema.pmsRooms.id, roomId));
+  if (!room) return null;
+  const stays: Stay[] = await loadStays({ roomId });
   const requested = roomStatisticsRange(today, period);
   const firstArrival = stays.map((stay) => stay.arrival).toSorted()[0];
   const start = period === "all" ? (firstArrival ?? today) : requested.start;
@@ -172,25 +187,7 @@ export async function roomStatistics(roomId: string, period: RoomStatisticsPerio
   const periodStays = stays.filter((stay) => stay.arrival < end && stay.departure > start);
   const confirmed = periodStays.filter((stay) => stay.status === "confirmed");
   const relatedReservationIds = [...new Set(confirmed.map((stay) => stay.reservationId))];
-  const revenueStays: Stay[] =
-    relatedReservationIds.length === 0
-      ? []
-      : await db
-          .select({
-            id: schema.pmsReservationItems.id,
-            reservationId: schema.pmsReservations.id,
-            position: schema.pmsReservationItems.position,
-            contactId: schema.pmsReservations.contactId,
-            contactName: schema.contacts.name,
-            invoiceId: schema.pmsReservations.invoiceId,
-            status: schema.pmsReservations.status,
-            arrival: schema.pmsReservationItems.arrivalDate,
-            departure: schema.pmsReservationItems.departureDate,
-          })
-          .from(schema.pmsReservationItems)
-          .innerJoin(schema.pmsReservations, eq(schema.pmsReservationItems.reservationId, schema.pmsReservations.id))
-          .innerJoin(schema.contacts, eq(schema.pmsReservations.contactId, schema.contacts.id))
-          .where(inArray(schema.pmsReservations.id, relatedReservationIds));
+  const revenueStays: Stay[] = relatedReservationIds.length === 0 ? [] : await loadStays({ reservationIds: relatedReservationIds });
   const occupiedDates = new Set<string>();
   for (const stay of confirmed) for (const date of datesIn(later(stay.arrival, start), earlier(stay.departure, end))) occupiedDates.add(date);
   const availableEnd = room.archivedAt ? earlier(end, iso(room.archivedAt)) : end;
@@ -260,5 +257,83 @@ export async function roomStatistics(roomId: string, period: RoomStatisticsPerio
         departure: stay.departure,
         status: stay.status,
       })),
+  };
+}
+
+/** Betriebswirtschaftliche Kennzahlen aller aktuell aktiven Zimmer. */
+export async function hotelStatistics(period: RoomStatisticsPeriod, today: string) {
+  const rooms = await db.select({ id: schema.pmsRooms.id, number: schema.pmsRooms.number }).from(schema.pmsRooms).where(isNull(schema.pmsRooms.archivedAt));
+  const activeRoomIds = new Set(rooms.map((room) => room.id));
+  const allStays: Stay[] = await loadStays();
+  const stays = allStays.filter((stay) => activeRoomIds.has(stay.roomId));
+  const requested = roomStatisticsRange(today, period);
+  const firstArrival = stays.map((stay) => stay.arrival).toSorted()[0];
+  const start = period === "all" ? (firstArrival ?? today) : requested.start;
+  const end = earlier(requested.end, today);
+  const periodStays = stays.filter((stay) => stay.arrival < end && stay.departure > start);
+  const confirmed = periodStays.filter((stay) => stay.status === "confirmed");
+  const relatedReservationIds = new Set(confirmed.map((stay) => stay.reservationId));
+  const revenue = await attributableRevenue(allStays.filter((stay) => relatedReservationIds.has(stay.reservationId)));
+  const occupiedRoomNights = new Set<string>();
+  const futureRoomNights = new Set<string>();
+  const revenueByDate = new Map<string, number>();
+  const roomValues = new Map(rooms.map((room) => [room.id, { id: room.id, number: room.number, nights: 0, revenue: 0 }]));
+  const customerValues = new Map<string, { id: string; name: string; nights: Set<string>; revenue: number }>();
+
+  for (const stay of confirmed) {
+    const customer = customerValues.get(stay.contactId) ?? { id: stay.contactId, name: stay.contactName, nights: new Set<string>(), revenue: 0 };
+    const room = roomValues.get(stay.roomId)!;
+    const allDates = datesIn(stay.arrival, stay.departure);
+    const daily = splitCents(revenue.byItem.get(stay.id) ?? 0, allDates.length);
+    allDates.forEach((date, index) => {
+      if (date < start || date >= end) return;
+      const roomNight = `${stay.roomId}:${date}`;
+      occupiedRoomNights.add(roomNight);
+      customer.nights.add(roomNight);
+      customer.revenue += daily[index]!;
+      room.nights += 1;
+      room.revenue += daily[index]!;
+      const key = seriesKey(date, days(start, end) > 730);
+      revenueByDate.set(key, (revenueByDate.get(key) ?? 0) + daily[index]!);
+    });
+    customerValues.set(stay.contactId, customer);
+  }
+
+  for (const stay of stays.filter((candidate) => candidate.status === "confirmed" && candidate.arrival < requested.end && candidate.departure > today)) {
+    for (const date of datesIn(later(stay.arrival, today), earlier(stay.departure, requested.end))) {
+      futureRoomNights.add(`${stay.roomId}:${date}`);
+    }
+  }
+
+  const reservationIds = new Set(periodStays.map((stay) => stay.reservationId));
+  const canceledIds = new Set(periodStays.filter((stay) => stay.status === "canceled").map((stay) => stay.reservationId));
+  const availableNights = days(start, end) * rooms.length;
+  const totalRevenue = [...revenueByDate.values()].reduce((sum, amount) => sum + amount, 0);
+  const stayLengths = [...groupBy(confirmed, (stay) => stay.reservationId).values()].map(
+    (items) => new Set(items.flatMap((item) => datesIn(item.arrival, item.departure))).size,
+  );
+
+  return {
+    period: { start, end, requestedEnd: requested.end },
+    activeRooms: rooms.length,
+    revenue: totalRevenue,
+    occupiedNights: occupiedRoomNights.size,
+    futureNights: futureRoomNights.size,
+    availableNights,
+    occupancyBasisPoints: availableNights === 0 ? 0 : Math.round((occupiedRoomNights.size * 10_000) / availableNights),
+    canceledReservations: canceledIds.size,
+    cancellationBasisPoints: reservationIds.size === 0 ? 0 : Math.round((canceledIds.size * 10_000) / reservationIds.size),
+    adr: occupiedRoomNights.size === 0 ? null : Math.round(totalRevenue / occupiedRoomNights.size),
+    revPar: availableNights === 0 ? null : Math.round(totalRevenue / availableNights),
+    averageStay: stayLengths.length === 0 ? null : stayLengths.reduce((sum, value) => sum + value, 0) / stayLengths.length,
+    unattributedReservations: revenue.unattributedReservations.size,
+    revenueSeries: revenueSeries(start, end, revenueByDate),
+    topRooms: [...roomValues.values()]
+      .toSorted((left, right) => right.revenue - left.revenue || right.nights - left.nights || left.number.localeCompare(right.number, "de"))
+      .slice(0, 5),
+    topCustomers: [...customerValues.values()]
+      .map((customer) => ({ id: customer.id, name: customer.name, nights: customer.nights.size, revenue: customer.revenue }))
+      .toSorted((left, right) => right.revenue - left.revenue || right.nights - left.nights || left.name.localeCompare(right.name, "de"))
+      .slice(0, 5),
   };
 }
