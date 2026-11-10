@@ -8,7 +8,6 @@ import { env } from "./env.ts";
 import { applyPublishedRates, runDueDauerbelege, runDueInboxFetch } from "./modules/belege/index.ts";
 import { runDueExchangeRates } from "./modules/stammdaten/index.ts";
 import { runDueFristenMails, runDuePostfachFetch } from "./modules/finanzamt/index.ts";
-import { runDueHousekeeping } from "./modules/pms/index.ts";
 import { applyPublishedRatesToDrafts, runDueBaseRate, runDueRecurring } from "./modules/rechnungen/index.ts";
 import { runDueEtsySyncs } from "./modules/etsy/index.ts";
 import { runDuePayPalSyncs } from "./modules/paypal/index.ts";
@@ -163,11 +162,6 @@ export async function runScheduledJobs(): Promise<void> {
   } catch (error) {
     console.error("Fristen-Erinnerung", error);
   }
-  try {
-    const result = await runDueHousekeeping();
-    if (result.processed > 0) console.log(`Housekeeping: ${result.processed} Abreise(n) als schmutzig markiert`);
-  } catch (error) {
-    console.error("Housekeeping", error);
   } finally {
     running = false;
   }

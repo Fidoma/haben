@@ -103,12 +103,10 @@ nav:
       - REST-API: api.md
       - Dokumentenarchiv: dokumentenarchiv.md
       - Eigene Seiten: eigene-seiten.md
-      - "PMS: Reservierungen": pms-reservierungen.md
+      - "PMS: Reservierungen im Belegungsplan": pms-reservierungen.md
       - "PMS: Belegungsplan": pms-belegungsplan.md
-      - "PMS: Housekeeping": pms-housekeeping.md
       - "PMS: Tourismusstatistik": pms-tourismusstatistik.md
-      - "PMS: Zimmer": pms-zimmer.md
-      - "PMS: Reservierungen": pms-reservierungen.md
+      - "PMS: Zimmer im Belegungsplan": pms-zimmer.md
   - Hintergrund:
       - Buchhaltung in Haben: buchhaltung.md
       - Verfahrensdokumentation: verfahrensdokumentation.md
