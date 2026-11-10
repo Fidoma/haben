@@ -10,7 +10,6 @@ import { type Job, recordJobRun } from "./metriken.ts";
 import { applyPublishedRates, runDueDauerbelege, runDueInboxFetch } from "./modules/belege/index.ts";
 import { runDueExchangeRates } from "./modules/stammdaten/index.ts";
 import { runDueFristenMails, runDuePostfachFetch } from "./modules/finanzamt/index.ts";
-import { runDueHousekeeping } from "./modules/pms/index.ts";
 import { applyPublishedRatesToDrafts, runDueBaseRate, runDueRecurring } from "./modules/rechnungen/index.ts";
 import { runDueEtsySyncs } from "./modules/etsy/index.ts";
 import { runDueStoreSyncs } from "./modules/stores/index.ts";

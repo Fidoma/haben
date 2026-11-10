@@ -5,6 +5,7 @@ export {
   RoomError,
   roomInputSchema,
   setRoomArchived,
+  setRoomCleaningStatus,
   updateRoom,
   type Room,
   type RoomInput,
@@ -29,13 +30,7 @@ export {
   type ScheduleEvent,
   type ScheduleRoom,
 } from "./schedule.ts";
-export {
-  cleaningStatuses,
-  listHousekeepingRooms,
-  runDueHousekeeping,
-  setCleaningStatus,
-  type CleaningStatus,
-} from "./housekeeping.ts";
+export { roomStatistics, roomStatisticsPeriods, roomStatisticsRange, type RoomStatisticsPeriod } from "./room-statistics.ts";
 export {
   getTourismReport,
   prefillTourismReport,
