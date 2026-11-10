@@ -50,6 +50,8 @@ describe.skipIf(!testDatabaseUrl)("PMS-Zimmer (Postgres)", () => {
     expect(await rooms.listRooms({ archived: true })).toHaveLength(1);
     await rooms.setRoomArchived(actor, room.id, false);
     expect(await rooms.listRooms()).toHaveLength(1);
+    await rooms.setRoomCleaningStatus(actor, room.id, "dirty");
+    expect((await rooms.listRooms())[0]?.cleaningStatus).toBe("dirty");
 
     const log = await sql`
       select action, actor from audit_log
@@ -61,6 +63,7 @@ describe.skipIf(!testDatabaseUrl)("PMS-Zimmer (Postgres)", () => {
       ["UPDATE", actor],
       ["UPDATE", actor],
       ["UPDATE", actor],
+      ["UPDATE", actor],
     ]);
   });
 
@@ -68,5 +71,6 @@ describe.skipIf(!testDatabaseUrl)("PMS-Zimmer (Postgres)", () => {
     const id = "00000000-0000-0000-0000-000000000000";
     await expect(rooms.updateRoom(actor, id, { number: "1", capacity: 1 })).rejects.toThrow("Zimmer nicht gefunden.");
     await expect(rooms.setRoomArchived(actor, id, true)).rejects.toThrow("Zimmer nicht gefunden.");
+    await expect(rooms.setRoomCleaningStatus(actor, id, "dirty")).rejects.toThrow("Zimmer nicht gefunden.");
   });
 });

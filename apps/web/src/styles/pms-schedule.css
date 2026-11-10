@@ -1,4 +1,17 @@
 .schedule-intro { margin: 0; max-width: 840px; }
+.schedule-toolbar { position: relative; z-index: 3; display: flex; align-items: center; gap: 12px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.schedule-toolbar-actions { display: flex; align-items: center; gap: 6px; }
+.schedule-toolbar-actions .btn { display: inline-flex; width: 34px; min-width: 34px; min-height: 34px; align-items: center; justify-content: center; padding: 6px; }
+.schedule-search { position: relative; width: min(360px, 100%); min-width: 240px; margin-left: auto; }
+.schedule-search > svg { position: absolute; z-index: 1; top: 50%; left: 11px; color: var(--muted); pointer-events: none; transform: translateY(-50%); }
+.schedule-search input { width: 100%; min-height: 34px; padding-left: 34px; }
+.schedule-search-results { position: absolute; z-index: 10; top: calc(100% + 6px); left: 0; right: 0; display: grid; gap: 2px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: 0 12px 28px rgb(0 0 0 / 0.16); }
+.schedule-search-results > div { padding: 10px; }
+.schedule-search-results button { display: grid; gap: 2px; width: 100%; padding: 9px 10px; border: 0; border-radius: 7px; color: var(--ink); background: transparent; text-align: left; cursor: pointer; }
+.schedule-search-results button:hover, .schedule-search-results button:focus-visible { background: var(--ground); }
+.schedule-search-results span { color: var(--muted); font-size: 12px; }
+.schedule-room-link { padding: 0; border: 0; color: var(--accent-ink); background: transparent; font: inherit; font-weight: 600; cursor: pointer; }
+.schedule-room-link:hover { text-decoration: underline; }
 
 .schedule-legend { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-size: 13px; }
 .schedule-legend > span { display: inline-flex; align-items: center; gap: 7px; }
@@ -7,6 +20,60 @@
 .schedule-legend-mark.canceled { border-left-color: #d64545; }
 .schedule-legend-mark.paid { border: 0; border-radius: 999px; background: #22a06b; }
 .schedule-legend-today { width: 8px; height: 8px; border-radius: 50%; background: #d64545; }
+.room-status { display: grid; gap: 10px; }
+.room-status > h2 { margin: 0; font-size: 15px; }
+.room-status-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.room-status-group { padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.room-status-group h3 { display: flex; justify-content: space-between; margin: 0 0 8px; font-size: 13px; }
+.room-status-group h3 span { color: var(--muted); font-weight: 500; }
+.room-status-list { display: grid; gap: 5px; }
+.room-status-list button { display: flex; min-height: 34px; align-items: center; justify-content: space-between; padding: 6px 9px; border: 1px solid var(--line); border-radius: 7px; color: var(--ink); background: var(--ground); cursor: pointer; }
+.room-status-list button:hover { border-color: var(--line-strong); }
+.room-status-list p { margin: 4px 0; }
+
+.room-dashboard { display: grid; gap: 18px; }
+.room-dashboard-summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.room-dashboard-summary > div:first-child { display: grid; gap: 3px; }
+.room-dashboard-summary strong { font-size: 16px; }
+.room-dashboard-actions { display: flex; align-items: center; gap: 8px; }
+.room-more-actions { position: relative; }
+.room-more-actions summary { display: flex; list-style: none; align-items: center; justify-content: center; font-weight: 700; letter-spacing: 2px; cursor: pointer; }
+.room-more-actions summary::-webkit-details-marker { display: none; }
+.room-more-actions > div { position: absolute; z-index: 2; top: calc(100% + 5px); right: 0; min-width: 150px; padding: 5px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: 0 8px 20px rgb(0 0 0 / 0.15); }
+.room-more-actions button { width: 100%; padding: 8px 10px; border: 0; border-radius: 6px; color: var(--danger-ink); background: transparent; text-align: left; cursor: pointer; }
+.room-more-actions button:hover { background: var(--danger-soft); }
+.room-period { display: grid; grid-template-columns: auto minmax(180px, 260px); align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; font-weight: 600; }
+.room-period select { min-height: 36px; }
+.room-dashboard-loading { min-height: 180px; margin: 0; padding: 70px 0; text-align: center; }
+.room-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.room-kpis article { display: grid; gap: 3px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.room-kpis span { color: var(--muted); font-size: 12px; }
+.room-kpis strong { overflow: hidden; font-size: 21px; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
+.room-kpis small { color: var(--muted); font-size: 11px; }
+.room-micro-kpis { display: flex; flex-wrap: wrap; gap: 7px; }
+.room-micro-kpis span { padding: 5px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--muted); font-size: 11px; }
+.room-micro-kpis strong { color: var(--ink); }
+.room-revenue-note { margin: -10px 0 0; }
+.room-dashboard-section { display: grid; gap: 10px; padding-top: 16px; border-top: 1px solid var(--line); }
+.room-dashboard-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.room-dashboard-section-head h3 { margin: 0; font-size: 15px; }
+.room-dashboard-section-head p { margin: 3px 0 0; }
+.room-empty { margin: 0; padding: 20px 12px; border: 1px dashed var(--line-strong); border-radius: 9px; text-align: center; }
+.room-revenue-chart { display: flex; height: 150px; align-items: stretch; gap: 5px; padding: 12px 8px 0; overflow-x: auto; border-bottom: 1px solid var(--line-strong); }
+.room-revenue-chart > div { display: flex; min-width: 25px; flex: 1 0 25px; align-items: center; flex-direction: column; justify-content: flex-end; gap: 5px; }
+.room-revenue-bar { width: min(22px, 80%); min-height: 2px; border-radius: 4px 4px 0 0; background: var(--accent); }
+.room-revenue-chart small { color: var(--muted); font-size: 10px; }
+.room-customer-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.room-customer-list li { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding-bottom: 7px; }
+.room-customer-list li > div { display: grid; min-width: 0; }
+.room-customer-list li > div strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.room-customer-list i { grid-column: 1 / -1; height: 3px; border-radius: 999px; background: var(--accent); }
+.room-reservation-list { display: grid; gap: 6px; }
+.room-reservation-list button { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 12px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: var(--surface); text-align: left; cursor: pointer; }
+.room-reservation-list button:hover { border-color: var(--line-strong); background: var(--ground); }
+.room-reservation-list button > span:first-child { display: grid; gap: 2px; min-width: 0; }
+.room-reservation-list small { color: var(--muted); }
+.room-cleaning-actions { flex: none; }
 
 .reservation-scheduler-card { min-height: 260px; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: 0 1px 2px rgb(0 0 0 / 0.04); }
 .reservation-scheduler-card .scheduler_default_main { border: 0; font-family: var(--sans); }
@@ -42,20 +109,13 @@
 
 .schedule-empty { align-items: flex-start; }
 .schedule-empty p { margin: 0; }
-.form-dialog > .reservation-form.contact-form { flex: 1 1 auto; min-height: 0; max-width: none; overflow: auto; border: 0; border-radius: 0; background: none; scroll-padding-bottom: 89px; }
+.form-dialog:has(> .reservation-form) { width: min(1480px, calc(100vw - 24px)); max-width: none; height: calc(100dvh - 16px); max-height: none; margin: 8px auto; box-sizing: border-box; }
+.form-dialog > .reservation-form.contact-form { flex: 1 1 auto; min-width: 0; min-height: 0; max-width: none; overflow-x: hidden; overflow-y: auto; border: 0; border-radius: 0; background: none; scroll-padding-bottom: 89px; }
 .form-dialog > .reservation-form.contact-form > h2 { display: none; }
+.form-dialog:has(> .tourism-dialog-content) { width: min(1180px, calc(100vw - 24px)); max-width: none; height: calc(100dvh - 16px); max-height: none; margin: 8px auto; box-sizing: border-box; }
+.tourism-dialog-content { display: flex; min-height: 0; flex: 1 1 auto; flex-direction: column; gap: 16px; padding: 16px 20px 0; overflow-x: hidden; overflow-y: auto; }
+.tourism-dialog-content > .form-footer { position: sticky; bottom: 0; margin: auto -20px 0; padding: 12px 20px; border-top: 1px solid var(--line); background: var(--surface); }
 
-.housekeeping-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-.schedule-housekeeping { margin-top: 4px; }
-.schedule-housekeeping .housekeeping-room { min-height: 48px; padding: 6px 10px 6px 12px; }
-.schedule-housekeeping .housekeeping-transfer { width: 36px; min-width: 36px; min-height: 36px; }
-.housekeeping-group h2 { margin-top: 0; }
-.housekeeping-list { display: grid; gap: 12px; }
-.housekeeping-room { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; }
-.housekeeping-room.dirty { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, var(--surface)); }
-.housekeeping-room.clean { border-color: var(--success); background: color-mix(in srgb, var(--success) 7%, var(--surface)); }
-.housekeeping-action { min-height: 44px; }
-.housekeeping-transfer { width: 44px; min-width: 44px; min-height: 44px; padding: 0; font-size: 22px; line-height: 1; }
 .tourism-period { display: flex; align-items: end; gap: 12px; margin-bottom: 16px; }
 .tourism-period label { max-width: 150px; }
 .tourism-summary { margin-bottom: 16px; }
@@ -63,13 +123,28 @@
 .tourism-cols input { width: 100%; }
 .reservation-filters { display: grid; grid-template-columns: minmax(180px, 2fr) repeat(4, minmax(120px, 1fr)) auto; align-items: end; gap: 10px; margin-bottom: 16px; }
 
+@media (max-width: 1100px) {
+  .form-dialog > .reservation-form .reservation-position-row { grid-template-columns: 1fr 1fr; padding: 12px; border: 1px solid var(--line); border-radius: 8px; }
+  .form-dialog > .reservation-form .reservation-position-row.head { display: none; }
+  .form-dialog > .reservation-form .reservation-position-label { display: inline; }
+  .form-dialog > .reservation-form .reservation-position-actions { min-height: 0; justify-content: flex-end; }
+}
+
 @media (max-width: 640px) {
+  .form-dialog:has(> .reservation-form) { width: 100vw; height: 100dvh; margin: 0; border-width: 0; border-radius: 0; }
+  .form-dialog:has(> .tourism-dialog-content) { width: 100vw; height: 100dvh; margin: 0; border-width: 0; border-radius: 0; }
+  .form-dialog > .reservation-form .reservation-position-row { grid-template-columns: 1fr; }
+  .schedule-toolbar { align-items: stretch; flex-direction: column; }
+  .schedule-toolbar-actions { width: 100%; }
+  .schedule-search { width: 100%; min-width: 0; margin-left: 0; }
   .reservation-scheduler-card { border-radius: 8px; }
   .schedule-legend { gap: 8px 12px; }
-  .housekeeping-columns { grid-template-columns: 1fr; }
-  .housekeeping-room { align-items: stretch; flex-direction: column; }
-  .housekeeping-action { width: 100%; min-height: 52px; }
-  .schedule-housekeeping .housekeeping-room { align-items: center; flex-direction: row; }
+  .room-status-columns { grid-template-columns: 1fr; }
+  .room-dashboard-summary { align-items: flex-start; }
+  .room-dashboard-actions { align-items: flex-end; flex-direction: column-reverse; }
+  .room-period { grid-template-columns: 1fr; }
+  .room-dashboard-section-head { align-items: flex-start; }
+  .room-dashboard-section-head:has(.room-cleaning-actions) { flex-direction: column; }
   .tourism-period { align-items: stretch; flex-direction: column; }
   .tourism-period label { max-width: none; }
   .tourism-countries { overflow-x: auto; }

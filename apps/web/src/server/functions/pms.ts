@@ -7,7 +7,6 @@ import {
   createReservation,
   createRoom,
   defaultScheduleRange,
-  listHousekeepingRooms,
   getTourismReport,
   prefillTourismReport,
   listReservations,
@@ -15,9 +14,11 @@ import {
   reservationSchedule,
   reservationFormOptions,
   reservationInputSchema,
+  roomStatistics,
+  roomStatisticsPeriods,
   roomInputSchema,
   setRoomArchived,
-  setCleaningStatus,
+  setRoomCleaningStatus,
   saveTourismReport,
   tourismReportCsv,
   tourismReportInputSchema,
@@ -78,17 +79,10 @@ export const getRooms = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(() => listRooms({ archived: true }));
 
-export const getHousekeepingRooms = createServerFn({ method: "GET" })
+export const getRoomStatistics = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
-  .handler(() => listHousekeepingRooms());
-
-export const updateCleaningStatus = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
-  .validator(z.object({ roomId: z.uuid(), status: z.enum(["clean", "dirty"]) }))
-  .handler(async ({ data, context }) => {
-    await setCleaningStatus(context.user.id, data.roomId, data.status);
-    return { ok: true };
-  });
+  .validator(z.object({ roomId: z.uuid(), period: z.enum(roomStatisticsPeriods) }))
+  .handler(({ data }) => roomStatistics(data.roomId, data.period, today()));
 
 const tourismPeriodSchema = z.object({ year: z.number().int().min(2000).max(2200), month: z.number().int().min(1).max(12) });
 
@@ -126,5 +120,13 @@ export const archiveRoom = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.uuid(), archived: z.boolean() }))
   .handler(async ({ data, context }) => {
     await setRoomArchived(context.user.id, data.id, data.archived);
+    return { ok: true };
+  });
+
+export const updateRoomCleaningStatus = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator(z.object({ id: z.uuid(), status: z.enum(["clean", "dirty"]) }))
+  .handler(async ({ data, context }) => {
+    await setRoomCleaningStatus(context.user.id, data.id, data.status);
     return { ok: true };
   });
