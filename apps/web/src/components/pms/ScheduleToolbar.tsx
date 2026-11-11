@@ -48,9 +48,6 @@ export function ScheduleToolbar({
         <button type="button" className="btn" aria-label="+ Zimmer" title="Zimmer anlegen" onClick={onCreateRoom}>
           <PmsIcon name="room" size={17} />
         </button>
-        <button type="button" className="btn" aria-label="Einstellungen" title="PMS-Einstellungen" onClick={onSettings}>
-          <Icon name="settings" size={17} />
-        </button>
         <button type="button" className="btn" aria-label="Hotelstatistik" title="Hotelstatistik" onClick={onHotelStatistics}>
           <Icon name="overview" size={17} />
         </button>
@@ -97,6 +94,9 @@ export function ScheduleToolbar({
           </div>
         )}
       </div>
+      <button type="button" className="btn schedule-settings" aria-label="Einstellungen" title="PMS-Einstellungen" onClick={onSettings}>
+        <Icon name="settings" size={17} />
+      </button>
     </div>
   );
 }
