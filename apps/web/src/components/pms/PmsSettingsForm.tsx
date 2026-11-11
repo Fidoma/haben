@@ -5,6 +5,7 @@ import { useState, type FormEvent } from "react";
 import { errorMessage } from "../../lib/format.ts";
 import type { Notice } from "../../lib/use-action.ts";
 import { savePmsSettingsOptions, type getReservationFormOptions } from "../../server/functions/pms.ts";
+import { Field } from "../Field.tsx";
 
 type Options = Awaited<ReturnType<typeof getReservationFormOptions>>;
 
@@ -36,18 +37,19 @@ export function PmsSettingsForm({ options, onDone }: { options: Options; onDone:
       <p className="muted" style={{ marginTop: 0 }}>
         Der Standardartikel samt aktuellem Preis wird in jeder neuen Reservierungsposition vorausgewählt. Bestehende Reservierungen bleiben unverändert.
       </p>
-      <label className="field" htmlFor="pms-default-article">
-        <span className="field-label">Standardartikel</span>
-        <select id="pms-default-article" value={defaultArticleId} disabled={busy} onChange={(event) => setDefaultArticleId(event.target.value)}>
-          <option value="">Kein Standardartikel</option>
-          {options.articles.map((article) => (
-            <option key={article.id} value={article.id}>
-              {article.number ? `${article.number} · ` : ""}
-              {article.description} · {formatEuro(article.unitPrice)} {article.priceIncludesTax ? "brutto" : "netto"}
-            </option>
-          ))}
-        </select>
-      </label>
+      <Field label="Standardartikel">
+        {(control) => (
+          <select {...control} value={defaultArticleId} disabled={busy} onChange={(event) => setDefaultArticleId(event.target.value)}>
+            <option value="">Kein Standardartikel</option>
+            {options.articles.map((article) => (
+              <option key={article.id} value={article.id}>
+                {article.number ? `${article.number} · ` : ""}
+                {article.description} · {formatEuro(article.unitPrice)} {article.priceIncludesTax ? "brutto" : "netto"}
+              </option>
+            ))}
+          </select>
+        )}
+      </Field>
       {error && (
         <div className="banner banner-danger" role="alert">
           {error}

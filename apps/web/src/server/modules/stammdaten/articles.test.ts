@@ -18,7 +18,7 @@ describe.skipIf(!testDatabaseUrl)("Artikelkatalog (Postgres)", () => {
   });
 
   beforeEach(async () => {
-    await leeren(sql)`truncate articles`;
+    await leeren(sql)`truncate articles cascade`;
   });
 
   it("legt an, ändert, archiviert und protokolliert", async () => {
