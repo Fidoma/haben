@@ -96,6 +96,7 @@ export function RoomDashboard({
 
       <label className="room-period">
         Zeitraum
+        {/* biome-ignore lint/plugin: Kompakter Filter der Statistik, kein Formularfeld. */}
         <select value={period} onChange={(event) => setPeriod(event.target.value as Period)}>
           {Object.entries(periodLabels).map(([value, label]) => (
             <option value={value} key={value}>

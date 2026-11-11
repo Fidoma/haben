@@ -1,3 +1,0 @@
-CREATE TRIGGER pms_rooms_audit
-  AFTER INSERT OR UPDATE OR DELETE ON pms_rooms
-  FOR EACH ROW EXECUTE FUNCTION haben_audit();
