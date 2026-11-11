@@ -45,6 +45,7 @@ function OpenSideDialog({ title, caption, onClose, children }: { title: string; 
       }}
       onClick={(event) => {
         if (event.target === event.currentTarget && pressedBeside.current) event.currentTarget.close();
+        pressedBeside.current = false;
       }}
     >
       <header className="side-dialog-head">

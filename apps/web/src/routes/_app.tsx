@@ -38,6 +38,10 @@ interface NavLink extends NavBedingung {
 /** Hauptnavigation nach Arbeitsbereichen; Einstellungen stehen unten bei Konto und Abmelden */
 const NAV_GROUPS = [
   {
+    label: "PMS",
+    links: [{ to: "/pms/belegungsplan", icon: "calendar", label: "Belegungsplan" }],
+  },
+  {
     label: "Verkauf",
     links: [
       { to: "/angebote", icon: "quote", label: "Angebote" },
@@ -97,10 +101,6 @@ const NAV_GROUPS = [
       { to: "/abschluss", icon: "annual", label: "Jahresabschluss", nurKapitalgesellschaft: true },
       { to: "/archiv", icon: "archive", label: "Archiv" },
     ],
-  },
-  {
-    label: "PMS",
-    links: [{ to: "/pms/belegungsplan", icon: "calendar", label: "Belegungsplan" }],
   },
 ] as const;
 
