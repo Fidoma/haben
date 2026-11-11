@@ -12,6 +12,7 @@ test("Belegungsplan lädt DayPilot und bietet die barrierefreie Alternative", as
   await expect(page.getByRole("button", { name: "+ Reservierung" })).toBeVisible();
   await expect(page.getByRole("button", { name: "+ Zimmer" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Einstellungen" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Archivierte Zimmer" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Hotelstatistik" })).toBeVisible();
   await expect(page.getByRole("searchbox", { name: "Reservierungen suchen" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Neue Reservierung" })).toBeVisible();
@@ -27,6 +28,7 @@ test("Standardartikel wird für neue Reservierungspositionen vorausgewählt", as
   await page.getByLabel("PMS-Aktionen").getByRole("button", { name: "Einstellungen" }).click();
 
   const settings = page.getByRole("dialog", { name: "PMS-Einstellungen" });
+  await expect(settings.getByRole("heading", { name: "Archivierte Zimmer" })).toBeVisible();
   const articleOption = settings.getByLabel("Standardartikel").locator("option", { hasText: "B-01" });
   await settings.getByLabel("Standardartikel").selectOption((await articleOption.getAttribute("value"))!);
   await settings.getByRole("button", { name: "Speichern" }).click();
