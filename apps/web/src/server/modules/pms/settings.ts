@@ -1,8 +1,9 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { withActor } from "../../db/actor.ts";
-import { db, schema } from "../../db/index.ts";
+import { db, schema } from "./database.ts";
 import { UserError } from "../../errors.ts";
+import { hostArticles } from "./host-data.ts";
 
 export class PmsSettingsError extends UserError {}
 
@@ -22,10 +23,7 @@ export async function savePmsSettings(actor: string, input: PmsSettingsInput): P
   const values = pmsSettingsInputSchema.parse(input);
   return withActor(actor, async (tx) => {
     if (values.defaultArticleId) {
-      const [article] = await tx
-        .select({ archivedAt: schema.articles.archivedAt })
-        .from(schema.articles)
-        .where(eq(schema.articles.id, values.defaultArticleId));
+      const [article] = await hostArticles([values.defaultArticleId], tx);
       if (!article) throw new PmsSettingsError("Artikel nicht gefunden.");
       if (article.archivedAt) throw new PmsSettingsError("Der Artikel ist archiviert.");
     }

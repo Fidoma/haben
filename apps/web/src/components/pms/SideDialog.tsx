@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Icon } from "./Icon.tsx";
+import { Icon } from "../Icon.tsx";
 
 /** Modaler, barrierefreier Slide-over für kompakte Details und Bearbeitungsformulare. */
 export function SideDialog({
