@@ -1,3 +1,0 @@
-CREATE TRIGGER pms_settings_audit
-  AFTER INSERT OR UPDATE OR DELETE ON pms_settings
-  FOR EACH ROW EXECUTE FUNCTION haben_audit();

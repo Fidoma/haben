@@ -63,7 +63,6 @@ function OpenConfirmDialog({ title, confirmLabel, danger = false, onConfirm, onC
   const bodyId = useId();
   const dialog = useRef<HTMLDialogElement>(null);
   const cancel = useRef<HTMLButtonElement>(null);
-  const pressedBeside = useRef(false);
   const [acknowledged, setAcknowledged] = useState(false);
   const swipe = useSwipeToClose(dialog, onClose, SHEET_MEDIA);
 

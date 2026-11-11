@@ -7,6 +7,7 @@ import type { Notice } from "../../lib/use-action.ts";
 import { saveReservation, type getReservationFormOptions, type getReservations } from "../../server/functions/pms.ts";
 import { ContactDialog } from "../ContactDialog.tsx";
 import { CustomerCombobox } from "../CustomerCombobox.tsx";
+import { Field } from "../Field.tsx";
 import { ReservationPositions, type ReservationPositionDraft } from "./ReservationPositions.tsx";
 
 type Reservation = Awaited<ReturnType<typeof getReservations>>[number];
@@ -117,20 +118,19 @@ export function ReservationForm({
       <form className={`card reservation-form${inDialog ? " contact-form" : ""}`} onSubmit={onSubmit} aria-label={formName}>
         <h2 style={{ margin: 0, fontSize: 16 }}>{formName}</h2>
         <div className="form-row">
-          <div className="field">
-            <label className="field-label" htmlFor="reservation-customer">
-              Kunde
-            </label>
-            <CustomerCombobox
-              id="reservation-customer"
-              contacts={options.contacts}
-              contactId={contactId}
-              disabled={busy}
-              onChoose={setContactId}
-              onCreate={setNewContactName}
-            />
-            <input type="hidden" name="contactId" value={contactId} />
-          </div>
+          <Field label="Kunde">
+            {(control) => (
+              <CustomerCombobox
+                {...control}
+                contacts={options.contacts}
+                contactId={contactId}
+                disabled={busy}
+                onChoose={setContactId}
+                onCreate={setNewContactName}
+              />
+            )}
+          </Field>
+          <input type="hidden" name="contactId" value={contactId} />
           <ReservationPositions
             positions={positions}
             rooms={options.rooms}

@@ -1,6 +1,6 @@
 import type postgres from "postgres";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { setupTestDb, testDatabaseUrl } from "../../test-db.ts";
+import { leeren, setupTestDb, testDatabaseUrl } from "../../test-db.ts";
 
 describe.skipIf(!testDatabaseUrl)("PMS-Belegungsplan (Postgres)", () => {
   let schedule: typeof import("./schedule.ts");
@@ -14,7 +14,7 @@ describe.skipIf(!testDatabaseUrl)("PMS-Belegungsplan (Postgres)", () => {
   afterAll(async () => sql?.end());
 
   beforeEach(async () => {
-    await sql`truncate pms_reservation_items, pms_reservations, pms_rooms, contacts, invoices cascade`;
+    await leeren(sql)`truncate pms_reservation_items, pms_reservations, pms_rooms, contacts, invoices cascade`;
   });
 
   async function room(number: string, archived = false) {

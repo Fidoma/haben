@@ -1,6 +1,6 @@
 import type postgres from "postgres";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { setupTestDb, testDatabaseUrl } from "../../test-db.ts";
+import { leeren, setupTestDb, testDatabaseUrl } from "../../test-db.ts";
 
 describe.skipIf(!testDatabaseUrl)("PMS-Einstellungen (Postgres)", () => {
   let settings: typeof import("./settings.ts");
@@ -15,7 +15,7 @@ describe.skipIf(!testDatabaseUrl)("PMS-Einstellungen (Postgres)", () => {
   afterAll(async () => sql?.end());
 
   beforeEach(async () => {
-    await sql`truncate pms_settings, articles cascade`;
+    await leeren(sql)`truncate pms_settings, articles cascade`;
   });
 
   async function article(archived = false) {

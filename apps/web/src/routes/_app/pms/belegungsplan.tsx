@@ -30,9 +30,7 @@ import {
   updateRoomCleaningStatus,
 } from "../../../server/functions/pms.ts";
 import styles from "../../../styles/pms-schedule.css?url";
-
 const searchSchema = z.object({ start: z.string().optional(), end: z.string().optional() });
-
 export const Route = createFileRoute("/_app/pms/belegungsplan")({
   validateSearch: searchSchema,
   loaderDeps: ({ search }) => search,
@@ -52,9 +50,7 @@ export const Route = createFileRoute("/_app/pms/belegungsplan")({
   head: () => ({ meta: [{ title: "Belegungsplan · Haben" }], links: [{ rel: "stylesheet", href: styles }] }),
   component: SchedulePage,
 });
-
 type Reservation = Awaited<ReturnType<typeof getReservations>>[number];
-
 function SchedulePage() {
   const { schedule, options, reservations, rooms: allRooms, invoices, tourism, tourismPeriod } = Route.useLoaderData();
   const router = useRouter();
@@ -81,7 +77,6 @@ function SchedulePage() {
   const selectedReservation = reservations.find((reservation) => reservation.id === selectedReservationId) ?? null;
   const selectedInvoice = selectedReservation?.invoiceId ? invoices.find((invoice) => invoice.id === selectedReservation.invoiceId) : undefined;
   const selectedRoom = allRooms.find((room) => room.id === selectedRoomId) ?? null;
-
   const openReservation = useCallback((reservationId: string) => {
     setEditingReservation(false);
     setSelectedReservationId(reservationId);
@@ -95,7 +90,6 @@ function SchedulePage() {
     setSelection(next);
     setNotice(null);
   }, []);
-
   async function cancelReservation(reservation: Reservation) {
     try {
       await cancel({ data: { id: reservation.id } });
@@ -107,7 +101,6 @@ function SchedulePage() {
       setNotice({ tone: "danger", text: errorMessage(cause) });
     }
   }
-
   async function invoiceReservation(reservation: Reservation) {
     if (reservation.invoiceId) {
       await router.navigate({ to: "/rechnungen/$id", params: { id: reservation.invoiceId } });
@@ -122,7 +115,6 @@ function SchedulePage() {
       setCreatingInvoiceId(null);
     }
   }
-
   async function changeRoomArchive(roomId: string, archived: boolean) {
     try {
       await setRoomArchived({ data: { id: roomId, archived } });
@@ -134,7 +126,6 @@ function SchedulePage() {
       setNotice({ tone: "danger", text: errorMessage(cause) });
     }
   }
-
   async function changeRoomStatus(roomId: string, status: "clean" | "dirty") {
     setPendingRoomStatus(roomId);
     try {
