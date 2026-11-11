@@ -1,8 +1,9 @@
 import { and, eq, gt, isNull, lt } from "drizzle-orm";
 import { z } from "zod";
 import { withActor } from "../../../db/actor.ts";
-import { db, schema } from "../../../db/index.ts";
+import { db, schema } from "../database.ts";
 import { UserError } from "../../../errors.ts";
+import { hostContacts } from "../host-data.ts";
 import { tourismCountries, tourismCountryKey } from "./catalog.ts";
 
 export class TourismReportError extends UserError {}
@@ -49,11 +50,10 @@ export async function prefillTourismReport(year: number, month: number) {
         roomId: schema.pmsReservationItems.roomId,
         arrival: schema.pmsReservationItems.arrivalDate,
         departure: schema.pmsReservationItems.departureDate,
-        country: schema.contacts.land,
+        contactId: schema.pmsReservations.contactId,
       })
       .from(schema.pmsReservationItems)
       .innerJoin(schema.pmsReservations, eq(schema.pmsReservationItems.reservationId, schema.pmsReservations.id))
-      .innerJoin(schema.contacts, eq(schema.pmsReservations.contactId, schema.contacts.id))
       .where(
         and(
           eq(schema.pmsReservations.status, "confirmed"),
@@ -62,6 +62,8 @@ export async function prefillTourismReport(year: number, month: number) {
         ),
       ),
   ]);
+  const contacts = await hostContacts([...new Set(stays.map((stay) => stay.contactId))]);
+  const contactsById = new Map(contacts.map((contact) => [contact.id, contact]));
   const values = new Map(tourismCountries.map((country) => [country.key, { countryKey: country.key, arrivals: 0, overnightStays: 0 }]));
   const occupiedRoomDays = new Set<string>();
   for (const stay of stays) {
@@ -72,7 +74,7 @@ export async function prefillTourismReport(year: number, month: number) {
       const date = new Date(Date.parse(`${from}T00:00:00Z`) + offset * 86_400_000).toISOString().slice(0, 10);
       occupiedRoomDays.add(`${stay.roomId}:${date}`);
     }
-    const row = values.get(tourismCountryKey(stay.country))!;
+    const row = values.get(tourismCountryKey(contactsById.get(stay.contactId)?.country ?? ""))!;
     row.overnightStays += nights;
     if (stay.arrival >= period.start && stay.arrival < period.end) row.arrivals += 1;
   }

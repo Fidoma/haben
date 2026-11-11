@@ -1,4 +1,5 @@
 /** Öffentliche Modulgrenze des Property-Management-Systems. */
+export { listPmsInvoices } from "./billing.ts";
 export {
   createRoom,
   listRooms,

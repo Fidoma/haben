@@ -1,7 +1,7 @@
 import { asc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { withActor } from "../../db/actor.ts";
-import { db, schema } from "../../db/index.ts";
+import { db, schema } from "./database.ts";
 import { isUniqueViolation, UserError } from "../../errors.ts";
 
 export type Room = typeof schema.pmsRooms.$inferSelect;

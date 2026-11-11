@@ -996,29 +996,6 @@ summary { cursor: pointer; min-height: 24px; }
   .form-dialog > h2 { padding: 16px; }
 }
 
-.side-dialog { width: min(680px, calc(100vw - 48px)); max-width: none; height: 100dvh; max-height: none; margin: 0 0 0 auto; padding: 0; border: 0; border-left: 1px solid var(--line); border-radius: 12px 0 0 12px; background: var(--ground); color: var(--ink); box-shadow: -12px 0 32px rgb(0 0 0 / 0.2); }
-.side-dialog[open] { display: flex; flex-direction: column; }
-.side-dialog::backdrop { background: rgb(0 0 0 / 0.4); }
-.side-dialog-head { display: flex; flex: none; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 18px 20px; border-bottom: 1px solid var(--line); background: var(--surface); }
-.side-dialog-head h2 { margin: 0 0 2px; font-size: 20px; }
-.side-dialog-body { min-height: 0; flex: 1 1 auto; overflow-y: auto; padding: 20px; }
-.side-dialog-body > .contact-form { max-width: none; border: 0; background: transparent; box-shadow: none; }
-.side-dialog-stack { display: grid; gap: 20px; }
-.side-dialog-section-head h3 { margin: 0; font-size: 16px; }
-.detail-list { display: grid; gap: 0; margin: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
-.detail-list > div { display: grid; grid-template-columns: minmax(120px, .8fr) minmax(0, 1.2fr); gap: 12px; padding: 11px 13px; border-top: 1px solid var(--line-soft); }
-.detail-list > div:first-child { border-top: 0; }
-.detail-list dt { color: var(--muted); }
-.detail-list dd { margin: 0; font-weight: 500; }
-.reservation-detail-items { display: grid; gap: 10px; }
-.reservation-detail-items article { display: grid; gap: 3px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
-.reservation-detail-items span { color: var(--muted); font-size: 13px; }
-@media (max-width: 640px) {
-  .side-dialog { width: 100vw; height: calc(100dvh - 8px); margin: 8px 0 0; border: 0; border-top: 1px solid var(--line); border-radius: 12px 12px 0 0; }
-  .side-dialog-head, .side-dialog-body { padding: 14px; }
-  .detail-list > div { grid-template-columns: 1fr; gap: 3px; }
-}
-
 /* Gestaltung der Belege (#113): Spalte neben dem Blatt in der Vorschau, Bausteine auch in den Einstellungen */
 .preview-dialog[data-design] { width: min(1240px, calc(100vw - 96px)); }
 .preview-dialog-actions { flex-shrink: 0; display: flex; gap: 8px; }

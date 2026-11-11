@@ -2,9 +2,10 @@ import { convertPrice, type TaxRate, type UnitLabel } from "@haben/core";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { withActor } from "../../db/actor.ts";
-import { db, schema } from "../../db/index.ts";
+import { db, schema } from "./database.ts";
 import { UserError } from "../../errors.ts";
-import { createDraft, deleteDraft, newDraftDefaults } from "../rechnungen/index.ts";
+import { createPmsInvoiceDraft, deletePmsInvoiceDraft, pmsInvoiceDefaults } from "./billing.ts";
+import { activeHostArticles, activeHostCustomers, hostArticles, hostContacts } from "./host-data.ts";
 import { getPmsSettings } from "./settings.ts";
 
 export class ReservationError extends UserError {}
@@ -48,10 +49,8 @@ export async function listReservations() {
         invoiceId: schema.pmsReservations.invoiceId,
         status: schema.pmsReservations.status,
         canceledAt: schema.pmsReservations.canceledAt,
-        contactName: schema.contacts.name,
       })
-      .from(schema.pmsReservations)
-      .innerJoin(schema.contacts, eq(schema.pmsReservations.contactId, schema.contacts.id)),
+      .from(schema.pmsReservations),
     db
       .select({
         id: schema.pmsReservationItems.id,
@@ -60,11 +59,6 @@ export async function listReservations() {
         roomId: schema.pmsReservationItems.roomId,
         articleId: schema.pmsReservationItems.articleId,
         unitPrice: schema.pmsReservationItems.unitPrice,
-        articleNumber: schema.articles.number,
-        articleDescription: schema.articles.description,
-        articleUnit: schema.articles.unit,
-        articleTaxRate: schema.articles.taxRate,
-        articlePriceIncludesTax: schema.articles.priceIncludesTax,
         arrivalDate: schema.pmsReservationItems.arrivalDate,
         departureDate: schema.pmsReservationItems.departureDate,
         description: schema.pmsReservationItems.description,
@@ -73,17 +67,33 @@ export async function listReservations() {
       })
       .from(schema.pmsReservationItems)
       .innerJoin(schema.pmsRooms, eq(schema.pmsReservationItems.roomId, schema.pmsRooms.id))
-      .leftJoin(schema.articles, eq(schema.pmsReservationItems.articleId, schema.articles.id))
       .orderBy(asc(schema.pmsReservationItems.position)),
   ]);
-  const byReservation = new Map<string, typeof items>();
-  for (const item of items) {
+  const [contacts, articles] = await Promise.all([
+    hostContacts([...new Set(heads.map((head) => head.contactId))]),
+    hostArticles([...new Set(items.flatMap((item) => (item.articleId ? [item.articleId] : [])))]),
+  ]);
+  const contactsById = new Map(contacts.map((contact) => [contact.id, contact]));
+  const articlesById = new Map(articles.map((article) => [article.id, article]));
+  const enrichedItems = items.map((rawItem) => {
+    const article = rawItem.articleId ? articlesById.get(rawItem.articleId) : undefined;
+    return {
+      ...rawItem,
+      articleNumber: article?.number ?? null,
+      articleDescription: article?.description ?? null,
+      articleUnit: article?.unit ?? null,
+      articleTaxRate: article?.taxRate ?? null,
+      articlePriceIncludesTax: article?.priceIncludesTax ?? null,
+    };
+  });
+  const byReservation = new Map<string, typeof enrichedItems>();
+  for (const item of enrichedItems) {
     const reservationItems = byReservation.get(item.reservationId) ?? [];
     reservationItems.push(item);
     byReservation.set(item.reservationId, reservationItems);
   }
   return heads
-    .map((head) => ({ ...head, items: byReservation.get(head.id) ?? [] }))
+    .map((head) => ({ ...head, contactName: contactsById.get(head.contactId)?.name ?? "Unbekannter Gast", items: byReservation.get(head.id) ?? [] }))
     .sort((left, right) => {
       const firstLeft = left.items[0];
       const firstRight = right.items[0];
@@ -100,32 +110,8 @@ export async function reservationFormOptions() {
       .select({ id: schema.pmsRooms.id, number: schema.pmsRooms.number, name: schema.pmsRooms.name })
       .from(schema.pmsRooms)
       .where(isNull(schema.pmsRooms.archivedAt)),
-    db
-      .select({
-        id: schema.contacts.id,
-        name: schema.contacts.name,
-        ort: schema.contacts.ort,
-        kundennummer: schema.contacts.kundennummer,
-        isCustomer: schema.contacts.isCustomer,
-        ustId: schema.contacts.ustId,
-      })
-      .from(schema.contacts)
-      .where(and(isNull(schema.contacts.archivedAt), eq(schema.contacts.isCustomer, true)))
-      .orderBy(asc(schema.contacts.name)),
-    db
-      .select({
-        id: schema.articles.id,
-        number: schema.articles.number,
-        description: schema.articles.description,
-        detail: schema.articles.detail,
-        unit: schema.articles.unit,
-        unitPrice: schema.articles.unitPrice,
-        taxRate: schema.articles.taxRate,
-        priceIncludesTax: schema.articles.priceIncludesTax,
-      })
-      .from(schema.articles)
-      .where(isNull(schema.articles.archivedAt))
-      .orderBy(asc(schema.articles.description)),
+    activeHostCustomers(),
+    activeHostArticles(),
     getPmsSettings(),
   ]);
   rooms.sort((left, right) => roomNumberCollator.compare(left.number, right.number));
@@ -138,13 +124,8 @@ async function validateReferences(input: z.output<typeof reservationInputSchema>
   const articleIds = [...new Set(input.items.flatMap((item) => (item.articleId ? [item.articleId] : [])))];
   const [rooms, [contact], articles] = await Promise.all([
     db.select({ id: schema.pmsRooms.id, archivedAt: schema.pmsRooms.archivedAt }).from(schema.pmsRooms).where(inArray(schema.pmsRooms.id, roomIds)),
-    db
-      .select({ archivedAt: schema.contacts.archivedAt, isCustomer: schema.contacts.isCustomer })
-      .from(schema.contacts)
-      .where(eq(schema.contacts.id, input.contactId)),
-    articleIds.length === 0
-      ? Promise.resolve([])
-      : db.select({ id: schema.articles.id, archivedAt: schema.articles.archivedAt }).from(schema.articles).where(inArray(schema.articles.id, articleIds)),
+    hostContacts([input.contactId]),
+    hostArticles(articleIds),
   ]);
   const roomsById = new Map(rooms.map((room) => [room.id, room]));
   for (const roomId of roomIds) {
@@ -260,7 +241,7 @@ export async function createReservationInvoice(actor: string, id: string, issueD
   if (reservation.invoiceId) throw new ReservationError("Für diese Reservierung wurde bereits eine Rechnung erstellt.");
   if (reservation.items.length === 0) throw new ReservationError("Die Reservierung enthält keine Positionen.");
 
-  const defaults = await newDraftDefaults(issueDate);
+  const defaults = await pmsInvoiceDefaults(issueDate);
   const fallback = defaults.lines[0]!;
   const serviceFrom = reservation.items.map((item) => item.arrivalDate).sort()[0]!;
   const serviceTo = reservation.items
@@ -291,7 +272,7 @@ export async function createReservationInvoice(actor: string, id: string, issueD
       discount: null,
     };
   });
-  const invoice = await createDraft(actor, {
+  const invoice = await createPmsInvoiceDraft(actor, {
     ...defaults,
     contactId: reservation.contactId,
     serviceFrom,
@@ -306,7 +287,7 @@ export async function createReservationInvoice(actor: string, id: string, issueD
       .returning({ id: schema.pmsReservations.id }),
   );
   if (linked.length === 0) {
-    await deleteDraft(actor, invoice.id);
+    await deletePmsInvoiceDraft(actor, invoice.id);
     throw new ReservationError("Für diese Reservierung wurde bereits eine Rechnung erstellt.");
   }
   return invoice;

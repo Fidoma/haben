@@ -1,7 +1,8 @@
 import { addDays, type InvoiceListStatus } from "@haben/core";
 import { and, asc, eq, gt, lt } from "drizzle-orm";
-import { db, schema } from "../../db/index.ts";
-import { listInvoices } from "../rechnungen/index.ts";
+import { db, schema } from "./database.ts";
+import { listPmsInvoices } from "./billing.ts";
+import { hostContacts } from "./host-data.ts";
 import { ReservationError } from "./reservations.ts";
 
 export type ScheduleBillingStatus = "none" | "draft" | "open" | "paid";
@@ -77,18 +78,19 @@ export async function reservationSchedule(startDate: string, endDate: string, to
         arrivalDate: schema.pmsReservationItems.arrivalDate,
         departureDate: schema.pmsReservationItems.departureDate,
         reservationStatus: schema.pmsReservations.status,
-        contactName: schema.contacts.name,
+        contactId: schema.pmsReservations.contactId,
         invoiceId: schema.pmsReservations.invoiceId,
       })
       .from(schema.pmsReservationItems)
       .innerJoin(schema.pmsReservations, eq(schema.pmsReservationItems.reservationId, schema.pmsReservations.id))
-      .innerJoin(schema.contacts, eq(schema.pmsReservations.contactId, schema.contacts.id))
       .where(and(lt(schema.pmsReservationItems.arrivalDate, endDate), gt(schema.pmsReservationItems.departureDate, startDate)))
       .orderBy(asc(schema.pmsReservationItems.arrivalDate), asc(schema.pmsReservationItems.position)),
   ]);
 
+  const contacts = await hostContacts([...new Set(itemRows.map((item) => item.contactId))]);
+  const contactsById = new Map(contacts.map((contact) => [contact.id, contact]));
   const invoiceIds = [...new Set(itemRows.flatMap((item) => (item.invoiceId ? [item.invoiceId] : [])))];
-  const invoices = invoiceIds.length === 0 ? [] : (await listInvoices(today)).filter((invoice) => invoiceIds.includes(invoice.id));
+  const invoices = invoiceIds.length === 0 ? [] : (await listPmsInvoices(today)).filter((invoice) => invoiceIds.includes(invoice.id));
   const invoicesById = new Map(invoices.map((invoice) => [invoice.id, invoice]));
   const occupiedRoomIds = new Set(itemRows.map((item) => item.roomId));
   const rooms = roomRows
@@ -105,7 +107,7 @@ export async function reservationSchedule(startDate: string, endDate: string, to
       roomId: item.roomId,
       arrivalDate: item.arrivalDate,
       departureDate: item.departureDate,
-      contactName: item.contactName,
+      contactName: contactsById.get(item.contactId)?.name ?? "Unbekannter Gast",
       reservationStatus: item.reservationStatus,
       reservationStatusLabel: item.reservationStatus === "canceled" ? "Storniert" : "Bestätigt",
       billingStatus: billing.status,
