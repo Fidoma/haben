@@ -20,6 +20,8 @@ import {
   roomInputSchema,
   setRoomArchived,
   setRoomCleaningStatus,
+  savePmsSettings,
+  pmsSettingsInputSchema,
   saveTourismReport,
   tourismReportCsv,
   tourismReportInputSchema,
@@ -51,6 +53,11 @@ export const getReservations = createServerFn({ method: "GET" })
 export const getReservationFormOptions = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(() => reservationFormOptions());
+
+export const savePmsSettingsOptions = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator(pmsSettingsInputSchema)
+  .handler(({ data, context }) => savePmsSettings(context.user.id, data));
 
 export const saveReservation = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
