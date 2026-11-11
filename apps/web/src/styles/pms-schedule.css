@@ -143,6 +143,12 @@
 .reservation-period, .reservation-room-list { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .reservation-status { font-size: 12px; color: var(--muted); border: 1px solid var(--line-strong); border-radius: 999px; padding: 2px 7px; }
 .reservation-actions { justify-content: flex-end; flex-wrap: nowrap; }
+.pms-settings-archived { display: grid; gap: 9px; padding-top: 16px; border-top: 1px solid var(--line); }
+.pms-settings-archived h3, .pms-settings-archived p { margin: 0; }
+.pms-settings-archived ul { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.pms-settings-archived li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.pms-settings-archived li > span { display: grid; gap: 2px; }
+.pms-settings-archived small { color: var(--muted); }
 
 .side-dialog { width: min(680px, calc(100vw - 48px)); max-width: none; height: 100dvh; max-height: none; margin: 0 0 0 auto; padding: 0; border: 0; border-left: 1px solid var(--line); border-radius: 12px 0 0 12px; background: var(--ground); color: var(--ink); box-shadow: -12px 0 32px rgb(0 0 0 / 0.2); }
 .side-dialog[open] { display: flex; flex-direction: column; }

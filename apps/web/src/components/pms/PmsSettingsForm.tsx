@@ -8,13 +8,25 @@ import { savePmsSettingsOptions, type getReservationFormOptions } from "../../se
 import { Field } from "../Field.tsx";
 
 type Options = Awaited<ReturnType<typeof getReservationFormOptions>>;
+type ArchivedRoom = { id: string; number: string; name: string };
 
 /** Einstellungen, die direkt das Anlegen neuer PMS-Reservierungen beeinflussen. */
-export function PmsSettingsForm({ options, onDone }: { options: Options; onDone: (notice: Notice) => void }) {
+export function PmsSettingsForm({
+  options,
+  archivedRooms,
+  onRestoreRoom,
+  onDone,
+}: {
+  options: Options;
+  archivedRooms: ArchivedRoom[];
+  onRestoreRoom: (roomId: string) => Promise<void>;
+  onDone: (notice: Notice) => void;
+}) {
   const router = useRouter();
   const save = useServerFn(savePmsSettingsOptions);
   const [defaultArticleId, setDefaultArticleId] = useState(options.defaultArticleId ?? "");
   const [busy, setBusy] = useState(false);
+  const [restoringRoomId, setRestoringRoomId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -50,6 +62,38 @@ export function PmsSettingsForm({ options, onDone }: { options: Options; onDone:
           </select>
         )}
       </Field>
+      <section className="pms-settings-archived" aria-labelledby="pms-settings-archived-title">
+        <h3 id="pms-settings-archived-title">Archivierte Zimmer</h3>
+        {archivedRooms.length === 0 ? (
+          <p className="muted">Keine archivierten Zimmer.</p>
+        ) : (
+          <ul>
+            {archivedRooms.map((room) => (
+              <li key={room.id}>
+                <span>
+                  <strong>Zimmer {room.number}</strong>
+                  {room.name && <small>{room.name}</small>}
+                </span>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busy || restoringRoomId !== null}
+                  onClick={async () => {
+                    setRestoringRoomId(room.id);
+                    try {
+                      await onRestoreRoom(room.id);
+                    } finally {
+                      setRestoringRoomId(null);
+                    }
+                  }}
+                >
+                  {restoringRoomId === room.id ? "Wird wiederhergestellt …" : "Wiederherstellen"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
       {error && (
         <div className="banner banner-danger" role="alert">
           {error}
