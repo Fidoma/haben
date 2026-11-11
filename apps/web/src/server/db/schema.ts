@@ -1676,6 +1676,18 @@ export const articles = pgTable("articles", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** Globale Einstellungen des Property-Management-Systems */
+export const pmsSettings = pgTable(
+  "pms_settings",
+  {
+    id: smallint("id").primaryKey().default(1),
+    /** Artikel, der bei neuen Reservierungspositionen vorausgewählt wird */
+    defaultArticleId: uuid("default_article_id").references(() => articles.id, { onDelete: "set null" }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [check("pms_settings_single_row", sql`${t.id} = 1`)],
+);
+
 /** Zimmerstamm des PMS; Zimmer werden archiviert statt gelöscht */
 export const pmsRooms = pgTable(
   "pms_rooms",

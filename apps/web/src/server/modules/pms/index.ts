@@ -32,6 +32,13 @@ export {
 } from "./schedule.ts";
 export { hotelStatistics, roomStatistics, roomStatisticsPeriods, roomStatisticsRange, type RoomStatisticsPeriod } from "./room-statistics.ts";
 export {
+  getPmsSettings,
+  PmsSettingsError,
+  pmsSettingsInputSchema,
+  savePmsSettings,
+  type PmsSettingsInput,
+} from "./settings.ts";
+export {
   getTourismReport,
   prefillTourismReport,
   saveTourismReport,
