@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Icon } from "../Icon.tsx";
 import type { getReservations } from "../../server/functions/pms.ts";
+import { PmsIcon } from "./PmsIcon.tsx";
 
 type Reservation = Awaited<ReturnType<typeof getReservations>>[number];
 
@@ -47,7 +48,7 @@ export function ScheduleToolbar({
           <Icon name="calendar" size={17} />
         </button>
         <button type="button" className="btn" aria-label="+ Zimmer" title="Zimmer anlegen" onClick={onCreateRoom}>
-          <Icon name="room" size={17} />
+          <PmsIcon name="room" size={17} />
         </button>
         <button type="button" className="btn" aria-label="Archivierte Zimmer" title="Archivierte Zimmer" onClick={onArchivedRooms}>
           <Icon name="archive" size={17} />
@@ -66,7 +67,7 @@ export function ScheduleToolbar({
         <label className="visually-hidden" htmlFor="schedule-search">
           Reservierungen suchen
         </label>
-        <Icon name="search" size={16} />
+        <PmsIcon name="search" size={16} />
         <input
           id="schedule-search"
           type="search"

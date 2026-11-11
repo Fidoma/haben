@@ -1,5 +1,5 @@
 {
-  "id": "df1dda32-1bbb-448c-a9ab-98aa8352e150",
+  "id": "5c838f7f-4768-4738-87c7-20fc73dbf492",
   "prevId": "487c1f54-30f3-4943-8786-0aeb78f74de8",
   "version": "7",
   "dialect": "postgresql",
@@ -14452,6 +14452,704 @@
         }
       },
       "isRLSEnabled": false
+    },
+    "public.pms_reservation_items": {
+      "name": "pms_reservation_items",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "reservation_id": {
+          "name": "reservation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "room_id": {
+          "name": "room_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "article_id": {
+          "name": "article_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "unit_price": {
+          "name": "unit_price",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "arrival_date": {
+          "name": "arrival_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "departure_date": {
+          "name": "departure_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "canceled_at": {
+          "name": "canceled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "pms_reservation_items_position_unique": {
+          "name": "pms_reservation_items_position_unique",
+          "columns": [
+            {
+              "expression": "reservation_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "position",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "pms_reservation_items_room_period": {
+          "name": "pms_reservation_items_room_period",
+          "columns": [
+            {
+              "expression": "room_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "arrival_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "departure_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "pms_reservation_items_reservation_id_pms_reservations_id_fk": {
+          "name": "pms_reservation_items_reservation_id_pms_reservations_id_fk",
+          "tableFrom": "pms_reservation_items",
+          "tableTo": "pms_reservations",
+          "columnsFrom": [
+            "reservation_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "pms_reservation_items_room_id_pms_rooms_id_fk": {
+          "name": "pms_reservation_items_room_id_pms_rooms_id_fk",
+          "tableFrom": "pms_reservation_items",
+          "tableTo": "pms_rooms",
+          "columnsFrom": [
+            "room_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "pms_reservation_items_position": {
+          "name": "pms_reservation_items_position",
+          "value": "\"pms_reservation_items\".\"position\" between 1 and 100"
+        },
+        "pms_reservation_items_period": {
+          "name": "pms_reservation_items_period",
+          "value": "\"pms_reservation_items\".\"departure_date\" > \"pms_reservation_items\".\"arrival_date\""
+        },
+        "pms_reservation_items_description_length": {
+          "name": "pms_reservation_items_description_length",
+          "value": "char_length(\"pms_reservation_items\".\"description\") <= 2000"
+        },
+        "pms_reservation_items_unit_price": {
+          "name": "pms_reservation_items_unit_price",
+          "value": "\"pms_reservation_items\".\"unit_price\" between 0 and 999999999"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.pms_reservations": {
+      "name": "pms_reservations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "room_id": {
+          "name": "room_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contact_id": {
+          "name": "contact_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "invoice_id": {
+          "name": "invoice_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "arrival_date": {
+          "name": "arrival_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "departure_date": {
+          "name": "departure_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'confirmed'"
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "canceled_at": {
+          "name": "canceled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "pms_reservations_room_period": {
+          "name": "pms_reservations_room_period",
+          "columns": [
+            {
+              "expression": "room_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "arrival_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "departure_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "pms_reservations_contact": {
+          "name": "pms_reservations_contact",
+          "columns": [
+            {
+              "expression": "contact_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "pms_reservations_status": {
+          "name": "pms_reservations_status",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "pms_reservations_room_id_pms_rooms_id_fk": {
+          "name": "pms_reservations_room_id_pms_rooms_id_fk",
+          "tableFrom": "pms_reservations",
+          "tableTo": "pms_rooms",
+          "columnsFrom": [
+            "room_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "pms_reservations_invoice_id_invoices_id_fk": {
+          "name": "pms_reservations_invoice_id_invoices_id_fk",
+          "tableFrom": "pms_reservations",
+          "tableTo": "invoices",
+          "columnsFrom": [
+            "invoice_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "pms_reservations_invoice_id_unique": {
+          "name": "pms_reservations_invoice_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "invoice_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "pms_reservations_period": {
+          "name": "pms_reservations_period",
+          "value": "\"pms_reservations\".\"departure_date\" > \"pms_reservations\".\"arrival_date\""
+        },
+        "pms_reservations_note_length": {
+          "name": "pms_reservations_note_length",
+          "value": "char_length(\"pms_reservations\".\"note\") <= 2000"
+        },
+        "pms_reservations_status": {
+          "name": "pms_reservations_status",
+          "value": "\"pms_reservations\".\"status\" in ('confirmed', 'canceled')"
+        },
+        "pms_reservations_canceled_at": {
+          "name": "pms_reservations_canceled_at",
+          "value": "(\"pms_reservations\".\"status\" = 'confirmed' and \"pms_reservations\".\"canceled_at\" is null) or (\"pms_reservations\".\"status\" = 'canceled' and \"pms_reservations\".\"canceled_at\" is not null)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.pms_rooms": {
+      "name": "pms_rooms",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "number": {
+          "name": "number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "capacity": {
+          "name": "capacity",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "cleaning_status": {
+          "name": "cleaning_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'clean'"
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "pms_rooms_number_unique": {
+          "name": "pms_rooms_number_unique",
+          "columns": [
+            {
+              "expression": "lower(\"number\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "pms_rooms_number_length": {
+          "name": "pms_rooms_number_length",
+          "value": "char_length(\"pms_rooms\".\"number\") between 1 and 50"
+        },
+        "pms_rooms_name_length": {
+          "name": "pms_rooms_name_length",
+          "value": "char_length(\"pms_rooms\".\"name\") <= 100"
+        },
+        "pms_rooms_capacity": {
+          "name": "pms_rooms_capacity",
+          "value": "\"pms_rooms\".\"capacity\" between 1 and 100"
+        },
+        "pms_rooms_cleaning_status": {
+          "name": "pms_rooms_cleaning_status",
+          "value": "\"pms_rooms\".\"cleaning_status\" in ('clean', 'dirty')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.pms_settings": {
+      "name": "pms_settings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "smallint",
+          "primaryKey": true,
+          "notNull": true,
+          "default": 1
+        },
+        "default_article_id": {
+          "name": "default_article_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "pms_settings_single_row": {
+          "name": "pms_settings_single_row",
+          "value": "\"pms_settings\".\"id\" = 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.pms_tourism_country_values": {
+      "name": "pms_tourism_country_values",
+      "schema": "",
+      "columns": {
+        "report_id": {
+          "name": "report_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "country_key": {
+          "name": "country_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "arrivals": {
+          "name": "arrivals",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "overnight_stays": {
+          "name": "overnight_stays",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "pms_tourism_country_values_report_id_pms_tourism_reports_id_fk": {
+          "name": "pms_tourism_country_values_report_id_pms_tourism_reports_id_fk",
+          "tableFrom": "pms_tourism_country_values",
+          "tableTo": "pms_tourism_reports",
+          "columnsFrom": [
+            "report_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "pms_tourism_country_values_report_id_country_key_pk": {
+          "name": "pms_tourism_country_values_report_id_country_key_pk",
+          "columns": [
+            "report_id",
+            "country_key"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "pms_tourism_country_values_key": {
+          "name": "pms_tourism_country_values_key",
+          "value": "char_length(\"pms_tourism_country_values\".\"country_key\") between 1 and 50"
+        },
+        "pms_tourism_country_values_amounts": {
+          "name": "pms_tourism_country_values_amounts",
+          "value": "\"pms_tourism_country_values\".\"arrivals\" >= 0 and \"pms_tourism_country_values\".\"overnight_stays\" >= \"pms_tourism_country_values\".\"arrivals\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.pms_tourism_reports": {
+      "name": "pms_tourism_reports",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "year": {
+          "name": "year",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "month": {
+          "name": "month",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "beds_offered": {
+          "name": "beds_offered",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "available_guest_room_days": {
+          "name": "available_guest_room_days",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "occupied_guest_room_days": {
+          "name": "occupied_guest_room_days",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "remarks": {
+          "name": "remarks",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "pms_tourism_reports_period_unique": {
+          "name": "pms_tourism_reports_period_unique",
+          "columns": [
+            {
+              "expression": "year",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "month",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "pms_tourism_reports_year": {
+          "name": "pms_tourism_reports_year",
+          "value": "\"pms_tourism_reports\".\"year\" between 2000 and 2200"
+        },
+        "pms_tourism_reports_month": {
+          "name": "pms_tourism_reports_month",
+          "value": "\"pms_tourism_reports\".\"month\" between 1 and 12"
+        },
+        "pms_tourism_reports_values": {
+          "name": "pms_tourism_reports_values",
+          "value": "\"pms_tourism_reports\".\"beds_offered\" >= 0 and \"pms_tourism_reports\".\"available_guest_room_days\" >= 0 and \"pms_tourism_reports\".\"occupied_guest_room_days\" >= 0"
+        },
+        "pms_tourism_reports_remarks": {
+          "name": "pms_tourism_reports_remarks",
+          "value": "char_length(\"pms_tourism_reports\".\"remarks\") <= 1000"
+        }
+      },
+      "isRLSEnabled": false
     }
   },
   "enums": {
@@ -14475,8 +15173,7 @@
         "steuer",
         "zinsertrag",
         "darlehen",
-        "kategorie",
-        "spende"
+        "kategorie"
       ]
     },
     "public.bundesland": {

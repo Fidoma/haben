@@ -1,5 +1,7 @@
-import { eq, inArray, isNull, or } from "drizzle-orm";
-import { db, schema } from "../../db/index.ts";
+import { eq, inArray, isNull } from "drizzle-orm";
+import { db, schema } from "./database.ts";
+import { pmsInvoiceAccounting } from "./billing.ts";
+import { hostContacts } from "./host-data.ts";
 
 export const roomStatisticsPeriods = ["current-year", "last-year", "current-month", "last-month", "all"] as const;
 export type RoomStatisticsPeriod = (typeof roomStatisticsPeriods)[number];
@@ -97,23 +99,7 @@ async function attributableRevenue(stays: Stay[]) {
   const unattributedReservations = new Set<string>();
   if (roots.length === 0) return { byItem, unattributedReservations };
 
-  const documents = await db
-    .select({
-      id: schema.invoices.id,
-      rootId: schema.invoices.correctsId,
-      status: schema.invoices.status,
-      net: schema.invoices.net,
-    })
-    .from(schema.invoices)
-    .where(or(inArray(schema.invoices.id, roots), inArray(schema.invoices.correctsId, roots)));
-  const documentIds = documents.map((document) => document.id);
-  const lines =
-    documentIds.length === 0
-      ? []
-      : await db
-          .select({ invoiceId: schema.invoiceLines.invoiceId, position: schema.invoiceLines.position, net: schema.invoiceLines.net })
-          .from(schema.invoiceLines)
-          .where(inArray(schema.invoiceLines.invoiceId, documentIds));
+  const { documents, lines } = await pmsInvoiceAccounting(roots);
   const linesByDocument = groupBy(lines, (line) => line.invoiceId);
   const staysByReservation = groupBy(stays, (stay) => stay.reservationId);
 
@@ -149,7 +135,7 @@ async function attributableRevenue(stays: Stay[]) {
 }
 
 async function loadStays(filter: { roomId: string } | { reservationIds: string[] } | null = null) {
-  return db
+  const rows = await db
     .select({
       id: schema.pmsReservationItems.id,
       reservationId: schema.pmsReservations.id,
@@ -157,7 +143,6 @@ async function loadStays(filter: { roomId: string } | { reservationIds: string[]
       roomId: schema.pmsReservationItems.roomId,
       roomNumber: schema.pmsRooms.number,
       contactId: schema.pmsReservations.contactId,
-      contactName: schema.contacts.name,
       invoiceId: schema.pmsReservations.invoiceId,
       status: schema.pmsReservations.status,
       arrival: schema.pmsReservationItems.arrivalDate,
@@ -166,7 +151,6 @@ async function loadStays(filter: { roomId: string } | { reservationIds: string[]
     .from(schema.pmsReservationItems)
     .innerJoin(schema.pmsRooms, eq(schema.pmsReservationItems.roomId, schema.pmsRooms.id))
     .innerJoin(schema.pmsReservations, eq(schema.pmsReservationItems.reservationId, schema.pmsReservations.id))
-    .innerJoin(schema.contacts, eq(schema.pmsReservations.contactId, schema.contacts.id))
     .where(
       filter && "roomId" in filter
         ? eq(schema.pmsReservationItems.roomId, filter.roomId)
@@ -174,6 +158,9 @@ async function loadStays(filter: { roomId: string } | { reservationIds: string[]
           ? inArray(schema.pmsReservations.id, filter.reservationIds)
           : undefined,
     );
+  const contacts = await hostContacts([...new Set(rows.map((row) => row.contactId))]);
+  const contactsById = new Map(contacts.map((contact) => [contact.id, contact]));
+  return rows.map((row) => ({ ...row, contactName: contactsById.get(row.contactId)?.name ?? "Unbekannter Gast" }));
 }
 
 export async function roomStatistics(roomId: string, period: RoomStatisticsPeriod, today: string) {

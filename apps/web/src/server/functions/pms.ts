@@ -11,6 +11,7 @@ import {
   hotelStatistics,
   prefillTourismReport,
   listReservations,
+  listPmsInvoices,
   listRooms,
   reservationSchedule,
   reservationFormOptions,
@@ -49,6 +50,10 @@ export const getReservationSchedule = createServerFn({ method: "GET" })
 export const getReservations = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(() => listReservations());
+
+export const getPmsInvoices = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(() => listPmsInvoices(today()));
 
 export const getReservationFormOptions = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
