@@ -12,10 +12,9 @@ Jeder Balken steht für eine Reservierungsposition. Eine Reservierung mit mehrer
 Zimmern erscheint deshalb in mehreren Zeilen.
 
 Er ist die zentrale PMS-Arbeitsoberfläche. Über die Toolbar legst du Reservierungen
-und Zimmer an, suchst nach Gast oder Reservierungskennung und erreichst unter **⋯**
-die vollständigen Verwaltungslisten. Der Button **Hotelstatistik** öffnet die
-betriebswirtschaftliche Gesamtsicht; daneben bleibt die amtliche Tourismusstatistik
-erreichbar.
+und Zimmer an, suchst nach Gast oder Reservierungskennung und öffnest die
+PMS-Einstellungen. Der Button **Hotelstatistik** öffnet die betriebswirtschaftliche
+Gesamtsicht; daneben bleibt die amtliche Tourismusstatistik erreichbar.
 
 ## Belegungen lesen
 
@@ -52,6 +51,18 @@ Artikel und Preis.
 
 Der Button **+ Reservierung** öffnet dasselbe Formular ohne Vorbelegung. Diese
 Variante steht immer zur Verfügung, auch ohne Maus oder grafische Zeitraumsauswahl.
+
+## PMS-Einstellungen
+
+Über das Zahnrad in der Toolbar wählst du einen **Standardartikel** aus dem aktiven
+Artikelkatalog. Haben trägt diesen Artikel und seinen aktuellen Preis automatisch
+in jede Position einer neuen Reservierung ein, auch wenn du weitere Positionen
+hinzufügst. Die Auswahl bleibt vor dem Speichern der Reservierung änderbar.
+
+Die Einstellung wirkt nur auf neue Reservierungen. Bestehende Reservierungen
+behalten ihren vereinbarten Artikel und Preis; spätere Preisänderungen im
+Artikelkatalog verändern sie ebenfalls nicht. Mit **Kein Standardartikel** schaltest
+du die Vorbelegung wieder aus.
 
 ## Zimmer verwalten
 

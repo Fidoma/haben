@@ -27,6 +27,7 @@ export function ReservationForm({
 }) {
   const router = useRouter();
   const save = useServerFn(saveReservation);
+  const defaultArticle = options.articles.find((article) => article.id === options.defaultArticleId);
   const [contactId, setContactId] = useState(reservation?.contactId ?? "");
   const [newContactName, setNewContactName] = useState<string | null>(null);
   const [positions, setPositions] = useState<ReservationPositionDraft[]>(() =>
@@ -44,8 +45,8 @@ export function ReservationForm({
           {
             key: 1,
             roomId: prefill?.roomId ?? "",
-            articleId: "",
-            unitPrice: "",
+            articleId: defaultArticle?.id ?? "",
+            unitPrice: defaultArticle ? formatDecimal(defaultArticle.unitPrice) : "",
             arrivalDate: prefill?.arrivalDate ?? "",
             departureDate: prefill?.departureDate ?? "",
             description: "",
@@ -130,7 +131,14 @@ export function ReservationForm({
             />
             <input type="hidden" name="contactId" value={contactId} />
           </div>
-          <ReservationPositions positions={positions} rooms={options.rooms} articles={options.articles} disabled={busy} onChange={setPositions} />
+          <ReservationPositions
+            positions={positions}
+            rooms={options.rooms}
+            articles={options.articles}
+            defaultArticle={defaultArticle}
+            disabled={busy}
+            onChange={setPositions}
+          />
         </div>
         {error && (
           <div className="banner banner-danger" role="alert">

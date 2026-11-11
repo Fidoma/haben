@@ -5,6 +5,7 @@ import { withActor } from "../../db/actor.ts";
 import { db, schema } from "../../db/index.ts";
 import { UserError } from "../../errors.ts";
 import { createDraft, deleteDraft, newDraftDefaults } from "../rechnungen/index.ts";
+import { getPmsSettings } from "./settings.ts";
 
 export class ReservationError extends UserError {}
 
@@ -94,7 +95,7 @@ export async function listReservations() {
 }
 
 export async function reservationFormOptions() {
-  const [rooms, contacts, articles] = await Promise.all([
+  const [rooms, contacts, articles, settings] = await Promise.all([
     db
       .select({ id: schema.pmsRooms.id, number: schema.pmsRooms.number, name: schema.pmsRooms.name })
       .from(schema.pmsRooms)
@@ -125,9 +126,11 @@ export async function reservationFormOptions() {
       .from(schema.articles)
       .where(isNull(schema.articles.archivedAt))
       .orderBy(asc(schema.articles.description)),
+    getPmsSettings(),
   ]);
   rooms.sort((left, right) => roomNumberCollator.compare(left.number, right.number));
-  return { rooms, contacts, articles };
+  const defaultArticleId = articles.some((article) => article.id === settings.defaultArticleId) ? settings.defaultArticleId : null;
+  return { rooms, contacts, articles, defaultArticleId };
 }
 
 async function validateReferences(input: z.output<typeof reservationInputSchema>): Promise<void> {

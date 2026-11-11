@@ -7,6 +7,7 @@ import { FormDialog } from "../../../components/FormDialog.tsx";
 import { NoticeBanner } from "../../../components/NoticeBanner.tsx";
 import { SideDialog } from "../../../components/SideDialog.tsx";
 import { HotelDashboard } from "../../../components/pms/HotelDashboard.tsx";
+import { PmsSettingsForm } from "../../../components/pms/PmsSettingsForm.tsx";
 import { ReservationDetails } from "../../../components/pms/ReservationDetails.tsx";
 import { ReservationForm } from "../../../components/pms/ReservationForm.tsx";
 import { ReservationSchedule, type ScheduleSelection } from "../../../components/pms/ReservationSchedule.tsx";
@@ -69,6 +70,7 @@ function SchedulePage() {
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [editingRoom, setEditingRoom] = useState(false);
   const [showingArchivedRooms, setShowingArchivedRooms] = useState(false);
+  const [showingSettings, setShowingSettings] = useState(false);
   const [showingHotelStatistics, setShowingHotelStatistics] = useState(false);
   const [showingTourismStatistics, setShowingTourismStatistics] = useState(false);
   const [pendingRoomStatus, setPendingRoomStatus] = useState<string | null>(null);
@@ -165,6 +167,7 @@ function SchedulePage() {
         }}
         onCreateRoom={() => setCreatingRoom(true)}
         onArchivedRooms={() => setShowingArchivedRooms(true)}
+        onSettings={() => setShowingSettings(true)}
         onHotelStatistics={() => setShowingHotelStatistics(true)}
         onTourismStatistics={() => setShowingTourismStatistics(true)}
       />
@@ -352,6 +355,15 @@ function SchedulePage() {
             </button>
           </div>
         </div>
+      </FormDialog>
+      <FormDialog open={showingSettings} title="PMS-Einstellungen" onClose={() => setShowingSettings(false)}>
+        <PmsSettingsForm
+          options={options}
+          onDone={(nextNotice) => {
+            setShowingSettings(false);
+            setNotice(nextNotice);
+          }}
+        />
       </FormDialog>
       <FormDialog open={showingHotelStatistics} title="Hotelstatistik" onClose={() => setShowingHotelStatistics(false)}>
         <div className="hotel-dialog-content">
