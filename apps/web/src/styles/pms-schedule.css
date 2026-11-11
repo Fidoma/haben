@@ -1,7 +1,7 @@
 .schedule-intro { margin: 0; max-width: 840px; }
 .schedule-toolbar { position: relative; z-index: 3; display: flex; align-items: center; gap: 12px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 .schedule-toolbar-actions { display: flex; align-items: center; gap: 6px; }
-.schedule-toolbar-actions .btn { display: inline-flex; width: 34px; min-width: 34px; min-height: 34px; align-items: center; justify-content: center; padding: 6px; }
+.schedule-toolbar-actions .btn, .schedule-settings { display: inline-flex; width: 34px; min-width: 34px; min-height: 34px; align-items: center; justify-content: center; padding: 6px; }
 .schedule-search { position: relative; width: min(360px, 100%); min-width: 240px; margin-left: auto; }
 .schedule-search > svg { position: absolute; z-index: 1; top: 50%; left: 11px; color: var(--muted); pointer-events: none; transform: translateY(-50%); }
 .schedule-search input { width: 100%; min-height: 34px; padding-left: 34px; }
@@ -121,11 +121,20 @@
 .hotel-dialog-content > .form-footer,
 .tourism-dialog-content > .form-footer { position: sticky; bottom: 0; margin: auto -20px 0; padding: 12px 20px; border-top: 1px solid var(--line); background: var(--surface); }
 
-.tourism-period { display: flex; align-items: end; gap: 12px; margin-bottom: 16px; }
-.tourism-period label { max-width: 150px; }
-.tourism-summary { margin-bottom: 16px; }
-.tourism-cols { grid-template-columns: minmax(180px, 1fr) 140px 160px; }
-.tourism-cols input { width: 100%; }
+.tourism-period { display: grid; gap: 14px; }
+.tourism-period-copy h2, .tourism-period-copy p, .tourism-summary-head h2, .tourism-summary-head p { margin: 0; }
+.tourism-period-copy, .tourism-summary-head > div { display: grid; gap: 4px; }
+.tourism-period-fields { display: grid; grid-template-columns: minmax(120px, 150px) minmax(170px, 220px) auto; align-items: end; gap: 12px; }
+.tourism-load { min-height: 38px; justify-self: start; }
+.tourism-summary { display: grid; gap: 16px; }
+.tourism-summary-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.tourism-period-badge { flex: none; padding: 5px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); font-size: 12px; font-weight: 600; }
+.tourism-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.tourism-number-field { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--ground); }
+.tourism-number-field input { width: 100%; font-size: 18px; font-variant-numeric: tabular-nums; font-weight: 600; }
+.tourism-number-field .field-hint { line-height: 1.35; }
+.tourism-cols { grid-template-columns: minmax(180px, 1fr) 112px 128px; column-gap: 8px; }
+.tourism-cols input { width: 100%; min-height: 32px; padding: 4px 7px; font-variant-numeric: tabular-nums; text-align: right; }
 .reservation-filters { display: grid; grid-template-columns: minmax(180px, 2fr) repeat(4, minmax(120px, 1fr)) auto; align-items: end; gap: 10px; margin-bottom: 16px; }
 
 .room-cols { grid-template-columns: minmax(90px, 0.5fr) minmax(0, 1.5fr) 90px auto; }
@@ -199,6 +208,7 @@
   .schedule-toolbar { align-items: stretch; flex-direction: column; }
   .schedule-toolbar-actions { width: 100%; }
   .schedule-search { width: 100%; min-width: 0; margin-left: 0; }
+  .schedule-settings { align-self: flex-end; }
   .reservation-scheduler-card { border-radius: 8px; }
   .schedule-legend { gap: 8px 12px; }
   .room-status-columns { grid-template-columns: 1fr; }
@@ -208,9 +218,10 @@
   .room-dashboard-section-head { align-items: flex-start; }
   .room-dashboard-section-head:has(.room-cleaning-actions) { flex-direction: column; }
   .hotel-ranking-grid { grid-template-columns: 1fr; }
-  .tourism-period { align-items: stretch; flex-direction: column; }
-  .tourism-period label { max-width: none; }
+  .tourism-period-fields, .tourism-summary-grid { grid-template-columns: 1fr; }
+  .tourism-load { width: 100%; }
+  .tourism-summary-head { align-items: flex-start; flex-direction: column; }
   .tourism-countries { overflow-x: auto; }
-  .tourism-cols { min-width: 560px; }
+  .tourism-cols { min-width: 500px; }
   .reservation-filters { grid-template-columns: 1fr; }
 }
