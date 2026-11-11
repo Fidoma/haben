@@ -1,6 +1,6 @@
 import type postgres from "postgres";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { setupTestDb, testDatabaseUrl } from "../../../test-db.ts";
+import { leeren, setupTestDb, testDatabaseUrl } from "../../../test-db.ts";
 import { tourismCountries, tourismCountryKey } from "./catalog.ts";
 
 describe.skipIf(!testDatabaseUrl)("PMS-Tourismusstatistik (Postgres)", () => {
@@ -13,7 +13,7 @@ describe.skipIf(!testDatabaseUrl)("PMS-Tourismusstatistik (Postgres)", () => {
   }, 30_000);
   afterAll(async () => sql?.end());
   beforeEach(async () => {
-    await sql`truncate pms_tourism_country_values, pms_tourism_reports, pms_reservation_items, pms_reservations, pms_rooms, contacts cascade`;
+    await leeren(sql)`truncate pms_tourism_country_values, pms_tourism_reports, pms_reservation_items, pms_reservations, pms_rooms, contacts cascade`;
   });
 
   it("belegt den Monat aus aktiven Aufenthalten und dem Wohnsitzland vor", async () => {

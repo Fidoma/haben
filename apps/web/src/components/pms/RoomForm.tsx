@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { errorMessage } from "../../lib/format.ts";
 import type { Notice } from "../../lib/use-action.ts";
 import { saveRoom, type getRooms } from "../../server/functions/pms.ts";
+import { Field } from "../Field.tsx";
 
 type Room = Awaited<ReturnType<typeof getRooms>>[number];
 
@@ -48,18 +49,15 @@ export function RoomForm({ room, inDialog = false, onDone }: { room: Room | null
     <form className={`card room-form${inDialog ? " contact-form" : ""}`} onSubmit={onSubmit} aria-label={formName}>
       <h2 style={{ margin: 0, fontSize: 16 }}>{formName}</h2>
       <div className="form-row cols-2">
-        <label className="field">
-          Zimmernummer
-          <input name="number" defaultValue={room?.number ?? ""} maxLength={50} required autoFocus />
-        </label>
-        <label className="field">
-          Kapazität
-          <input name="capacity" type="number" defaultValue={room?.capacity ?? 1} min={1} max={100} step={1} required />
-        </label>
-        <label className="field" style={{ gridColumn: "1 / -1" }}>
-          Bezeichnung (optional)
-          <input name="name" defaultValue={room?.name ?? ""} maxLength={100} />
-        </label>
+        <Field label="Zimmernummer">
+          {(control) => <input {...control} name="number" defaultValue={room?.number ?? ""} maxLength={50} required autoFocus />}
+        </Field>
+        <Field label="Kapazität">
+          {(control) => <input {...control} name="capacity" type="number" defaultValue={room?.capacity ?? 1} min={1} max={100} step={1} required />}
+        </Field>
+        <Field label="Bezeichnung (optional)" style={{ gridColumn: "1 / -1" }}>
+          {(control) => <input {...control} name="name" defaultValue={room?.name ?? ""} maxLength={100} />}
+        </Field>
       </div>
       {error && (
         <div className="banner banner-danger" role="alert">

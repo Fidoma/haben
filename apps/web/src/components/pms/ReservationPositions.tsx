@@ -1,5 +1,6 @@
 import type { ArticleOption } from "../ArticleCombobox.tsx";
 import { ArticleSelectCombobox } from "../ArticleCombobox.tsx";
+import { Field } from "../Field.tsx";
 import { Icon } from "../Icon.tsx";
 
 export interface ReservationPositionDraft {
@@ -68,24 +69,26 @@ export function ReservationPositions({
       </div>
       {positions.map((position, index) => (
         <div className="reservation-position-row" key={position.key}>
-          <label className="field">
-            <span className="reservation-position-label">Zimmer</span>
-            <select
-              aria-label={`Zimmer Position ${index + 1}`}
-              value={position.roomId}
-              required
-              disabled={disabled}
-              onChange={(event) => update(position.key, { roomId: event.target.value })}
-            >
-              <option value="">Bitte auswählen</option>
-              {rooms.map((room) => (
-                <option key={room.id} value={room.id}>
-                  {room.number}
-                  {room.name ? ` · ${room.name}` : ""}
-                </option>
-              ))}
-            </select>
-          </label>
+          <Field label={<span className="reservation-position-label">Zimmer</span>}>
+            {(control) => (
+              <select
+                {...control}
+                aria-label={`Zimmer Position ${index + 1}`}
+                value={position.roomId}
+                required
+                disabled={disabled}
+                onChange={(event) => update(position.key, { roomId: event.target.value })}
+              >
+                <option value="">Bitte auswählen</option>
+                {rooms.map((room) => (
+                  <option key={room.id} value={room.id}>
+                    {room.number}
+                    {room.name ? ` · ${room.name}` : ""}
+                  </option>
+                ))}
+              </select>
+            )}
+          </Field>
           <div className="field">
             <span className="reservation-position-label">Artikel</span>
             <ArticleSelectCombobox
@@ -101,50 +104,58 @@ export function ReservationPositions({
               }
             />
           </div>
-          <label className="field">
-            <span className="reservation-position-label">Preis</span>
-            <input
-              aria-label={`Preis Position ${index + 1} in Euro`}
-              inputMode="decimal"
-              value={position.unitPrice}
-              required
-              disabled={disabled}
-              onChange={(event) => update(position.key, { unitPrice: event.target.value })}
-            />
-          </label>
-          <label className="field">
-            <span className="reservation-position-label">Anreise</span>
-            <input
-              aria-label={`Anreise Position ${index + 1}`}
-              type="date"
-              value={position.arrivalDate}
-              required
-              disabled={disabled}
-              onChange={(event) => update(position.key, { arrivalDate: event.target.value })}
-            />
-          </label>
-          <label className="field">
-            <span className="reservation-position-label">Abreise</span>
-            <input
-              aria-label={`Abreise Position ${index + 1}`}
-              type="date"
-              value={position.departureDate}
-              required
-              disabled={disabled}
-              onChange={(event) => update(position.key, { departureDate: event.target.value })}
-            />
-          </label>
-          <label className="field">
-            <span className="reservation-position-label">Beschreibung</span>
-            <input
-              aria-label={`Beschreibung Position ${index + 1} (optional)`}
-              value={position.description}
-              maxLength={2000}
-              placeholder="optional"
-              disabled={disabled}
-              onChange={(event) => update(position.key, { description: event.target.value })}
-            />
-          </label>
+          <Field label={<span className="reservation-position-label">Preis</span>}>
+            {(control) => (
+              <input
+                {...control}
+                aria-label={`Preis Position ${index + 1} in Euro`}
+                inputMode="decimal"
+                value={position.unitPrice}
+                required
+                disabled={disabled}
+                onChange={(event) => update(position.key, { unitPrice: event.target.value })}
+              />
+            )}
+          </Field>
+          <Field label={<span className="reservation-position-label">Anreise</span>}>
+            {(control) => (
+              <input
+                {...control}
+                aria-label={`Anreise Position ${index + 1}`}
+                type="date"
+                value={position.arrivalDate}
+                required
+                disabled={disabled}
+                onChange={(event) => update(position.key, { arrivalDate: event.target.value })}
+              />
+            )}
+          </Field>
+          <Field label={<span className="reservation-position-label">Abreise</span>}>
+            {(control) => (
+              <input
+                {...control}
+                aria-label={`Abreise Position ${index + 1}`}
+                type="date"
+                value={position.departureDate}
+                required
+                disabled={disabled}
+                onChange={(event) => update(position.key, { departureDate: event.target.value })}
+              />
+            )}
+          </Field>
+          <Field label={<span className="reservation-position-label">Beschreibung</span>}>
+            {(control) => (
+              <input
+                {...control}
+                aria-label={`Beschreibung Position ${index + 1} (optional)`}
+                value={position.description}
+                maxLength={2000}
+                placeholder="optional"
+                disabled={disabled}
+                onChange={(event) => update(position.key, { description: event.target.value })}
+              />
+            )}
+          </Field>
           <div className="reservation-position-actions">
             <button
               type="button"
