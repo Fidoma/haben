@@ -3,8 +3,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useState } from "react";
 import { z } from "zod";
 import { ConfirmDialog } from "../../../components/ConfirmDialog.tsx";
-import { FormDialog } from "../../../components/FormDialog.tsx";
 import { NoticeBanner } from "../../../components/NoticeBanner.tsx";
+import { FormDialog } from "../../../components/pms/FormDialog.tsx";
 import { HotelDashboard } from "../../../components/pms/HotelDashboard.tsx";
 import { PmsSettingsForm } from "../../../components/pms/PmsSettingsForm.tsx";
 import { ReservationDetails } from "../../../components/pms/ReservationDetails.tsx";
@@ -65,7 +65,6 @@ function SchedulePage() {
   const [editingReservation, setEditingReservation] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [editingRoom, setEditingRoom] = useState(false);
-  const [showingArchivedRooms, setShowingArchivedRooms] = useState(false);
   const [showingSettings, setShowingSettings] = useState(false);
   const [showingHotelStatistics, setShowingHotelStatistics] = useState(false);
   const [showingTourismStatistics, setShowingTourismStatistics] = useState(false);
@@ -120,7 +119,6 @@ function SchedulePage() {
       await setRoomArchived({ data: { id: roomId, archived } });
       await router.invalidate();
       setSelectedRoomId(null);
-      if (!archived) setShowingArchivedRooms(false);
       setNotice({ tone: "ok", text: archived ? "Zimmer archiviert." : "Zimmer wiederhergestellt." });
     } catch (cause) {
       setNotice({ tone: "danger", text: errorMessage(cause) });
@@ -157,7 +155,6 @@ function SchedulePage() {
           setNotice(null);
         }}
         onCreateRoom={() => setCreatingRoom(true)}
-        onArchivedRooms={() => setShowingArchivedRooms(true)}
         onSettings={() => setShowingSettings(true)}
         onHotelStatistics={() => setShowingHotelStatistics(true)}
         onTourismStatistics={() => setShowingTourismStatistics(true)}
@@ -324,32 +321,11 @@ function SchedulePage() {
             />
           ))}
       </SideDialog>
-      <FormDialog open={showingArchivedRooms} title="Archivierte Zimmer" onClose={() => setShowingArchivedRooms(false)}>
-        <div className="side-dialog-stack">
-          {allRooms.filter((room) => room.archivedAt).length === 0 ? (
-            <p className="muted">Keine archivierten Zimmer.</p>
-          ) : (
-            allRooms
-              .filter((room) => room.archivedAt)
-              .map((room) => (
-                <div className="actions" key={room.id}>
-                  <span className="mono">Zimmer {room.number}</span>
-                  <button type="button" className="btn" onClick={() => void changeRoomArchive(room.id, false)}>
-                    Wiederherstellen
-                  </button>
-                </div>
-              ))
-          )}
-          <div className="actions form-footer">
-            <button type="button" className="btn" onClick={() => setShowingArchivedRooms(false)}>
-              Schließen
-            </button>
-          </div>
-        </div>
-      </FormDialog>
       <FormDialog open={showingSettings} title="PMS-Einstellungen" onClose={() => setShowingSettings(false)}>
         <PmsSettingsForm
           options={options}
+          archivedRooms={allRooms.filter((room) => room.archivedAt)}
+          onRestoreRoom={(roomId) => changeRoomArchive(roomId, false)}
           onDone={(nextNotice) => {
             setShowingSettings(false);
             setNotice(nextNotice);
