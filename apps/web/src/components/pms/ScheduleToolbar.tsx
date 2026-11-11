@@ -15,6 +15,7 @@ export function ScheduleToolbar({
   onCreateReservation,
   onCreateRoom,
   onArchivedRooms,
+  onSettings,
   onHotelStatistics,
   onTourismStatistics,
 }: {
@@ -25,6 +26,7 @@ export function ScheduleToolbar({
   onCreateReservation: () => void;
   onCreateRoom: () => void;
   onArchivedRooms: () => void;
+  onSettings: () => void;
   onHotelStatistics: () => void;
   onTourismStatistics: () => void;
 }) {
@@ -49,6 +51,9 @@ export function ScheduleToolbar({
         </button>
         <button type="button" className="btn" aria-label="Archivierte Zimmer" title="Archivierte Zimmer" onClick={onArchivedRooms}>
           <Icon name="archive" size={17} />
+        </button>
+        <button type="button" className="btn" aria-label="Einstellungen" title="PMS-Einstellungen" onClick={onSettings}>
+          <Icon name="settings" size={17} />
         </button>
         <button type="button" className="btn" aria-label="Hotelstatistik" title="Hotelstatistik" onClick={onHotelStatistics}>
           <Icon name="overview" size={17} />
