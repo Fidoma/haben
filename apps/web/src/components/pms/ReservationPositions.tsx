@@ -23,12 +23,14 @@ export function ReservationPositions({
   positions,
   rooms,
   articles,
+  defaultArticle,
   disabled,
   onChange,
 }: {
   positions: ReservationPositionDraft[];
   rooms: RoomOption[];
   articles: ArticleOption[];
+  defaultArticle?: ArticleOption;
   disabled: boolean;
   onChange: (positions: ReservationPositionDraft[]) => void;
 }) {
@@ -43,8 +45,8 @@ export function ReservationPositions({
       {
         key: Math.max(0, ...positions.map((position) => position.key)) + 1,
         roomId: "",
-        articleId: "",
-        unitPrice: "",
+        articleId: defaultArticle?.id ?? "",
+        unitPrice: defaultArticle ? (defaultArticle.unitPrice / 100).toFixed(2).replace(".", ",") : "",
         arrivalDate: last?.arrivalDate ?? "",
         departureDate: last?.departureDate ?? "",
         description: "",
