@@ -3,9 +3,11 @@ import { useState } from "react";
 import { errorMessage } from "../../lib/format.ts";
 import type { Notice } from "../../lib/use-action.ts";
 import { exportPmsTourismReport, getPmsTourismReport, savePmsTourismReport } from "../../server/functions/pms.ts";
+import { Field } from "../Field.tsx";
 import { NoticeBanner } from "../NoticeBanner.tsx";
 
 type LoadedReport = Awaited<ReturnType<typeof getPmsTourismReport>>;
+const MONTHS = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 
 /** Monatsbericht mit Laden, Speichern und HOTE-Export für Seite und PMS-Dialog. */
 export function TourismStatistics({ initial, year, month }: { initial: LoadedReport; year: number; month: number }) {
@@ -69,45 +71,113 @@ export function TourismStatistics({ initial, year, month }: { initial: LoadedRep
     <div className="tourism-dialog-content">
       <form
         className="card tourism-period"
+        aria-busy={pending}
         onSubmit={(event) => {
           event.preventDefault();
-          const data = new FormData(event.currentTarget);
-          void loadPeriod({ year: Number(data.get("year")), month: Number(data.get("month")) });
+          void loadPeriod(period);
         }}
       >
-        <label>
-          Jahr
-          <input name="year" type="number" min="2000" max="2200" defaultValue={period.year} />
-        </label>
-        <label>
-          Monat
-          <input name="month" type="number" min="1" max="12" defaultValue={period.month} />
-        </label>
-        <button className="btn" type="submit" disabled={pending}>
-          Monat laden
-        </button>
+        <div className="tourism-period-copy">
+          <h2>Berichtszeitraum</h2>
+          <p className="muted small">Monat auswählen und vorhandene Werte oder die Vorbelegung laden.</p>
+        </div>
+        <div className="tourism-period-fields">
+          <Field label="Jahr">
+            {(control) => (
+              <input
+                {...control}
+                name="year"
+                type="number"
+                inputMode="numeric"
+                min={2000}
+                max={2200}
+                step={1}
+                value={period.year}
+                disabled={pending}
+                onChange={(event) => {
+                  const nextYear = event.currentTarget.valueAsNumber;
+                  if (Number.isInteger(nextYear)) setPeriod((current) => ({ ...current, year: nextYear }));
+                }}
+              />
+            )}
+          </Field>
+          <Field label="Monat">
+            {(control) => (
+              <select
+                {...control}
+                name="month"
+                value={period.month}
+                disabled={pending}
+                onChange={(event) => setPeriod((current) => ({ ...current, month: Number(event.currentTarget.value) }))}
+              >
+                {MONTHS.map((label, index) => (
+                  <option key={label} value={index + 1}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            )}
+          </Field>
+          <button className="btn btn-primary tourism-load" type="submit" disabled={pending}>
+            {pending ? "Wird geladen …" : "Monat laden"}
+          </button>
+        </div>
       </form>
       <NoticeBanner notice={notice} />
       <section className="card tourism-summary">
-        <h2>Monatswerte</h2>
-        <div className="form-grid cols-3">
-          <label>
-            Angebotene Betten
-            <input type="number" min="0" value={report.bedsOffered} onChange={(event) => value("bedsOffered", event.target.value)} />
-          </label>
-          <label>
-            Angebotene Gästezimmertage
-            <input type="number" min="0" value={report.availableGuestRoomDays} onChange={(event) => value("availableGuestRoomDays", event.target.value)} />
-          </label>
-          <label>
-            Belegte Gästezimmertage
-            <input type="number" min="0" value={report.occupiedGuestRoomDays} onChange={(event) => value("occupiedGuestRoomDays", event.target.value)} />
-          </label>
+        <div className="tourism-summary-head">
+          <div>
+            <h2>Monatswerte</h2>
+            <p className="muted small">Betriebsangebot und tatsächliche Belegung im gewählten Monat.</p>
+          </div>
+          <span className="tourism-period-badge">
+            {MONTHS[report.month - 1]} {report.year}
+          </span>
         </div>
-        <label>
-          Bemerkungen
-          <textarea value={report.remarks} maxLength={1000} onChange={(event) => value("remarks", event.target.value)} />
-        </label>
+        <div className="tourism-summary-grid">
+          <Field label="Angebotene Betten" hint="Anzahl der im Monat angebotenen Betten" className="tourism-number-field">
+            {(control) => (
+              <input
+                {...control}
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={1}
+                value={report.bedsOffered}
+                onChange={(event) => value("bedsOffered", event.currentTarget.value)}
+              />
+            )}
+          </Field>
+          <Field label="Angebotene Gästezimmertage" hint="Summe aller verfügbaren Zimmer je Tag" className="tourism-number-field">
+            {(control) => (
+              <input
+                {...control}
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={1}
+                value={report.availableGuestRoomDays}
+                onChange={(event) => value("availableGuestRoomDays", event.currentTarget.value)}
+              />
+            )}
+          </Field>
+          <Field label="Belegte Gästezimmertage" hint="Tatsächlich belegte Zimmer je Tag" className="tourism-number-field">
+            {(control) => (
+              <input
+                {...control}
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={1}
+                value={report.occupiedGuestRoomDays}
+                onChange={(event) => value("occupiedGuestRoomDays", event.currentTarget.value)}
+              />
+            )}
+          </Field>
+        </div>
+        <Field label="Bemerkungen" hint="Optional, höchstens 1.000 Zeichen">
+          {(control) => <textarea {...control} value={report.remarks} maxLength={1000} rows={3} onChange={(event) => value("remarks", event.target.value)} />}
+        </Field>
       </section>
       <section className="card tourism-countries">
         <h2>Wohnsitzländer</h2>
