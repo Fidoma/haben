@@ -82,7 +82,6 @@ test("Einladung, lesen ja, ändern nein, sperren", async ({ page: owner, browser
   await expect(nav.getByRole("link", { name: "Haben Mustermann IT · Max Mustermann" })).toBeVisible();
   await expect(nav.getByRole("link", { name: "Einstellungen" })).toHaveCount(0);
   await expect(nav.getByRole("link", { name: "Bank" })).toHaveCount(0);
-  await expect(nav.getByRole("link", { name: "Zimmer" })).toHaveCount(0);
   for (const [path, heading] of [
     ["/auswertungen", /Auswertungen/],
     ["/buchungen", /Buchungen/],

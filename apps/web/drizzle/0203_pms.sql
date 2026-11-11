@@ -86,11 +86,8 @@ CREATE TABLE "pms_tourism_reports" (
 --> statement-breakpoint
 ALTER TABLE "pms_reservation_items" ADD CONSTRAINT "pms_reservation_items_reservation_id_pms_reservations_id_fk" FOREIGN KEY ("reservation_id") REFERENCES "public"."pms_reservations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "pms_reservation_items" ADD CONSTRAINT "pms_reservation_items_room_id_pms_rooms_id_fk" FOREIGN KEY ("room_id") REFERENCES "public"."pms_rooms"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "pms_reservation_items" ADD CONSTRAINT "pms_reservation_items_article_id_articles_id_fk" FOREIGN KEY ("article_id") REFERENCES "public"."articles"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "pms_reservations" ADD CONSTRAINT "pms_reservations_room_id_pms_rooms_id_fk" FOREIGN KEY ("room_id") REFERENCES "public"."pms_rooms"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "pms_reservations" ADD CONSTRAINT "pms_reservations_contact_id_contacts_id_fk" FOREIGN KEY ("contact_id") REFERENCES "public"."contacts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "pms_reservations" ADD CONSTRAINT "pms_reservations_invoice_id_invoices_id_fk" FOREIGN KEY ("invoice_id") REFERENCES "public"."invoices"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "pms_settings" ADD CONSTRAINT "pms_settings_default_article_id_articles_id_fk" FOREIGN KEY ("default_article_id") REFERENCES "public"."articles"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "pms_tourism_country_values" ADD CONSTRAINT "pms_tourism_country_values_report_id_pms_tourism_reports_id_fk" FOREIGN KEY ("report_id") REFERENCES "public"."pms_tourism_reports"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "pms_reservation_items_position_unique" ON "pms_reservation_items" USING btree ("reservation_id","position");--> statement-breakpoint
 CREATE INDEX "pms_reservation_items_room_period" ON "pms_reservation_items" USING btree ("room_id","arrival_date","departure_date");--> statement-breakpoint
@@ -99,3 +96,38 @@ CREATE INDEX "pms_reservations_contact" ON "pms_reservations" USING btree ("cont
 CREATE INDEX "pms_reservations_status" ON "pms_reservations" USING btree ("status");--> statement-breakpoint
 CREATE UNIQUE INDEX "pms_rooms_number_unique" ON "pms_rooms" USING btree (lower("number"));--> statement-breakpoint
 CREATE UNIQUE INDEX "pms_tourism_reports_period_unique" ON "pms_tourism_reports" USING btree ("year","month");
+--> statement-breakpoint
+-- Überschneidungen von Zimmerbelegungen auch bei gleichzeitigen Schreibvorgängen verhindern.
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+--> statement-breakpoint
+ALTER TABLE pms_reservations ADD CONSTRAINT pms_reservations_no_overlap
+  EXCLUDE USING gist (
+    room_id WITH =,
+    daterange(arrival_date, departure_date, '[)') WITH &&
+  ) WHERE (status = 'confirmed');
+--> statement-breakpoint
+ALTER TABLE pms_reservation_items ADD CONSTRAINT pms_reservation_items_no_overlap
+  EXCLUDE USING gist (
+    room_id WITH =,
+    daterange(arrival_date, departure_date, '[)') WITH &&,
+    reservation_id WITH <>
+  ) WHERE (canceled_at IS NULL);
+--> statement-breakpoint
+-- Änderungen der PMS-Stammdaten und Reservierungen GoBD-konform protokollieren.
+CREATE TRIGGER pms_rooms_audit AFTER INSERT OR UPDATE OR DELETE ON pms_rooms
+  FOR EACH ROW EXECUTE FUNCTION haben_audit();
+--> statement-breakpoint
+CREATE TRIGGER pms_reservations_audit AFTER INSERT OR UPDATE OR DELETE ON pms_reservations
+  FOR EACH ROW EXECUTE FUNCTION haben_audit();
+--> statement-breakpoint
+CREATE TRIGGER pms_reservation_items_audit AFTER INSERT OR UPDATE OR DELETE ON pms_reservation_items
+  FOR EACH ROW EXECUTE FUNCTION haben_audit();
+--> statement-breakpoint
+CREATE TRIGGER pms_tourism_reports_audit AFTER INSERT OR UPDATE OR DELETE ON pms_tourism_reports
+  FOR EACH ROW EXECUTE FUNCTION haben_audit();
+--> statement-breakpoint
+CREATE TRIGGER pms_tourism_country_values_audit AFTER INSERT OR UPDATE OR DELETE ON pms_tourism_country_values
+  FOR EACH ROW EXECUTE FUNCTION haben_audit();
+--> statement-breakpoint
+CREATE TRIGGER pms_settings_audit AFTER INSERT OR UPDATE OR DELETE ON pms_settings
+  FOR EACH ROW EXECUTE FUNCTION haben_audit();

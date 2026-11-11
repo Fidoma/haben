@@ -5,7 +5,6 @@ import { z } from "zod";
 import { ConfirmDialog } from "../../../components/ConfirmDialog.tsx";
 import { FormDialog } from "../../../components/FormDialog.tsx";
 import { NoticeBanner } from "../../../components/NoticeBanner.tsx";
-import { SideDialog } from "../../../components/SideDialog.tsx";
 import { HotelDashboard } from "../../../components/pms/HotelDashboard.tsx";
 import { PmsSettingsForm } from "../../../components/pms/PmsSettingsForm.tsx";
 import { ReservationDetails } from "../../../components/pms/ReservationDetails.tsx";
@@ -14,10 +13,10 @@ import { ReservationSchedule, type ScheduleSelection } from "../../../components
 import { RoomDashboard } from "../../../components/pms/RoomDashboard.tsx";
 import { RoomForm } from "../../../components/pms/RoomForm.tsx";
 import { ScheduleToolbar, reservationReference } from "../../../components/pms/ScheduleToolbar.tsx";
+import { SideDialog } from "../../../components/pms/SideDialog.tsx";
 import { TourismStatistics } from "../../../components/pms/TourismStatistics.tsx";
 import { errorMessage } from "../../../lib/format.ts";
 import type { Notice } from "../../../lib/use-action.ts";
-import { getInvoices } from "../../../server/functions/invoices.ts";
 import {
   archiveRoom,
   cancelPmsReservation,
@@ -25,6 +24,7 @@ import {
   getReservationFormOptions,
   getReservationSchedule,
   getReservations,
+  getPmsInvoices,
   getRooms,
   getPmsTourismReport,
   updateRoomCleaningStatus,
@@ -42,7 +42,7 @@ export const Route = createFileRoute("/_app/pms/belegungsplan")({
       getReservationFormOptions(),
       getReservations(),
       getRooms(),
-      getInvoices(),
+      getPmsInvoices(),
       getPmsTourismReport({ data: tourismPeriod }),
     ]);
     return { schedule, options, reservations, rooms, invoices, tourism, tourismPeriod };

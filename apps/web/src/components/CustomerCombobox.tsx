@@ -31,7 +31,7 @@ export function CustomerCombobox({
   disabled: boolean;
   onChoose: (contactId: string) => void;
   /** Dialog für den neuen Kontakt, mit dem getippten Namen */
-  onCreate?: (name: string) => void;
+  onCreate: (name: string) => void;
 }) {
   /** Was gerade getippt ist; null = es steht der gewählte Kunde im Feld */
   const [query, setQuery] = useState<string | null>(null);
@@ -59,17 +59,13 @@ export function CustomerCombobox({
         selected: c.id === contactId,
       })}
       onPick={(c) => choose(c.id)}
-      create={
-        onCreate
-          ? {
-              label: typed ? `„${typed}“ als neuen Kunden anlegen` : "Neuen Kontakt anlegen",
-              run: () => {
-                setQuery(null);
-                onCreate(typed);
-              },
-            }
-          : null
-      }
+      create={{
+        label: typed ? `„${typed}“ als neuen Kunden anlegen` : "Neuen Kontakt anlegen",
+        run: () => {
+          setQuery(null);
+          onCreate(typed);
+        },
+      }}
       placeholder="Name, Kundennummer oder Ort"
       disabled={disabled}
       onBlur={() => {

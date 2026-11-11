@@ -1,7 +1,7 @@
 import type { ArticleOption } from "../ArticleCombobox.tsx";
-import { ArticleSelectCombobox } from "../ArticleCombobox.tsx";
 import { Field } from "../Field.tsx";
 import { Icon } from "../Icon.tsx";
+import { ArticleSelectCombobox } from "./ArticleSelectCombobox.tsx";
 
 export interface ReservationPositionDraft {
   key: number;

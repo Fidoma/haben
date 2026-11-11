@@ -43,12 +43,6 @@ const PATHS = {
       <circle cx="7.5" cy="7.5" r="1.5" />
     </>
   ),
-  room: (
-    <>
-      <path d="M4 21V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v17M2 21h20" />
-      <path d="M8 7h2M14 7h2M8 11h2M14 11h2M8 15h2M14 15h2" />
-    </>
-  ),
   textblock: <path d="M4 5h16M4 9h16M4 13h10M4 17h7M15 15l2 2 4-4" />,
   // Person mit Lohnzettel
   payroll: (
@@ -104,12 +98,6 @@ const PATHS = {
   pin: <path d="M9 3h6M10 3v6l-3 4h10l-3-4V3M12 13v8" />,
   expand: <path d="M14 4h6v6M10 20H4v-6M20 4l-6.5 6.5M4 20l6.5-6.5" />,
   plus: <path d="M12 5v14M5 12h14" />,
-  search: (
-    <>
-      <circle cx="11" cy="11" r="7" />
-      <path d="M16 16l5 5" />
-    </>
-  ),
   alert: (
     <>
       <path d="M12 3l9.5 17h-19z" />
