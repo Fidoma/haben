@@ -1074,3 +1074,21 @@ summary { cursor: pointer; min-height: 24px; }
 .own-layout-name { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .own-layout-rename { display: flex; flex-wrap: wrap; gap: 8px; }
 .own-layouts .actions { flex-wrap: wrap; }
+
+/* RotoMail bleibt auf seine Modulfläche begrenzt; Habens globale Komponenten werden nicht überschrieben. */
+.webmail-module { box-sizing: border-box; height: calc(100dvh - 64px); min-height: min(560px, calc(100dvh - 64px)); overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.webmail-start { min-height: 100%; background: var(--ground); }
+.webmail-start .page-head { position: static; }
+.webmail-account-list { display: grid; gap: 8px; margin-top: 16px; }
+.webmail-account-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.webmail-account { display: flex; flex-direction: column; gap: 4px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); text-decoration: none; }
+.webmail-account:hover { border-color: var(--line-strong); background: var(--accent-tint); }
+.webmail-account span { color: var(--muted); font-size: 13px; }
+.webmail-setup { max-width: 880px; }
+.webmail-setup > h2 { margin-top: 24px; }
+.webmail-setup > .checkbox { margin-top: 12px; }
+.webmail-setup > .actions { justify-content: flex-end; margin-top: 24px; }
+
+@media (max-width: 720px) {
+  .webmail-module { height: calc(100dvh - var(--nav-height) - 40px); min-height: min(480px, calc(100dvh - var(--nav-height) - 40px)); border-inline: 0; border-radius: 0; }
+}

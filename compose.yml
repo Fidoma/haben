@@ -47,6 +47,9 @@ services:
       ERIC_DIR: /var/lib/haben/eric
       # Ein ERIC_HOME aus apps/web/.env zeigt auf den Rechner, nicht in den Container; leer gilt als nicht gesetzt
       ERIC_HOME: ""
+      # Nur lokal: Test-Mailserver im Compose-Netz dürfen vom Webmail-Modul erreicht werden.
+      # Im Betrieb bleibt der SSRF-Schutz für private Netze aktiv.
+      HABEN_WEBMAIL_ALLOW_PRIVATE_HOSTS: "true"
     ports:
       # Innen und außen derselbe Port, damit Neuladen und Anmeldung dieselbe Adresse sehen
       - "127.0.0.1:${HABEN_DEV_PORT:-3000}:${HABEN_DEV_PORT:-3000}"

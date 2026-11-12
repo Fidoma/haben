@@ -2,7 +2,11 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "jsx": "react-jsx",
-    "types": ["node", "vite/client"]
+    "types": ["node", "vite/client"],
+    "paths": {
+      "~/*": ["./vendor/rotomail/app/*"],
+      "shared/*": ["./vendor/rotomail/shared/*"]
+    }
   },
   "include": ["src", "vite.config.ts", "vitest.config.ts", "drizzle.config.ts"]
 }
