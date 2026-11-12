@@ -63,6 +63,11 @@ export interface NavGroup {
 /** Hauptnavigation nach Arbeitsbereichen; geteilt von Seitenleiste und Befehlspalette (#617) */
 export const NAV_GROUPS: readonly NavGroup[] = [
   {
+    label: "Externe Dienste",
+    icon: "mail",
+    links: [{ to: "/webmail", icon: "mail", label: "Web-Mail" }],
+  },
+  {
     label: "Verkauf",
     icon: "store",
     links: [
