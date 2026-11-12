@@ -39,6 +39,14 @@ export default function SingleMessageView({
 				</div>
 			</div>
 
+			<EmailAttachmentList
+				mailboxId={mailboxId}
+				emailId={email.id}
+				attachments={email.attachments}
+				onPreviewImage={onPreviewImage}
+				className="px-4 py-2.5 border-b border-kumo-line bg-kumo-fill/30 shrink-0 md:px-6"
+			/>
+
 			<div className="flex-1 min-h-0">
 				<EmailIframe
 					body={rewriteInlineImages(
@@ -49,15 +57,6 @@ export default function SingleMessageView({
 					)}
 				/>
 			</div>
-
-			<EmailAttachmentList
-				mailboxId={mailboxId}
-				emailId={email.id}
-				attachments={email.attachments}
-				onPreviewImage={onPreviewImage}
-				className="px-4 py-3 border-t border-kumo-line shrink-0 md:px-6"
-				showHeading
-			/>
 		</div>
 	);
 }

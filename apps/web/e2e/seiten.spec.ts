@@ -22,6 +22,7 @@ async function routes(page: Page): Promise<[string, string | null][]> {
   return [
     ["uebersicht", "/"],
     ["webmail", "/webmail"],
+    ["webmail-postfach", "/webmail/mailbox/test@example.com/emails/inbox"],
     ["rechnungen", "/rechnungen"],
     ["rechnung-neu", "/rechnungen/neu"],
     ["angebote", "/angebote"],

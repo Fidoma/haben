@@ -155,8 +155,8 @@ describe("sichtbareNavSeiten", () => {
 
 // Symbole, die mehrere Menüpunkte teilen; jeder andere Menüpunkt hat ein eigenes, damit man ihn am Symbol erkennt
 const GETEILTE_SYMBOLE: Partial<Record<IconName, readonly string[]>> = {
-  // Post an eine Behörde, einmal an die Sozialversicherung, einmal an das Finanzamt
-  mail: ["/finanzamt", "/sv-meldeportal"],
+  // Post, einmal im eigenen Postfach und zweimal an eine Behörde
+  mail: ["/finanzamt", "/sv-meldeportal", "/webmail"],
   // Abschluss des Jahres, als Steuererklärung oder als Bilanz der Gesellschaft
   annual: ["/abschluss", "/jahreserklaerung"],
   // Bargeld, in der Kasse und als Ausschüttung an die Gesellschafter

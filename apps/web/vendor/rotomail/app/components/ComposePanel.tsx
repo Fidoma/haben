@@ -144,14 +144,14 @@ export default function ComposePanel() {
 						</div>
 					</div>
 
+					<ComposeAttachments attachments={attachments} onAdd={addAttachments} onRemove={removeAttachment} disabled={isSending} />
+
 					<div className="border border-kumo-line rounded-md overflow-hidden bg-kumo-base">
 						<RichTextEditor
 							value={body}
 							onChange={setBody}
 						/>
 					</div>
-
-					<ComposeAttachments attachments={attachments} onAdd={addAttachments} onRemove={removeAttachment} disabled={isSending} />
 				</div>
 
 				{/* Footer actions */}

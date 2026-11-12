@@ -12,13 +12,13 @@ function formatSize(bytes: number) {
 export default function ComposeAttachments({ attachments, onAdd, onRemove, disabled }: { attachments: ComposeAttachment[]; onAdd: (files: FileList) => void; onRemove: (id: string) => void; disabled?: boolean }) {
 	const input = useRef<HTMLInputElement>(null);
 	return (
-		<div className="space-y-2">
+		<div className="flex flex-wrap items-center gap-2 rounded-md border border-kumo-line bg-kumo-fill/30 p-2">
 			<input ref={input} type="file" multiple className="hidden" onChange={(event) => { if (event.target.files) onAdd(event.target.files); event.target.value = ""; }} />
 			<Button type="button" variant="secondary" size="sm" icon={<PaperclipIcon size={15} />} onClick={() => input.current?.click()} disabled={disabled || attachments.length >= 10}>
 				Attach files
 			</Button>
 			{attachments.length > 0 && (
-				<div className="flex flex-wrap gap-2" aria-label="Attachments">
+				<div className="flex min-w-0 flex-1 flex-wrap gap-2" aria-label="Attachments">
 					{attachments.map((attachment) => (
 						<div key={attachment.id} className="flex items-center gap-2 rounded-full border border-kumo-line bg-kumo-fill px-3 py-1 text-xs text-kumo-default">
 							<PaperclipIcon size={13} className="shrink-0" />
