@@ -14,6 +14,7 @@ apps/web/e2e/seiten.spec.ts /rechnungen/wiederkehrend/$id open
 apps/web/e2e/seiten.spec.ts /rechnungen/wiederkehrend/neu open
 apps/web/e2e/seiten.spec.ts /rechnungen/mahnwesen/$id nur ein 404-Test ruft sie auf, nicht die Seite selbst
 apps/web/e2e/seiten.spec.ts /oauth/autorisieren nur mit eingeschaltetem Zugang; Laden, axe und 404 prüft rechnungen.spec.ts im Test „Connector per OAuth“
+apps/web/e2e/seiten.spec.ts /webmail/$ der Splat übergibt beliebig tiefe RotoMail-Unterpfade; der Prüfer kann nur ein Segment abbilden, das Postfach steht im Seitentest
 apps/web/e2e/barrierefreiheit.spec.ts /abschluss leitet auf /abschluss/$jahr weiter
 apps/web/e2e/barrierefreiheit.spec.ts /jahreserklaerung leitet auf /jahreserklaerung/$jahr weiter
 apps/web/e2e/barrierefreiheit.spec.ts /lohn/anmeldung leitet auf /lohn/anmeldung/$zeitraum weiter
@@ -26,3 +27,4 @@ apps/web/e2e/barrierefreiheit.spec.ts /kontakte/$id open
 apps/web/e2e/barrierefreiheit.spec.ts /rechnungen/$id open
 apps/web/e2e/barrierefreiheit.spec.ts /rechnungen/mahnwesen/$id open
 apps/web/e2e/barrierefreiheit.spec.ts /rechnungen/wiederkehrend/$id open
+apps/web/e2e/barrierefreiheit.spec.ts /webmail/$ der Splat übergibt beliebig tiefe RotoMail-Unterpfade; der Prüfer kann nur ein Segment abbilden, das Postfach steht im axe-Test

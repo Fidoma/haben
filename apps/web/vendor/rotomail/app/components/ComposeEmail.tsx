@@ -104,13 +104,13 @@ export default function ComposeEmail() {
 						onChange={(e) => setSubject(e.target.value)}
 						required
 					/>
+					<ComposeAttachments attachments={attachments} onAdd={addAttachments} onRemove={removeAttachment} disabled={isSending} />
 					<div>
 						<Text size="sm" DANGEROUS_className="font-medium mb-1.5 block">
 							Message
 						</Text>
 						<RichTextEditor value={body} onChange={setBody} />
 					</div>
-					<ComposeAttachments attachments={attachments} onAdd={addAttachments} onRemove={removeAttachment} disabled={isSending} />
 					<div className="flex justify-between items-center pt-2">
 						<Button
 							type="button"

@@ -21,6 +21,7 @@ const YEAR = currentYear();
 const PAGES = [
   "/",
   "/webmail",
+  "/webmail/mailbox/test@example.com/emails/inbox",
   "/rechnungen",
   "/rechnungen/neu",
   "/rechnungen/mahnwesen",

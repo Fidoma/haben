@@ -66,7 +66,7 @@ export interface NavGroup {
 export const NAV_GROUPS: readonly NavGroup[] = [
   {
     label: "Externe Dienste",
-    icon: "mail",
+    icon: "external",
     links: [{ to: "/webmail", icon: "mail", label: "Web-Mail" }],
   },
   {

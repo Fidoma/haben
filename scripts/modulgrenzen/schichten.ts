@@ -12,6 +12,7 @@ export const SCHICHTEN = [
   "elster",
   "betrieb",
   "mail",
+  "webmail",
   "buchhaltung",
   "rechnungen",
   "ablage",
