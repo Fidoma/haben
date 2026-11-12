@@ -243,6 +243,7 @@ export function useSaveDraft() {
 				bcc?: string;
 				subject?: string;
 				body: string;
+				attachments?: Array<{ filename: string; contentType: string; contentBase64: string }>;
 				in_reply_to?: string;
 				thread_id?: string;
 				draft_id?: string;

@@ -221,6 +221,7 @@ api.post("/mailboxes/:mailboxId/emails", (c) =>
 			subject: body.subject as string | undefined,
 			html: body.html as string | undefined,
 			text: body.text as string | undefined,
+			attachments: body.attachments as OutgoingMessage["attachments"],
 		});
 		return c.json({ status: "sent" });
 	}),
@@ -249,6 +250,7 @@ api.post("/mailboxes/:mailboxId/drafts", (c) =>
 			from: c.var.account.email,
 			subject: body.subject as string | undefined,
 			html: body.body as string | undefined,
+			attachments: body.attachments as OutgoingMessage["attachments"],
 		});
 		const draftId = await appendMessage(client, Folders.DRAFT, draftPath, raw, ["\\Draft"]);
 		return c.json({ draft_id: draftId ?? "" }, 201);
@@ -355,6 +357,7 @@ api.post("/mailboxes/:mailboxId/emails/:id/reply", (c) =>
 			text: body.text as string | undefined,
 			inReplyTo,
 			references,
+			attachments: body.attachments as OutgoingMessage["attachments"],
 		});
 		return c.json({ status: "sent" });
 	}),
@@ -375,6 +378,7 @@ api.post("/mailboxes/:mailboxId/emails/:id/forward", (c) =>
 			subject: body.subject as string | undefined,
 			html: body.html as string | undefined,
 			text: body.text as string | undefined,
+			attachments: body.attachments as OutgoingMessage["attachments"],
 		});
 		return c.json({ status: "sent" });
 	}),
