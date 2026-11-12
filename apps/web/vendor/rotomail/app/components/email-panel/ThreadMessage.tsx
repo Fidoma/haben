@@ -156,6 +156,14 @@ export default function ThreadMessage({
 					</div>
 				</div>
 
+				<EmailAttachmentList
+					mailboxId={mailboxId}
+					emailId={email.id}
+					attachments={email.attachments}
+					onPreviewImage={onPreviewImage}
+					className="mb-3 rounded-md border border-kumo-line bg-kumo-fill/30 p-2 md:ml-[42px]"
+				/>
+
 				<div className="md:ml-[42px]">
 					<EmailIframe
 						body={rewriteInlineImages(
@@ -206,14 +214,6 @@ export default function ThreadMessage({
 						)}
 					</div>
 				)}
-
-				<EmailAttachmentList
-					mailboxId={mailboxId}
-					emailId={email.id}
-					attachments={email.attachments}
-					onPreviewImage={onPreviewImage}
-					className="mt-3 md:ml-[42px]"
-				/>
 			</div>
 		</div>
 	);
