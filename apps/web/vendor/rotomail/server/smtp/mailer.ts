@@ -23,6 +23,20 @@ export interface OutgoingMessage {
 	text?: string;
 	inReplyTo?: string;
 	references?: string[];
+	attachments?: Array<{ filename: string; contentType: string; contentBase64: string }>;
+}
+
+function mailAttachments(input: OutgoingMessage["attachments"]) {
+	if (!input?.length) return undefined;
+	if (input.length > 10) throw new Error("Too many attachments");
+	let total = 0;
+	return input.map((file) => {
+		if (!file || typeof file.filename !== "string" || typeof file.contentType !== "string" || typeof file.contentBase64 !== "string") throw new Error("Invalid attachment");
+		const content = Buffer.from(file.contentBase64, "base64");
+		total += content.length;
+		if (total > 10 * 1024 * 1024) throw new Error("Attachments too large");
+		return { filename: file.filename.replace(/[\r\n\\/]/g, "_").slice(0, 255) || "attachment", contentType: file.contentType.slice(0, 200), content };
+	});
 }
 
 function normalizeFrom(from: FromAddress) {
@@ -84,6 +98,7 @@ export async function sendMessage(account: Account, msg: OutgoingMessage): Promi
 		text: msg.text || undefined,
 		inReplyTo: msg.inReplyTo || undefined,
 		references: msg.references && msg.references.length ? msg.references : undefined,
+		attachments: mailAttachments(msg.attachments),
 		messageId,
 	};
 
@@ -104,6 +119,7 @@ export async function buildDraftRaw(msg: OutgoingMessage): Promise<Buffer> {
 		text: msg.text || undefined,
 		inReplyTo: msg.inReplyTo || undefined,
 		references: msg.references && msg.references.length ? msg.references : undefined,
+		attachments: mailAttachments(msg.attachments),
 	};
 	return (await new MailComposer(mailOptions).compile().build()) as Buffer;
 }
