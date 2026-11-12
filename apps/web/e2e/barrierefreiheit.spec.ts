@@ -18,6 +18,7 @@ const YEAR = currentYear();
 
 const PAGES = [
   "/",
+  "/webmail",
   "/rechnungen",
   "/rechnungen/neu",
   "/rechnungen/mahnwesen",

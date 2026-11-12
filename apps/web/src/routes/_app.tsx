@@ -38,6 +38,10 @@ interface NavLink extends NavBedingung {
 /** Hauptnavigation nach Arbeitsbereichen; Einstellungen stehen unten bei Konto und Abmelden */
 const NAV_GROUPS = [
   {
+    label: "Externe Dienste",
+    links: [{ to: "/webmail", icon: "mail", label: "Web-Mail" }],
+  },
+  {
     label: "Verkauf",
     links: [
       { to: "/angebote", icon: "quote", label: "Angebote" },
