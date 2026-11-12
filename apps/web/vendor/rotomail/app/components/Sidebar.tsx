@@ -57,7 +57,7 @@ function FolderLink({
 			to={to}
 			onClick={onClick}
 			className={({ isActive }) =>
-				`flex items-center gap-3 py-2 px-3 rounded-md text-sm transition-colors ${
+				`flex items-center gap-3 py-2 px-3 rounded-md text-sm no-underline transition-colors ${
 					isActive
 						? "bg-kumo-fill font-semibold text-kumo-default"
 						: "text-kumo-strong hover:bg-kumo-tint"
