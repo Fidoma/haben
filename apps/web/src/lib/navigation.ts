@@ -64,7 +64,7 @@ export interface NavGroup {
 export const NAV_GROUPS: readonly NavGroup[] = [
   {
     label: "PMS",
-    icon: "room",
+    icon: "company",
     links: [{ to: "/pms/belegungsplan", icon: "calendar", label: "Belegungsplan" }],
   },
   {

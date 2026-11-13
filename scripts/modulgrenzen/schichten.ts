@@ -14,6 +14,7 @@ export const SCHICHTEN = [
   "mail",
   "buchhaltung",
   "rechnungen",
+  "pms",
   "ablage",
   "leistungen",
   "umsatzsteuer",

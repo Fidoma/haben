@@ -155,6 +155,8 @@ describe("sichtbareNavSeiten", () => {
 
 // Symbole, die mehrere Menüpunkte teilen; jeder andere Menüpunkt hat ein eigenes, damit man ihn am Symbol erkennt
 const GETEILTE_SYMBOLE: Partial<Record<IconName, readonly string[]>> = {
+  // Termine, einmal für gesetzliche Fristen und einmal für die Zimmerbelegung
+  calendar: ["/fristen", "/pms/belegungsplan"],
   // Post an eine Behörde, einmal an die Sozialversicherung, einmal an das Finanzamt
   mail: ["/finanzamt", "/sv-meldeportal"],
   // Abschluss des Jahres, als Steuererklärung oder als Bilanz der Gesellschaft
