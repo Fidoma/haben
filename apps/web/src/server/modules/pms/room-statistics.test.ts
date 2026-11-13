@@ -43,7 +43,12 @@ describe.skipIf(!testDatabaseUrl)("PMS-Zimmerstatistik (Postgres)", () => {
         values (${row!.id}, ${index + 1}, 'Übernachtung', 1000, 'Tag', ${Math.abs(amount)}, 0, ${amount})
       `;
     }
-    await sql`update invoices set status = 'final', number = ${`STAT-${invoiceNumber}`}, locked_at = now() where id = ${row!.id}`;
+    await sql`
+      update invoices
+      set status = 'final', number = ${`STAT-${invoiceNumber}`}, locked_at = now(),
+          reduction_rule = ${correctsId ? "rueckgewaehr" : null}
+      where id = ${row!.id}
+    `;
     return row!.id as string;
   }
 
