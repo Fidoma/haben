@@ -5,7 +5,7 @@ import { useState, type FormEvent } from "react";
 import { errorMessage } from "../../lib/format.ts";
 import type { Notice } from "../../lib/use-action.ts";
 import { saveReservation, type getReservationFormOptions, type getReservations } from "../../server/functions/pms.ts";
-import { ContactDialog } from "../ContactDialog.tsx";
+import { NewContactDialog } from "../NewContactDialog.tsx";
 import { CustomerCombobox } from "../CustomerCombobox.tsx";
 import { Field } from "../Field.tsx";
 import { ReservationPositions, type ReservationPositionDraft } from "./ReservationPositions.tsx";
@@ -103,14 +103,11 @@ export function ReservationForm({
   const formName = reservation ? "Reservierung bearbeiten" : "Neue Reservierung";
   return (
     <>
-      <ContactDialog
-        open={newContactName !== null}
-        title="Neuen Kunden anlegen"
-        prefill={{ isCustomer: true, isSupplier: false, name: newContactName ?? "" }}
-        existing={options.contacts}
+      <NewContactDialog
+        rolle="kunde"
+        name={newContactName}
         onSaved={(saved) => {
           setContactId(saved.id);
-          void router.invalidate();
         }}
         onPickExisting={setContactId}
         onClose={() => setNewContactName(null)}
