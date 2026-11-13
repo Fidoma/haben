@@ -89,21 +89,22 @@ export function ReservationPositions({
               </select>
             )}
           </Field>
-          <div className="field">
-            <span className="reservation-position-label">Artikel</span>
-            <ArticleSelectCombobox
-              label={`Artikel Position ${index + 1}`}
-              articleId={position.articleId}
-              articles={articles}
-              disabled={disabled}
-              onPick={(article) =>
-                update(position.key, {
-                  articleId: article?.id ?? "",
-                  ...(article ? { unitPrice: (article.unitPrice / 100).toFixed(2).replace(".", ",") } : {}),
-                })
-              }
-            />
-          </div>
+          <Field label={<span className="reservation-position-label">Artikel</span>}>
+            {() => (
+              <ArticleSelectCombobox
+                label={`Artikel Position ${index + 1}`}
+                articleId={position.articleId}
+                articles={articles}
+                disabled={disabled}
+                onPick={(article) =>
+                  update(position.key, {
+                    articleId: article?.id ?? "",
+                    ...(article ? { unitPrice: (article.unitPrice / 100).toFixed(2).replace(".", ",") } : {}),
+                  })
+                }
+              />
+            )}
+          </Field>
           <Field label={<span className="reservation-position-label">Preis</span>}>
             {(control) => (
               <input
