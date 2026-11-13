@@ -38,6 +38,14 @@ interface NavLink extends NavBedingung {
 /** Hauptnavigation nach Arbeitsbereichen; Einstellungen stehen unten bei Konto und Abmelden */
 const NAV_GROUPS = [
   {
+    label: "PMS",
+    links: [{ to: "/pms/belegungsplan", icon: "calendar", label: "Belegungsplan" }],
+  },
+  {
+    label: "Externe Dienste",
+    links: [{ to: "/webmail", icon: "mail", label: "Webmail" }],
+  },
+  {
     label: "Verkauf",
     links: [
       { to: "/angebote", icon: "quote", label: "Angebote" },

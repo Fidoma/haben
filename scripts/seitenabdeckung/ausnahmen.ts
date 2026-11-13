@@ -17,6 +17,7 @@ export const EXCEPTIONS: Record<"seiten" | "barrierefreiheit", Record<string, st
   seiten: {
     ...REDIRECTS,
     "/angebote/$id": OPEN,
+    "/webmail/$": "braucht ein eingerichtetes externes IMAP-Konto; die Einrichtungsseite /webmail wird geprüft",
     "/angebote/neu": OPEN,
     "/anlagen/$id": OPEN,
     "/kontakte/neu": OPEN,
@@ -30,6 +31,7 @@ export const EXCEPTIONS: Record<"seiten" | "barrierefreiheit", Record<string, st
   barrierefreiheit: {
     ...REDIRECTS,
     "/belege/$id": "axe prüft gmbh.spec.ts am stornierten Beleg",
+    "/webmail/$": "braucht ein eingerichtetes externes IMAP-Konto; die Einrichtungsseite /webmail wird geprüft",
     "/angebote/$id": OPEN,
     "/anlagen/$id": OPEN,
     "/archiv/beleg/$id": OPEN,

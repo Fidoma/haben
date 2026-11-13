@@ -19,6 +19,7 @@ const YEAR = currentYear();
 
 const PAGES = [
   "/",
+  "/webmail",
   "/rechnungen",
   "/rechnungen/neu",
   "/rechnungen/mahnwesen",
@@ -28,6 +29,8 @@ const PAGES = [
   "/angebote/neu",
   "/artikel",
   "/leistungen",
+  "/pms/belegungsplan",
+  "/pms/tourismusstatistik",
   "/kontakte",
   "/kontakte/neu",
   "/belege",

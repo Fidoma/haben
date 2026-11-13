@@ -478,6 +478,21 @@ a.table-row:hover { background: var(--ground); color: var(--ink); }
 .article-cols { grid-template-columns: minmax(0, 1fr) 160px 60px auto; }
 .service-cols { grid-template-columns: 90px minmax(0, 1fr) 90px 90px 100px auto; }
 .proof-cols { grid-template-columns: 90px minmax(0, 1fr) 90px; }
+.room-cols { grid-template-columns: minmax(90px, 0.5fr) minmax(0, 1.5fr) 90px auto; }
+.room-form { max-width: 720px; }
+.room-actions { justify-content: flex-end; flex-wrap: nowrap; }
+.reservation-form { max-width: 1440px; }
+.reservation-positions { display: grid; gap: 10px; }
+.reservation-positions h3 { margin: 4px 0 0; font-size: 15px; }
+.reservation-position-row { display: grid; grid-template-columns: minmax(130px, .7fr) minmax(190px, 1fr) minmax(110px, .55fr) minmax(135px, .65fr) minmax(135px, .65fr) minmax(160px, .9fr) 36px; gap: 8px; align-items: end; }
+.reservation-position-row.head { color: var(--muted); font-size: 12px; font-weight: 600; padding: 0 1px; }
+.reservation-position-row .field { min-width: 0; }
+.reservation-position-label { display: none; }
+.reservation-position-actions { display: flex; align-items: center; min-height: 38px; }
+.reservation-cols { grid-template-columns: minmax(185px, 1.2fr) minmax(120px, .8fr) minmax(150px, 1fr) 70px minmax(360px, auto); }
+.reservation-period, .reservation-room-list { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.reservation-status { font-size: 12px; color: var(--muted); border: 1px solid var(--line-strong); border-radius: 999px; padding: 2px 7px; }
+.reservation-actions { justify-content: flex-end; flex-wrap: nowrap; }
 .contact-cols { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.2fr) minmax(0, 1fr) 200px; }
 .table-row .row-title { font-weight: 500; color: var(--accent-ink); }
 .plan-cols { grid-template-columns: 60px repeat(5, minmax(0, 1fr)) 80px; }
@@ -532,6 +547,19 @@ a.table-row:hover { background: var(--ground); color: var(--ink); }
   .service-cols > :nth-child(1), .service-cols > :nth-child(2), .service-cols > :nth-child(6) { grid-column: 1 / -1; }
   .service-cols > :nth-child(6) { justify-content: flex-start !important; }
   .table-row.head.service-cols { display: none; }
+  .room-cols { grid-template-columns: minmax(0, 1fr) auto; row-gap: 4px; padding-top: 8px; padding-bottom: 8px; }
+  .room-cols .room-number { grid-column: 1; grid-row: 1; font-weight: 500; }
+  .room-cols .room-capacity { grid-column: 2; grid-row: 1; }
+  .room-cols .room-capacity::before { content: "Kapazität "; font-family: var(--sans); color: var(--muted); }
+  .room-cols .room-name { grid-column: 1 / -1; grid-row: 2; }
+  .room-cols .room-actions { grid-column: 1 / -1; grid-row: 3; justify-content: flex-start; }
+  .table-row.head.room-cols { display: none; }
+  .reservation-cols { grid-template-columns: minmax(0, 1fr) auto; row-gap: 4px; padding-top: 8px; padding-bottom: 8px; }
+  .reservation-cols > :nth-child(2), .reservation-cols > :nth-child(3) { grid-column: 1; }
+  .reservation-cols > :nth-child(4) { grid-column: 2; grid-row: 1; }
+  .reservation-cols > :nth-child(5) { grid-column: 1 / -1; }
+  .reservation-actions { justify-content: flex-start; }
+  .table-row.head.reservation-cols { display: none; }
   .contact-cols { grid-template-columns: minmax(0, 1fr) auto; padding-top: 8px; padding-bottom: 8px; }
   .contact-cols > :nth-child(2), .contact-cols > :nth-child(4) { display: none; }
   .table-row.head.contact-cols { display: none; }
@@ -1046,3 +1074,21 @@ summary { cursor: pointer; min-height: 24px; }
 .own-layout-name { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .own-layout-rename { display: flex; flex-wrap: wrap; gap: 8px; }
 .own-layouts .actions { flex-wrap: wrap; }
+
+/* RotoMail bleibt auf seine Modulfläche begrenzt; Habens globale Komponenten werden nicht überschrieben. */
+.webmail-module { box-sizing: border-box; height: calc(100dvh - 64px); min-height: min(560px, calc(100dvh - 64px)); overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.webmail-start { min-height: 100%; background: var(--ground); }
+.webmail-start .page-head { position: static; }
+.webmail-account-list { display: grid; gap: 8px; margin-top: 16px; }
+.webmail-account-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.webmail-account { display: flex; flex-direction: column; gap: 4px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); text-decoration: none; }
+.webmail-account:hover { border-color: var(--line-strong); background: var(--accent-tint); }
+.webmail-account span { color: var(--muted); font-size: 13px; }
+.webmail-setup { max-width: 880px; }
+.webmail-setup > h2 { margin-top: 24px; }
+.webmail-setup > .checkbox { margin-top: 12px; }
+.webmail-setup > .actions { justify-content: flex-end; margin-top: 24px; }
+
+@media (max-width: 720px) {
+  .webmail-module { height: calc(100dvh - var(--nav-height) - 40px); min-height: min(480px, calc(100dvh - var(--nav-height) - 40px)); border-inline: 0; border-radius: 0; }
+}

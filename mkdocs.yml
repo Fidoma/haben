@@ -87,6 +87,7 @@ nav:
       - KI-Assistenten (MCP): ki-assistenten.md
       - REST-API: api.md
       - Eigene Seiten: eigene-seiten.md
+      - Web-Mail: webmail.md
   - Hintergrund:
       - Buchhaltung in Haben: buchhaltung.md
       - Buchungssätze: buchhaltung-buchungssaetze.md

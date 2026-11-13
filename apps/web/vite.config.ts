@@ -4,6 +4,7 @@ import { nitro } from "nitro/vite";
 import { readFileSync } from "node:fs";
 import { defineConfig, type Plugin } from "vite";
 import { redact } from "@tanstack/redact/vite";
+import tailwindcss from "@tailwindcss/vite";
 
 // Version der ausgelieferten App, angezeigt unten in der Navigation
 const VERSION = (JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as { version: string }).version;
@@ -28,6 +29,7 @@ export default defineConfig(({ command }) => ({
   ...(command === "build" ? { ssr: { noExternal: true } } : {}),
   define: { __HABEN_VERSION__: JSON.stringify(VERSION) },
   plugins: [
+    tailwindcss(),
     keepNativeExternal(),
     tanstackStart(),
     // die native Bindung löst der Server zur Laufzeit aus apps/web/node_modules auf
@@ -50,4 +52,10 @@ export default defineConfig(({ command }) => ({
     // Rendert synchron, ohne Time-Slicing; Haben nutzt weder useTransition noch useDeferredValue
     redact(),
   ],
+  resolve: {
+    alias: {
+      "~": new URL("./vendor/rotomail/app", import.meta.url).pathname,
+      shared: new URL("./vendor/rotomail/shared", import.meta.url).pathname,
+    },
+  },
 }));
