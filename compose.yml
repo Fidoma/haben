@@ -52,7 +52,7 @@ services:
       HABEN_WEBMAIL_ALLOW_PRIVATE_HOSTS: "true"
     ports:
       # Innen und außen derselbe Port, damit Neuladen und Anmeldung dieselbe Adresse sehen
-      - "127.0.0.1:${HABEN_DEV_PORT:-3000}:${HABEN_DEV_PORT:-3000}"
+      - "${HABEN_DEV_HOST:-0.0.0.0}:${HABEN_DEV_PORT:-3000}:${HABEN_DEV_PORT:-3000}"
     volumes:
       - .:/app
       - node_modules:/app/node_modules
