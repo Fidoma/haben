@@ -157,6 +157,8 @@ describe("sichtbareNavSeiten", () => {
 const GETEILTE_SYMBOLE: Partial<Record<IconName, readonly string[]>> = {
   // Post, einmal im eigenen Postfach und zweimal an eine Behörde
   mail: ["/finanzamt", "/sv-meldeportal", "/webmail"],
+  // Termine, einmal für gesetzliche Fristen und einmal für die Zimmerbelegung
+  calendar: ["/fristen", "/pms/belegungsplan"],
   // Abschluss des Jahres, als Steuererklärung oder als Bilanz der Gesellschaft
   annual: ["/abschluss", "/jahreserklaerung"],
   // Bargeld, in der Kasse und als Ausschüttung an die Gesellschafter

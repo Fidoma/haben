@@ -161,7 +161,6 @@ export async function runScheduledJobs(): Promise<void> {
     if (result?.sent) console.log(`Fristen-Erinnerung: ${result.sent} Frist(en) per E-Mail erinnert`);
   } catch (error) {
     console.error("Fristen-Erinnerung", error);
-  }
   } finally {
     running = false;
   }
