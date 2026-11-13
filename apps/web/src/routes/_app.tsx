@@ -42,6 +42,10 @@ const NAV_GROUPS = [
     links: [{ to: "/pms/belegungsplan", icon: "calendar", label: "Belegungsplan" }],
   },
   {
+    label: "Externe Dienste",
+    links: [{ to: "/webmail", icon: "mail", label: "Webmail" }],
+  },
+  {
     label: "Verkauf",
     links: [
       { to: "/angebote", icon: "quote", label: "Angebote" },
