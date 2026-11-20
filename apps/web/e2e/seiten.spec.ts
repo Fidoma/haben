@@ -21,6 +21,8 @@ async function routes(page: Page): Promise<[string, string | null][]> {
   const month = Number(day(-12).slice(5, 7));
   return [
     ["uebersicht", "/"],
+    ["webmail", "/webmail"],
+    ["webmail-postfach", "/webmail/mailbox/test@example.com/emails/inbox"],
     ["rechnungen", "/rechnungen"],
     ["rechnung-neu", "/rechnungen/neu"],
     ["angebote", "/angebote"],
