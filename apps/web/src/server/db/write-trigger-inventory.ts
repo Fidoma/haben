@@ -31,7 +31,12 @@ try {
   });
   if (formatted.status !== 0) throw new Error(`Sollbestand konnte nicht formatiert werden: ${formatted.stderr}`);
   writeFileSync(file, formatted.stdout);
-  console.info(`Sollbestand aus frischen Migrationen: ${inventory.triggers.length} Trigger, ${inventory.functions.length} Funktionen`);
+  console.info(
+    `Sollbestand aus frischen Migrationen: ${inventory.triggers.length} Trigger, ${inventory.functions.length} Funktionen, ` +
+      `${inventory.defaults.length} Standardwerte in ${inventory.sealedTables.length} versiegelten Tabellen, ` +
+      `${inventory.builtins.functions.length} eingebaute Funktionen von PostgreSQL ${inventory.builtins.major}, ` +
+      `${inventory.extensions.functions.length + inventory.extensions.operators.length + inventory.extensions.casts.length} Objekte aus Erweiterungen`,
+  );
 } finally {
   await client.end();
   if (created) await admin`drop database ${admin(name)}`;

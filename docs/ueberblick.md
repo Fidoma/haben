@@ -21,6 +21,7 @@ Den Rundgang in Bildern gibt die [Startseite](index.md), den schnellen
 | | |
 |---|---|
 | [Erste Schritte](einrichtung.md) | Konto und Passkey, Fragen zur Einrichtung, Bereiche ausblenden, als App installieren, Firmendaten, Ist oder Soll, SKR03 oder SKR04, Nummernkreis, KI-Auslesung, Bankkonten |
+| [Beleggestaltung](beleggestaltung.md) | Logo, Akzentfarbe, Schrift, Briefpapier, Fußzeile und die eingebauten Layouts mit ihren Optionen |
 | [ELSTER einrichten](einrichtung-elster.md) | Zertifikatsdatei, eigene Hersteller-ID, ERiC-Version, Unterschied zu Lexoffice |
 | [E-Mail-Versand](einrichtung-email.md) | Versand über SMTP oder Microsoft 365 (Graph) |
 | [Von der Testinstanz in den Echtbetrieb](einrichtung-echtbetrieb.md) | Einstellungen und Stammdaten als Datei in eine neue Instanz übernehmen |
@@ -48,7 +49,7 @@ Den Rundgang in Bildern gibt die [Startseite](index.md), den schnellen
 | [Pauschalen](pauschalen.md) | Homeoffice-Tagespauschale, Fahrten mit dem Privatfahrzeug, Verpflegungsmehraufwand, Wege zur Betriebsstätte (Entfernungspauschale); Buchung und Storno |
 | [Kassenbuch](kasse.md) | Barkasse: Einlage, Entnahme, Geldtransit, bar bezahlte Belege und Rechnungen; nie negativer Bestand, Storno |
 | [Anlagen und AfA](anlagen.md) | Anlagenverzeichnis, lineare und degressive AfA, Anschaffung per Beleg, Übernahme aus Lexoffice und sevDesk, AfA buchen, Abgang |
-| [Bankimport und Abgleich](bank.md) | Automatischer Abruf per PSD2 (Enable Banking) oder FinTS, DKB, Commerzbank, ING, C24, N26, Swan, CAMT.053, Dubletten, Saldenprüfung, Vorschläge, Teilzahlungen, Buchungen ohne Beleg |
+| [Bankimport und Abgleich](bank.md) | Automatischer Abruf per PSD2 (Enable Banking) oder FinTS, DKB, Commerzbank, Deutsche Bank, Norisbank, Postbank, ING, C24, N26, Swan, CAMT.053, Dubletten, Saldenprüfung, Vorschläge, Teilzahlungen, Buchungen ohne Beleg |
 | [Andere Banken](bank-spaltenzuordnung.md) | CSV einer Bank ohne eigenes Format: Spalten einmal zuordnen, gespeichert je Konto |
 | [Abruf über FinTS](bank-fints.md) | Bankkonten direkt bei der Bank abrufen, mit PIN, TAN-Verfahren und pushTAN, ohne Enable Banking |
 | [Zahlungsdienstleister](bank-zahlungsdienstleister.md) | PayPal, Stripe, Shopify Payments, eBay, Etsy, SumUp, Google Play und App Store mit Gebühren und Auszahlungen |
