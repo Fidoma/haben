@@ -41,6 +41,14 @@ describe("Webmail-Konten", () => {
     await expect(testWebmailAccount("nutzer-a", { ...account, zipSenderDomain: "belege.example" })).rejects.toThrow("ZIP-Passwort fehlt");
   });
 
+  it("behandelt leere Passwortfelder beim Bearbeiten als unverändert", () => {
+    expect(webmailAccountSchema.parse({ ...account, imapPassword: "", smtpPassword: "", zipPassword: "" })).toMatchObject({
+      imapPassword: undefined,
+      smtpPassword: undefined,
+      zipPassword: undefined,
+    });
+  });
+
   it("lehnt interne Ziele vor einem Verbindungsversuch ab", async () => {
     await expect(testWebmailAccount("nutzer-a", account)).rejects.toThrow("öffentlich erreichbar");
   });

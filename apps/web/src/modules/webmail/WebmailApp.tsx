@@ -120,6 +120,7 @@ function Setup({
   });
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showZipPassword, setShowZipPassword] = useState(false);
   const set = (name: keyof typeof form, value: string | number | boolean) => setForm((current) => ({ ...current, [name]: value }));
 
   async function test() {
@@ -220,9 +221,12 @@ function Setup({
             {input("zipSenderDomain")}
           </Field>
           <Field label="ZIP-Passwort" hint={account?.hasZipPassword ? "Leer lassen, um das gespeicherte Passwort zu behalten." : undefined}>
-            {input("zipPassword", "password")}
+            {input("zipPassword", showZipPassword ? "text" : "password")}
           </Field>
         </div>
+        <label className="checkbox">
+          <input type="checkbox" checked={showZipPassword} onChange={(event) => setShowZipPassword(event.target.checked)} /> ZIP-Passwort anzeigen
+        </label>
         {message && <p role="status">{message}</p>}
         <div className="actions">
           {onCancel && (
