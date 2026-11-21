@@ -27,6 +27,20 @@ describe("Webmail-Konten", () => {
     expect(webmailAccountSchema.parse(account)).toMatchObject({ email: "mail@example.test", imapPort: 993, smtpPort: 587 });
   });
 
+  it("normalisiert die Domain für passwortgeschützte ZIP-Anhänge", () => {
+    expect(webmailAccountSchema.parse({ ...account, zipSenderDomain: "@BELEGE.Example", zipPassword: "zip-geheim" })).toMatchObject({
+      zipSenderDomain: "belege.example",
+      zipPassword: "zip-geheim",
+    });
+    expect(() => webmailAccountSchema.parse({ ...account, zipSenderDomain: "https://belege.example", zipPassword: "zip-geheim" })).toThrow(
+      "Ungültige Absender-Domain",
+    );
+  });
+
+  it("verlangt für eine konfigurierte Absender-Domain ein ZIP-Passwort", async () => {
+    await expect(testWebmailAccount("nutzer-a", { ...account, zipSenderDomain: "belege.example" })).rejects.toThrow("ZIP-Passwort fehlt");
+  });
+
   it("lehnt interne Ziele vor einem Verbindungsversuch ab", async () => {
     await expect(testWebmailAccount("nutzer-a", account)).rejects.toThrow("öffentlich erreichbar");
   });

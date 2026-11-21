@@ -17,7 +17,16 @@ describe.skipIf(!testDatabaseUrl)("Webmail-Konten (Postgres)", () => {
     await sql`insert into "user" (id, name, email, email_verified, role) values
       (${own}, 'Eigener Zugang', 'own-webmail@example.test', true, 'inhaber'),
       (${other}, 'Anderer Zugang', 'other-webmail@example.test', true, 'steuerberatung')`;
-    const ciphertext = encrypt(new TextEncoder().encode(JSON.stringify({ imapPassword: "imap-geheim", smtpPassword: "smtp-geheim" })));
+    const ciphertext = encrypt(
+      new TextEncoder().encode(
+        JSON.stringify({
+          imapPassword: "imap-geheim",
+          smtpPassword: "smtp-geheim",
+          zipSenderDomain: "belege.example",
+          zipPassword: "zip-geheim",
+        }),
+      ),
+    );
     await sql`insert into webmail_accounts
       (user_id, email, imap_host, imap_username, smtp_host, smtp_username, ciphertext)
       values (${own}, 'own@example.test', 'imap.example.test', 'own', 'smtp.example.test', 'own', ${ciphertext}),
@@ -33,12 +42,16 @@ describe.skipIf(!testDatabaseUrl)("Webmail-Konten (Postgres)", () => {
     const accounts = await webmail.listWebmailAccounts(own);
     expect(accounts).toHaveLength(1);
     expect(accounts[0]?.email).toBe("own@example.test");
+    expect(accounts[0]?.zipSenderDomain).toBe("belege.example");
+    expect(accounts[0]?.hasZipPassword).toBe(true);
     expect(accounts[0]).not.toHaveProperty("ciphertext");
+    expect(accounts[0]).not.toHaveProperty("zipPassword");
   });
 
   it("entschlüsselt Geheimnisse ausschließlich beim gezielten serverseitigen Laden", async () => {
     const [row] = await sql<{ id: string }[]>`select id from webmail_accounts where user_id = ${own}`;
     expect((await webmail.loadWebmailAccount(own, row!.id))?.imapPassword).toBe("imap-geheim");
+    expect((await webmail.loadWebmailAccount(own, row!.id))?.zipPassword).toBe("zip-geheim");
     expect(await webmail.loadWebmailAccount(other, row!.id)).toBeNull();
     const [audit] = await sql<{ text: string }[]>`select coalesce(string_agg(coalesce(new_value::text, '') || coalesce(old_value::text, ''), ''), '') as text
       from audit_log where table_name = 'webmail_accounts'`;

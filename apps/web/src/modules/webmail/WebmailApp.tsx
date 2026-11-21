@@ -22,6 +22,8 @@ interface AccountSummary {
   smtpPort: number;
   smtpSecure: boolean;
   smtpUsername: string;
+  zipSenderDomain: string;
+  hasZipPassword?: boolean;
 }
 
 interface Proposal {
@@ -113,6 +115,8 @@ function Setup({
     smtpSecure: account?.smtpSecure ?? proposal?.secure ?? false,
     smtpUsername: account?.smtpUsername ?? proposal?.username ?? "",
     smtpPassword: "",
+    zipSenderDomain: account?.zipSenderDomain ?? "",
+    zipPassword: "",
   });
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -149,6 +153,8 @@ function Setup({
         smtpPort: form.smtpPort,
         smtpSecure: form.smtpSecure,
         smtpUsername: form.smtpUsername,
+        zipSenderDomain: form.zipSenderDomain,
+        hasZipPassword: Boolean(form.zipPassword) || account?.hasZipPassword,
       });
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Konto konnte nicht gespeichert werden.");
@@ -207,6 +213,16 @@ function Setup({
         <label className="checkbox">
           <input type="checkbox" checked={form.smtpSecure} onChange={(event) => set("smtpSecure", event.target.checked)} /> TLS ab Verbindungsaufbau
         </label>
+        <h2>Passwortgeschützte ZIP-Anhänge</h2>
+        <p className="muted">ZIP-Dateien dieser Absender-Domain werden beim Herunterladen serverseitig entschlüsselt und ohne Passwort neu verpackt.</p>
+        <div className="form-grid">
+          <Field label="Absender-Domain" hint="Leer lassen, um die automatische Entschlüsselung auszuschalten.">
+            {input("zipSenderDomain")}
+          </Field>
+          <Field label="ZIP-Passwort" hint={account?.hasZipPassword ? "Leer lassen, um das gespeicherte Passwort zu behalten." : undefined}>
+            {input("zipPassword", "password")}
+          </Field>
+        </div>
         {message && <p role="status">{message}</p>}
         <div className="actions">
           {onCancel && (

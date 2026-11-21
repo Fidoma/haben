@@ -1,5 +1,6 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
+import { domainToASCII } from "node:url";
 import { ImapFlow } from "imapflow";
 import nodemailer from "nodemailer";
 import { and, eq } from "drizzle-orm";
@@ -15,6 +16,18 @@ const host = z
   .max(253)
   .regex(/^[A-Za-z0-9.-]+$/, "Nur ein Servername ist erlaubt.");
 const port = z.number().int().min(1).max(65535);
+const domainName = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+const zipSenderDomain = z
+  .string()
+  .trim()
+  .max(253)
+  .transform((value) => {
+    const source = value.toLowerCase().replace(/^@/, "");
+    return { empty: source === "", normalized: domainToASCII(source) };
+  })
+  .refine(({ empty, normalized }) => empty || (normalized !== "" && domainName.test(normalized)), "Ungültige Absender-Domain.")
+  .transform(({ normalized }) => normalized);
+const optionalPassword = z.preprocess((value) => (value === "" ? undefined : value), z.string().min(1).max(500).optional());
 
 export const webmailAccountSchema = z.object({
   id: z.uuid().optional(),
@@ -30,6 +43,8 @@ export const webmailAccountSchema = z.object({
   smtpSecure: z.boolean().default(false),
   smtpUsername: z.string().trim().min(1).max(320),
   smtpPassword: z.string().min(1).max(500).optional(),
+  zipSenderDomain: zipSenderDomain.default(""),
+  zipPassword: optionalPassword,
 });
 
 export type WebmailAccountInput = z.input<typeof webmailAccountSchema>;
@@ -37,6 +52,8 @@ export type WebmailAccountInput = z.input<typeof webmailAccountSchema>;
 interface Secrets {
   imapPassword: string;
   smtpPassword: string;
+  zipSenderDomain?: string;
+  zipPassword?: string;
 }
 
 function secrets(ciphertext: Uint8Array): Secrets {
@@ -80,7 +97,10 @@ export async function resolveWebmailHosts(imapHost: string, smtpHost: string) {
 
 export async function listWebmailAccounts(userId: string) {
   const rows = await db.select().from(schema.webmailAccounts).where(eq(schema.webmailAccounts.userId, userId));
-  return rows.map(({ ciphertext: _secret, ...row }) => ({ ...row, hasSecret: true }));
+  return rows.map(({ ciphertext, ...row }) => {
+    const secret = secrets(ciphertext);
+    return { ...row, hasSecret: true, zipSenderDomain: secret.zipSenderDomain ?? "", hasZipPassword: Boolean(secret.zipPassword) };
+  });
 }
 
 export async function loadWebmailAccount(userId: string, id: string) {
@@ -128,6 +148,8 @@ export async function testWebmailAccount(userId: string, input: WebmailAccountIn
   const imapPassword = data.imapPassword ?? existing?.imapPassword;
   const smtpPassword = data.smtpPassword ?? existing?.smtpPassword;
   if (!imapPassword || !smtpPassword) throw new Error("IMAP- und SMTP-Passwort fehlen.");
+  const zipPassword = data.zipSenderDomain ? (data.zipPassword ?? existing?.zipPassword) : undefined;
+  if (data.zipSenderDomain && !zipPassword) throw new Error("Das ZIP-Passwort fehlt.");
   await verifyConnections({ ...data, imapPassword, smtpPassword });
 }
 
@@ -137,6 +159,8 @@ export async function saveWebmailAccount(actor: string, input: WebmailAccountInp
   const imapPassword = data.imapPassword ?? existing?.imapPassword;
   const smtpPassword = data.smtpPassword ?? existing?.smtpPassword;
   if (!imapPassword || !smtpPassword) throw new Error("IMAP- und SMTP-Passwort fehlen.");
+  const zipPassword = data.zipSenderDomain ? (data.zipPassword ?? existing?.zipPassword) : undefined;
+  if (data.zipSenderDomain && !zipPassword) throw new Error("Das ZIP-Passwort fehlt.");
   await verifyConnections({ ...data, imapPassword, smtpPassword });
   const values = {
     userId: actor,
@@ -150,7 +174,11 @@ export async function saveWebmailAccount(actor: string, input: WebmailAccountInp
     smtpPort: data.smtpPort,
     smtpSecure: data.smtpSecure,
     smtpUsername: data.smtpUsername,
-    ciphertext: encrypt(new TextEncoder().encode(JSON.stringify({ imapPassword, smtpPassword } satisfies Secrets))),
+    ciphertext: encrypt(
+      new TextEncoder().encode(
+        JSON.stringify({ imapPassword, smtpPassword, zipSenderDomain: data.zipSenderDomain || undefined, zipPassword } satisfies Secrets),
+      ),
+    ),
     updatedAt: new Date(),
   };
   if (data.id) {

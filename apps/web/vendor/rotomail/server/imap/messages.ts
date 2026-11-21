@@ -280,6 +280,7 @@ export interface AttachmentPart {
 	filename: string;
 	mimetype: string;
 	content: Buffer;
+	senderAddress?: string;
 }
 
 /** Fetch one attachment's bytes by its parse-order index (the attachment id). */
@@ -305,6 +306,7 @@ export async function getAttachmentPart(
 			filename: att.filename || "attachment",
 			mimetype: att.contentType || "application/octet-stream",
 			content: att.content as Buffer,
+			senderAddress: parsed.from?.value[0]?.address,
 		};
 	} finally {
 		lock.release();

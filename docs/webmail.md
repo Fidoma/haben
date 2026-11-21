@@ -19,6 +19,8 @@ Die lokale Entwicklungsumgebung setzt `HABEN_WEBMAIL_ALLOW_PRIVATE_HOSTS=true`, 
 
 RotoMail stellt Ordner, Nachrichtenliste und -ansicht, Suche, Entwürfe, Antworten, Weiterleiten, Anhänge, Verschieben, Löschen sowie Gelesen- und Markiert-Status bereit. Aktive Anhänge werden nur als Download ausgeliefert. HTML-Nachrichten werden in RotoMails isolierter, bereinigter Nachrichtenansicht dargestellt; externe Inhalte werden nicht ungefragt als Teil der Haben-Seite ausgeführt.
 
+Für ein Konto lässt sich eine Absender-Domain mit dem Passwort ihrer geschützten ZIP-Anhänge hinterlegen. Stimmt die Domain der Absenderadresse genau überein, entschlüsselt Haben das ZIP erst beim Herunterladen und liefert ein neu gepacktes ZIP ohne Passwort aus. Das Passwort bleibt verschlüsselt auf dem Server. Archive über 25 MiB, mit mehr als 100 Einträgen oder über 100 MiB entpacktem Inhalt werden nicht verarbeitet.
+
 Microsoft Graph aus den allgemeinen E-Mail-Einstellungen ist kein IMAP-Konto und wird daher nicht automatisch übernommen. OAuth für einzelne Webmail-Konten ist in dieser Integration noch nicht eingerichtet; dafür werden providerbezogene delegierte Berechtigungen und eine eigene Token-Erneuerung benötigt.
 
 ## Technischer Ursprung

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import api from "../../../../vendor/rotomail/server/routes/api.ts";
 import type { AppEnv } from "../../../../vendor/rotomail/server/types.ts";
 import { listWebmailAccounts, loadWebmailAccount, renameWebmailAccount, resolveWebmailHosts } from "./accounts.ts";
+import { transformZipAttachment, type WebmailAttachment } from "./zip-attachments.ts";
 
 /**
  * Adapter zwischen Habens Sitzung und der unveränderten RotoMail-API. Geheimnisse werden nur für die Dauer der
@@ -21,6 +22,11 @@ export async function handleWebmailApi(request: Request, userId: string): Promis
           saveDisplayName: (name: string) => renameWebmailAccount(userId, account.id, name),
           username: account.imapUsername,
           password: account.imapPassword,
+          transformAttachment:
+            account.zipSenderDomain && account.zipPassword
+              ? (attachment: WebmailAttachment) =>
+                  transformZipAttachment(attachment, { senderDomain: account.zipSenderDomain!, password: account.zipPassword! })
+              : undefined,
           imap: { host: imapAddress, servername: account.imapHost, port: account.imapPort, secure: account.imapSecure },
           smtp: {
             host: smtpAddress,

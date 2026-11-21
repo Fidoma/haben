@@ -27,6 +27,12 @@ export interface Account {
 	password?: string;
 	imap?: { host: string; servername?: string; port: number; secure: boolean };
 	smtp?: { host: string; servername?: string; port: number; secure: boolean; username?: string; password?: string };
+	transformAttachment?: (attachment: {
+		filename: string;
+		mimetype: string;
+		content: Buffer;
+		senderAddress?: string;
+	}) => Promise<{ filename: string; mimetype: string; content: Buffer; senderAddress?: string }>;
 	oauth?: OAuthTokens;
 }
 

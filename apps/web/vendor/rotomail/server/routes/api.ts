@@ -409,7 +409,7 @@ api.get("/mailboxes/:mailboxId/emails/:emailId/attachments/:attachmentId", (c) =
 		const path = resolveFolderPath(decoded.folderId, infos);
 		if (!path) return c.json({ error: "Folder not found" }, 404);
 
-		const att = await getAttachmentPart(
+		let att = await getAttachmentPart(
 			client,
 			path,
 			decoded.uidValidity,
@@ -417,6 +417,13 @@ api.get("/mailboxes/:mailboxId/emails/:emailId/attachments/:attachmentId", (c) =
 			c.req.param("attachmentId")!,
 		);
 		if (!att) return c.json({ error: "Attachment not found" }, 404);
+		if (c.var.account.transformAttachment) {
+			try {
+				att = await c.var.account.transformAttachment(att);
+			} catch {
+				return c.json({ error: "Der ZIP-Anhang konnte nicht entschlüsselt werden." }, 422);
+			}
+		}
 
 		const safe = att.filename.replace(/[\x00-\x1f"\\]/g, "_");
 		return new Response(att.content as unknown as BodyInit, {
@@ -427,6 +434,7 @@ api.get("/mailboxes/:mailboxId/emails/:emailId/attachments/:attachmentId", (c) =
 				// a malicious attachment can't run script in our origin.
 				"Content-Type": safeAttachmentType(att.mimetype),
 				"X-Content-Type-Options": "nosniff",
+				"Cache-Control": "private, no-store",
 				"Content-Disposition": `attachment; filename="${safe}"; filename*=UTF-8''${encodeURIComponent(att.filename)}`,
 			},
 		});
