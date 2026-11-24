@@ -33,6 +33,7 @@ export function activeHostArticles(q: Query = db) {
       unitPrice: schema.articles.unitPrice,
       taxRate: schema.articles.taxRate,
       priceIncludesTax: schema.articles.priceIncludesTax,
+      arbeitskosten: schema.articles.arbeitskosten,
     })
     .from(schema.articles)
     .where(isNull(schema.articles.archivedAt))
@@ -65,6 +66,7 @@ export function hostArticles(ids: string[], q: Query = db) {
       unitPrice: schema.articles.unitPrice,
       taxRate: schema.articles.taxRate,
       priceIncludesTax: schema.articles.priceIncludesTax,
+      arbeitskosten: schema.articles.arbeitskosten,
       archivedAt: schema.articles.archivedAt,
     })
     .from(schema.articles)
