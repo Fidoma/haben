@@ -3,7 +3,7 @@ import { hinzufuegen, karte, projekt, statusLesen, statusSetzen } from "./github
 import { STATUS, schritte, zielStatus } from "./regel.ts";
 
 /*
- * Schiebt Karten im Project „Roadmap“ nach einem Ereignis (.github/workflows/board.yml): Issue zugewiesen, PR
+ * Schiebt Karten im Project „Roadmap Haben“ nach einem Ereignis (.github/workflows/board.yml): Issue zugewiesen, PR
  * geöffnet, geändert oder gemergt. Was genau, entscheidet schritte() in regel.ts. Ohne PROJECT_TOKEN (Fork,
  * Secret fehlt) endet es mit einem Hinweis, ohne Fehler.
  */

@@ -1,11 +1,11 @@
 ---
 name: "board-pflegen"
-description: "Das Project „Roadmap“ von Haben pflegen: neue Issues prüfen und einordnen, offene Gespräche und Übernahme-Wünsche finden, Karten aufräumen. Wenn neue Issues da sind, einmal pro Woche oder nach einem Release."
+description: "Das Project „Roadmap Haben“ pflegen: neue Issues prüfen und einordnen, offene Gespräche und Übernahme-Wünsche finden, Karten aufräumen. Wenn neue Issues da sind, einmal pro Woche oder nach einem Release."
 ---
 
 # Board pflegen
 
-Die Planung von Haben steht im [Project „Roadmap“](https://github.com/orgs/Speicherstadt/projects/3); die Regeln dazu in [`docs/mitwirken.md`](../../../docs/mitwirken.md) unter „Etwas übernehmen“ und „Branches, Titel und Commits“ (Vom Issue zum Release), die Grundsätze und „Bewusst nicht“ in [`docs/roadmap.md`](../../../docs/roadmap.md). Was der Workflow „Board“ (`scripts/board/`) selbst schiebt, macht dieser Skill nicht noch einmal.
+Die Planung von Haben steht im [Project „Roadmap Haben“](https://github.com/orgs/Speicherstadt/projects/3); die Regeln dazu in [`docs/mitwirken.md`](../../../docs/mitwirken.md) unter „Etwas übernehmen“ und „Branches, Titel und Commits“ (Vom Issue zum Release), die Grundsätze und „Bewusst nicht“ in [`docs/roadmap.md`](../../../docs/roadmap.md). Was der Workflow „Board“ (`scripts/board/`) selbst schiebt, macht dieser Skill nicht noch einmal.
 
 ## Voraussetzungen
 
