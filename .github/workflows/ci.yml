@@ -177,9 +177,11 @@ jobs:
         env:
           TEST_DATABASE_URL: postgres://haben:haben@localhost:5432/haben_test
 
-  # Ein Ergebnis für die Regeln auf main (geforderter Check „test“), egal in wie viele Teile die Tests zerfallen
+  # Ein Ergebnis für die Regeln auf main (geforderter Check „test“), egal in wie viele Teile die Tests zerfallen.
+  # always() auch nach einem Abbruch, damit ein abgebrochener Pull-Request-Lauf nicht als übersprungen = grün zählt;
+  # auf main (push) gibt es kein Merge-Gate, dort bleibt ein abgebrochener Lauf grau statt rot. Gilt auch für e2e
   test:
-    if: ${{ always() && !github.event.pull_request.draft && needs.changes.outputs.code != 'false' }}
+    if: ${{ always() && (github.event_name != 'push' || !cancelled()) && !github.event.pull_request.draft && needs.changes.outputs.code != 'false' }}
     needs: [changes, test-teil, sollbestand-postgres]
     runs-on: ubuntu-latest
     steps:
@@ -315,7 +317,7 @@ jobs:
 
   # Ein Ergebnis für die Regeln auf main (geforderter Check „e2e“), egal in wie viele Teile die Tests zerfallen
   e2e:
-    if: ${{ always() && !github.event.pull_request.draft && needs.changes.outputs.code != 'false' }}
+    if: ${{ always() && (github.event_name != 'push' || !cancelled()) && !github.event.pull_request.draft && needs.changes.outputs.code != 'false' }}
     needs: [changes, e2e-teil]
     runs-on: ubuntu-latest
     steps:
