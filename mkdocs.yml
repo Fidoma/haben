@@ -35,6 +35,10 @@ nav:
   - Start: index.md
   - Übersicht: ueberblick.md
   - Suchen: suche.md
+  - Gehostet:
+      - Gehostet oder mit Partner: gehostet.md
+      - AGB für Haben gehostet: gehostet-agb.md
+      - Auftragsverarbeitung für Haben gehostet: gehostet-avv.md
   - Betrieb:
       - Installation: installation.md
       - Compose-Generator: compose-generator.md
@@ -50,9 +54,6 @@ nav:
       - Backup und Updates: installation-backup.md
       - Überwachung: installation-ueberwachung.md
       - Häufige Probleme: installation-probleme.md
-      - Gehostet oder mit Partner: gehostet.md
-      - AGB für Haben gehostet: gehostet-agb.md
-      - Auftragsverarbeitung für Haben gehostet: gehostet-avv.md
   - Einrichten:
       - Erste Schritte: einrichtung.md
       - Beleggestaltung: beleggestaltung.md
