@@ -59,6 +59,8 @@ interface DeliverySource {
   issueDate: string;
   date: string;
   deliveryDate: string;
+  /** Beginn des Leistungszeitraums; das Ende ist `deliveryDate` */
+  serviceFrom: string | null;
   seller: Seller;
   buyer: Buyer;
   contactId: string | null;
@@ -77,6 +79,7 @@ async function deliverySource(source: "angebot" | "rechnung", id: string): Promi
       issueDate: quote.issueDate,
       date,
       deliveryDate: quote.serviceTo ?? quote.serviceFrom ?? date,
+      serviceFrom: quote.serviceFrom,
       seller: quote.seller,
       buyer: quote.buyer,
       contactId: quote.contactId,
@@ -95,6 +98,7 @@ async function deliverySource(source: "angebot" | "rechnung", id: string): Promi
     issueDate: invoice.issueDate,
     date: invoice.issueDate,
     deliveryDate: invoice.serviceTo ?? invoice.serviceFrom ?? invoice.issueDate,
+    serviceFrom: invoice.serviceFrom,
     seller: invoice.seller,
     buyer: invoice.buyer,
     contactId: invoice.contactId,
@@ -121,6 +125,7 @@ export async function deliveryNotePdf(source: "angebot" | "rechnung", id: string
     buildDeliveryNotePdf({
       reference: { kind: source, number: base.number, issueDate: base.issueDate },
       deliveryDate: base.deliveryDate,
+      ...(base.serviceFrom ? { serviceFrom: base.serviceFrom } : {}),
       date: base.date,
       seller,
       buyer,

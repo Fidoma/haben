@@ -113,6 +113,47 @@ describe.skipIf(!testDatabaseUrl)("Auftragsbestätigung und Lieferschein (Postgr
     await expect(docs.deliveryNotePdf("rechnung", storno.id)).rejects.toThrow(/nur zu festgeschriebenen Rechnungen/);
   });
 
+  it("Lieferschein nennt den Beginn des Leistungszeitraums, bei Angebot und Rechnung (#1865)", async () => {
+    const quote = await quotes.finalizeQuote(
+      actor,
+      (
+        await quotes.createQuoteDraft(actor, {
+          contactId,
+          issueDate: "2026-10-01",
+          validUntil: "2026-10-31",
+          serviceFrom: "2026-11-12",
+          serviceTo: "2026-11-13",
+          note: "",
+          lines,
+        })
+      ).id,
+    );
+    await quotes.setQuoteDecision(actor, quote.id, "angenommen");
+    const invoice = await invoices.finalizeInvoice(
+      actor,
+      (
+        await invoices.createDraft(actor, {
+          contactId,
+          issueDate: "2026-10-02",
+          serviceFrom: "2026-09-01",
+          serviceTo: "2026-09-30",
+          paymentTermDays: 14,
+          format: "zugferd",
+          note: "",
+          lines,
+        })
+      ).id,
+      kleinunternehmerStand,
+    );
+    seen.deliveryNotes.length = 0;
+    await docs.deliveryNotePdf("angebot", quote.id);
+    await docs.deliveryNotePdf("rechnung", invoice.id);
+    expect(seen.deliveryNotes).toMatchObject([
+      { deliveryDate: "2026-11-13", serviceFrom: "2026-11-12" },
+      { deliveryDate: "2026-09-30", serviceFrom: "2026-09-01" },
+    ]);
+  });
+
   it("Absender und Kunde stehen mit dem heutigen Namen und der heutigen Anschrift auf den Dokumenten, die übrigen Angaben wie auf dem Beleg", async () => {
     const quote = await quotes.finalizeQuote(
       actor,

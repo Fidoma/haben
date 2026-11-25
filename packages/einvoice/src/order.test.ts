@@ -61,4 +61,38 @@ describe("Auftragsbestätigung und Lieferschein", () => {
     expect(data.lines[1]?.detail).toBeNull();
     expect(Buffer.from(buildDeliveryNotePdf(doc).subarray(0, 5)).toString()).toBe("%PDF-");
   });
+  // Lieferschein bei Leistung über mehrere Tage: Zeitraum statt nur das Ende als Lieferdatum (#1865)
+  describe("Lieferschein: Leistungszeitraum (#1865)", () => {
+    const doc = {
+      reference: { kind: "rechnung" as const, number: "2026-034", issueDate: "2026-10-02" },
+      deliveryDate: "2026-09-30",
+      date: "2026-10-02",
+      seller: sample.seller,
+      buyer: sample.buyer,
+      lines: sample.lines,
+    };
+
+    it("zeigt bei Beginn vor dem Ende den Zeitraum statt des Lieferdatums", () => {
+      const { meta } = deliveryNotePdfData({ ...doc, serviceFrom: "2026-09-29" });
+      expect(meta).toContainEqual({ label: "Leistungszeitraum", value: "29.–30.09.2026" });
+      expect(meta.map((m) => m.label)).not.toContain("Lieferdatum");
+    });
+
+    it("über Monatsgrenzen und englisch wie auf Rechnung und Angebot", () => {
+      const { meta } = deliveryNotePdfData({ ...doc, deliveryDate: "2026-10-14", serviceFrom: "2026-09-15", language: "en" });
+      expect(meta).toContainEqual({ label: "Service period", value: "15 Sept – 14 Oct 2026" });
+      expect(deliveryNotePdfData({ ...doc, deliveryDate: "2026-10-14", serviceFrom: "2026-09-15" }).meta).toContainEqual({
+        label: "Leistungszeitraum",
+        value: "15.09.–14.10.2026",
+      });
+    });
+
+    it("bleibt beim Lieferdatum, wenn Beginn und Ende auf einen Tag fallen oder der Beginn fehlt", () => {
+      for (const serviceFrom of [undefined, "2026-09-30"]) {
+        const { meta } = deliveryNotePdfData({ ...doc, ...(serviceFrom ? { serviceFrom } : {}) });
+        expect(meta).toContainEqual({ label: "Lieferdatum", value: "30.09.2026" });
+        expect(meta.map((m) => m.label)).not.toContain("Leistungszeitraum");
+      }
+    });
+  });
 });
