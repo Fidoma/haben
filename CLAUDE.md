@@ -46,6 +46,7 @@ Modules, the audit hash chain and seals: `docs/architektur.md`, tables: `docs/ar
   test as passed.
 - Push to `main` (only exception: repairing a red `main`, by or on instruction of the maintainer, `mitwirken.md`: Wer mergt was), rewrite a contributor's commits, merge (only a maintainer, or a collaborator with the maintainer's approval), review your own code.
 - Create or comment on issues and pull requests without being asked.
+- Add a dependency (any `package.json`) without trying own code first and naming the reason per package under „## Neue Abhängigkeiten“ in the pull request (`entwicklung.md`: Konventionen).
 - Stop the user's processes or touch their `haben-dev` compose project; work around `sudo`.
 
 ## With every change

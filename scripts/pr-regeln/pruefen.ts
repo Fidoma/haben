@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { readList } from "@firsttris/checks/checks/config.ts";
 import { countLines } from "@firsttris/checks/checks/file-size.ts";
+import { abhaengigkeitHinweise, neueAbhaengigkeiten } from "./abhaengigkeiten.ts";
 import { checksFunctions, functionLengthHints } from "./funktionslaenge.ts";
 import {
   checkBody,
@@ -115,6 +116,13 @@ const functionChanges = files.filter(checksFunctions).flatMap((file) => {
   return after === null ? [] : [{ file, before: contentAt(mergeBase, renamedFrom[file] ?? file), after }];
 });
 
+// package.json vorher und nachher, für die Meldung neuer Abhängigkeiten
+const neuePakete = neueAbhaengigkeiten(
+  files
+    .filter((file) => /(^|\/)package\.json$/.test(file))
+    .map((file) => ({ file, before: contentAt(mergeBase, renamedFrom[file] ?? file), after: contentAt(pr.head.sha, file) })),
+);
+
 const reports: Report[] = [
   ...(isBot(pr.user) || pr.title === null ? [] : [...checkTitle(pr.title), ...checkTitleIssues(pr.title, pr.body), ...checkBody(pr.body)]),
   ...hints(files, subjects),
@@ -123,6 +131,7 @@ const reports: Report[] = [
   ...functionLengthHints(functionChanges),
   ...reviewHint(pr, files),
   ...heikelHint(files),
+  ...abhaengigkeitHinweise(neuePakete, pr.body, isBot(pr.user) || pr.title === null),
 ];
 
 if (lokal) {

@@ -28,6 +28,7 @@ Als Datei (im Scratchpad), auf Deutsch:
 - Bei Änderungen am Aussehen die Bilder nach Skill `pr-screenshots`.
 - Aufgeräumtes nach der Pfadfinder-Regel: Abschnitt `## Aufgeräumt` („Branches, Titel und Commits“).
 - Muss jemand beim Update etwas wissen oder tun: Abschnitt `## Für das Release` („Branches, Titel und Commits“).
+- Neues Paket in einer `package.json`: Abschnitt `## Neue Abhängigkeiten` (`docs/entwicklung.md`, Konventionen, „Wenige Abhängigkeiten“).
 - Die Beschreibung wird die Nachricht des Squash-Commits auf `main` (`docs/mitwirken.md`, „Branches, Titel und Commits“): Sie nennt alles, was der Pull Request ändert, und beschreibt das Ergebnis, nicht den Weg dorthin.
 - Letzte Zeile „🤖 Generated with <Werkzeug>“.
 

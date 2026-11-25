@@ -140,6 +140,41 @@ describe("pruefen.ts: lange Funktionen", () => {
   });
 });
 
+describe("pruefen.ts: neue Abhängigkeiten", () => {
+  beforeAll(() => {
+    git("checkout", "-q", "main");
+    datei("apps/web/package.json", `${JSON.stringify({ name: "@haben/web", dependencies: { zod: "^4" } })}\n`);
+    git("add", ".");
+    git("commit", "-qm", "Paket");
+    git("checkout", "-qb", "abhaengigkeiten");
+    datei("apps/web/package.json", `${JSON.stringify({ name: "@haben/web", dependencies: { zod: "^4", "left-pad": "^1" } })}\n`);
+    git("add", ".");
+    git("commit", "-qm", "feat: left-pad");
+  });
+
+  it("warnt und hält den Pull Request ohne Begründung auf", () => {
+    datei("ohne.md", "Umgesetzt #1\n");
+    const { code, ausgabe } = pruefen("--basis", "main", "--titel", "Web: Einrückung (#1)", "--beschreibung", "ohne.md");
+    expect(code).toBe(1);
+    expect(ausgabe).toMatch(/^Hinweis: Neue Abhängigkeit: `left-pad` \(apps\/web\/package\.json, dependencies\)/m);
+    expect(ausgabe).toMatch(/^Fehler: Begründung fehlt für `left-pad`/m);
+  });
+
+  it("verlangt lokal ohne --titel keine Begründung, wie bei Titel und Beschreibung", () => {
+    const { code, ausgabe } = pruefen("--basis", "main");
+    expect(code).toBe(0);
+    expect(ausgabe).toMatch(/^Hinweis: Neue Abhängigkeit: `left-pad`/m);
+    expect(ausgabe).not.toContain("Begründung fehlt");
+  });
+
+  it("lässt ihn mit Begründung durch, die Warnung bleibt", () => {
+    datei("mit.md", "Umgesetzt #1\n\n## Neue Abhängigkeiten\n\n- `left-pad`: weil …\n");
+    const { code, ausgabe } = pruefen("--basis", "main", "--titel", "Web: Einrückung (#1)", "--beschreibung", "mit.md");
+    expect(code).toBe(0);
+    expect(ausgabe).toMatch(/^Hinweis: Neue Abhängigkeit: `left-pad`/m);
+  });
+});
+
 describe("pruefen.ts ohne Liste der alten großen Dateien", () => {
   it("bricht ab wie früher ohne altdateien.json, statt keine gewachsene Datei zu melden", () => {
     const liste = join(repo, ".checks/large-files.txt");
