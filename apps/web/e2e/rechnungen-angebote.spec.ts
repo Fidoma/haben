@@ -1021,6 +1021,30 @@ test("Kopieren: festgeschriebene Rechnung und daraus wieder der Entwurf als neue
   await expect(page.getByText(/Festgeschrieben/).first()).toBeVisible();
 });
 
+test("Angebotsentwurf kopieren: die Kopie hat Positionen und Ungespeichertes, der Entwurf bleibt als Vorlage (#1881)", async () => {
+  await go("/angebote/neu");
+  // Kopieren prüft vorher die Angaben wie beim Rechnungsentwurf, auch den Kunden
+  await kundeWaehlen(page);
+  await page.getByLabel("Beschreibung Position 1").fill("Wartungspaket");
+  await page.getByLabel("Menge Position 1").fill("40");
+  await page.getByLabel(/Einzelpreis Position 1/).fill("12,50");
+  // Ein noch nie gespeichertes Angebot hat nichts zum Kopieren
+  await expect(page.getByRole("button", { name: "Kopieren", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Entwurf speichern" }).click();
+  await page.waitForURL(/angebote\/[0-9a-f-]{36}$/);
+  await page.waitForLoadState("networkidle");
+
+  const vorlage = page.url();
+  await page.getByLabel("Beschreibung Position 1").fill("Wartungspaket für 50 Geräte");
+  await page.getByRole("button", { name: "Kopieren", exact: true }).click();
+  await page.waitForURL((url) => /\/angebote\/[0-9a-f-]{36}$/.test(url.pathname) && url.href !== vorlage);
+  await expect(page.getByLabel("Beschreibung Position 1")).toHaveValue("Wartungspaket für 50 Geräte");
+  await expect(page.getByLabel(/Einzelpreis Position 1/)).toHaveValue("12,50");
+  await expect(page.getByRole("button", { name: "Festschreiben", exact: true }).first()).toBeVisible();
+  await page.goto(vorlage);
+  await expect(page.getByLabel("Beschreibung Position 1")).toHaveValue("Wartungspaket für 50 Geräte");
+});
+
 test("Kontaktseite: Zeiteinträge des Kunden erfassen und ansehen, Rechnung mit diesem Kunden schreiben (#1557)", async () => {
   await go("/kontakte");
   const kontakt = (await page.getByRole("link", { name: "Nordwerk Software GmbH" }).first().getAttribute("href"))!;

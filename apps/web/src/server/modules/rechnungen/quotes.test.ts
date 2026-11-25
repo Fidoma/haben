@@ -457,4 +457,35 @@ describe.skipIf(!testDatabaseUrl)("Angebote (Postgres)", () => {
     expect(copy).toMatchObject({ status: "draft", issueDate: "2026-12-01", validUntil: "2026-12-31", net: quote.net, serviceFrom: null });
     expect((await quotes.listQuotes("2026-12-01")).map((q) => q.listStatus)).toEqual(["entwurf", "abgelaufen"]);
   });
+
+  it("kopiert auch einen Entwurf, etwa eine Vorlage, mit Wahlpositionen, Rabatt und Zahlungsplan; die Vorlage bleibt (#1881)", async () => {
+    const vorlage = await quotes.createQuoteDraft(
+      actor,
+      draft({
+        intro: "Wartungspaket",
+        lines: [line(9500, 1900, 40_000), { ...line(8500, 1900, 40_000), kind: "alternative" as const }, { ...line(5000, 700), kind: "optional" as const }],
+        discount: { kind: "prozent", value: 500 },
+        paymentPlan: [
+          { label: "Anzahlung", share: { kind: "prozent", value: 3000 }, due: "Auftragserteilung" },
+          { label: "Rest", share: { kind: "rest" }, due: "Abnahme" },
+        ],
+      }) as never,
+    );
+    const copy = await quotes.copyQuote(actor, vorlage.id, "2026-12-01");
+    expect(copy).toMatchObject({
+      status: "draft",
+      issueDate: "2026-12-01",
+      validUntil: "2026-12-31",
+      intro: "Wartungspaket",
+      net: vorlage.net,
+      discountPercent: 500,
+      paymentPlan: vorlage.paymentPlan,
+    });
+    expect((await quotes.getQuote(copy.id))!.lines.map((l) => [l.kind, l.unitPrice, l.quantity])).toEqual([
+      [null, 9500, 40_000],
+      ["alternative", 8500, 40_000],
+      ["optional", 5000, 1000],
+    ]);
+    expect((await quotes.getQuote(vorlage.id))!.quote).toMatchObject({ status: "draft", issueDate: "2026-10-01", intro: "Wartungspaket" });
+  });
 });

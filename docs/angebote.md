@@ -32,7 +32,7 @@ Einleitung, Texte zu Positionen und Hinweis unterstützen [fett, kursiv und unte
 - optional ein **Zahlungsplan** (siehe unten)
 - optional **Anhänge**: weitere PDF-Dateien wie AGB oder eine Leistungsbeschreibung (siehe unten)
 
-**Vorschau** im Kopf zeigt das Angebot, von rechts über das Formular oder neben ihm angeheftet ([wie bei der Rechnung](rechnungen.md#vorschau)). Der Entwurf lässt sich beliebig speichern, ändern und löschen. **Entwurf als PDF** lädt ihn als PDF aus der Vorlage des festgeschriebenen Angebots, mit „ENTWURF“ über jeder Seite und statt der Nummer, ohne eine Nummer zu vergeben ([wie bei der Rechnung](rechnungen.md#entwurf-als-pdf)).
+**Vorschau** im Kopf zeigt das Angebot, von rechts über das Formular oder neben ihm angeheftet ([wie bei der Rechnung](rechnungen.md#vorschau)). Der Entwurf lässt sich beliebig speichern, ändern und löschen. **Kopieren** speichert, was noch nicht gespeichert ist, und legt daraus einen neuen Entwurf an, mit denselben Angaben wie beim Kopieren eines festgeschriebenen Angebots (unten); so lässt sich ein Entwurf als Vorlage für ähnliche Angebote aufheben, dann erst kopieren und in der Kopie ändern. **Entwurf als PDF** lädt ihn als PDF aus der Vorlage des festgeschriebenen Angebots, mit „ENTWURF“ über jeder Seite und statt der Nummer, ohne eine Nummer zu vergeben ([wie bei der Rechnung](rechnungen.md#entwurf-als-pdf)).
 
 ### Optionale und alternative Positionen
 
@@ -82,7 +82,7 @@ Mit dem Festschreiben sind die Anhänge zusammen mit dem Angebot gesperrt: Die D
 
 Gebucht wird nichts: Ein Angebot ist kein Geschäftsvorfall.
 
-Ein festgeschriebenes Angebot ändert sich nicht mehr, so wie eine Rechnung. Für eine geänderte Fassung legt **Kopieren** einen neuen Entwurf an, mit Kunde, Einleitung, Positionen (samt Art und Rabatt), Hinweis, Bestell-, Auftrags- und Lieferscheinnummer, Umsatzsteuer, Preismodus, Sprache, Gesamtrabatt, Zahlungsplan und [Anhängen](#anhänge); im neuen Entwurf lassen sich die Anhänge wieder ändern. Datum und Gültigkeit sind dabei neu, die Dauer der Gültigkeit bleibt gleich; der Leistungszeitraum bleibt leer.
+Ein festgeschriebenes Angebot ändert sich nicht mehr, so wie eine Rechnung. Für eine geänderte Fassung legt **Kopieren** einen neuen Entwurf an, mit Kunde, Ansprechpartner (solange aktiv), Einleitung, Positionen (samt Art, Text, Artikelnummer, Rabatt und Kennzeichen für § 35a EStG), Hinweis, Bestell-, Auftrags- und Lieferscheinnummer, Umsatzsteuer, Preismodus, Sprache, Gesamtrabatt, Zahlungsplan und [Anhängen](#anhänge); im neuen Entwurf lassen sich die Anhänge wieder ändern. Datum und Gültigkeit sind dabei neu, die Dauer der Gültigkeit bleibt gleich; der Leistungszeitraum bleibt leer.
 
 ## Per E-Mail senden
 
