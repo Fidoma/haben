@@ -367,6 +367,9 @@ button.nav-foot-link { width: 100%; background: none; border: 0; font: inherit; 
   .action-bar .split-btn-solo > .btn { flex: 1 1 auto; justify-content: center; }
 }
 .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+/* Knopf mit Erklärung darunter (KorrekturAktionen); zwei Spalten, wo die Karte breit genug ist, sonst untereinander. Am Handy füllt der Knopf die Zeile wie in `.actions` */
+.korrektur-aktion { flex: 1 1 200px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+@media (max-width: 720px) { .korrektur-aktion > .btn { align-self: stretch; } }
 .doc-actions > .banner { flex: 0 0 100%; }
 /* Knopfzeilen (#394, DESIGN.md): Hauptaktion zuletzt im Markup; im Dialog rechtsbündig, sonst an der Kante der Felder */
 dialog .form-footer, .form-dialog > form > .actions:last-child { justify-content: flex-end; }

@@ -658,8 +658,8 @@ Eine festgeschriebene Rechnung änderst du nicht, du stellst eine neue aus. Auf 
 
 | | Stornieren | Rechnungskorrektur anlegen |
 | --- | --- | --- |
-| Zweck | Hebt die Rechnung vollständig auf. | Mindert den Betrag teilweise. |
-| Ergebnis | Stornorechnung mit allen Positionen negativ, sofort festgeschrieben und gebucht. | Entwurf mit allen Positionen negativ, den du anpasst. |
+| Zweck | Hebt die Rechnung vollständig auf. | Mindert den Betrag. |
+| Ergebnis | Stornorechnung mit allen Positionen negativ, sofort festgeschrieben und gebucht. Das Papierstorno einer Schlussrechnung oder Anzahlungsanforderung bei GmbH und UG ([Bilanzverfahren](#abschlags--und-schlussrechnung)) bucht nichts. Festgeschriebene Korrekturen der Rechnung bekommen je ein eigenes Storno. | Entwurf mit allen Positionen negativ, den du auf die Minderung kürzt. |
 | Bestätigung | Im Dialog **Stornieren**. | Festschreiben wie bei einer Rechnung. |
 | Bedingung | – | Gesamtbetrag muss negativ bleiben. |
 

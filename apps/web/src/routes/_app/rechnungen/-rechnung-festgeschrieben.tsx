@@ -10,6 +10,7 @@ import { NoticeBanner } from "../../../components/NoticeBanner.tsx";
 import { useAction } from "../../../lib/use-action.ts";
 import { cancelFinalInvoice, correctFinalInvoice } from "../../../server/functions/invoices.ts";
 import { ConfirmDialog } from "../../../components/ConfirmDialog.tsx";
+import { KorrekturAktionen } from "../../../components/KorrekturAktionen.tsx";
 import { OutcomeStatus } from "../../../components/Status.tsx";
 import { Payments, WriteOffs } from "./-rechnung-zahlungen.tsx";
 import { type Detail, titleOf } from "./-rechnung-daten.ts";
@@ -39,6 +40,7 @@ export function FinalInvoice({ data }: { data: Detail }) {
     void router.invalidate();
   };
   const cancelled = correctedBy.find((c) => c.kind === "storno" && c.status === "final");
+  const hatKorrekturen = correctedBy.some((c) => c.kind === "korrektur" && c.status === "final");
   const canAmend = inhaber && invoice.kind === "rechnung" && !cancelled;
 
   const cancelNow = () => {
@@ -172,8 +174,7 @@ export function FinalInvoice({ data }: { data: Detail }) {
             <section className="card" aria-labelledby="amend-heading">
               <h2 id="amend-heading">Korrigieren</h2>
               <p className="small muted" style={{ margin: 0 }}>
-                Festgeschriebene Rechnungen bleiben unverändert. Eine Stornorechnung hebt sie vollständig auf, eine Rechnungskorrektur mindert den Betrag
-                teilweise.
+                Festgeschriebene Rechnungen bleiben unverändert.
               </p>
               <ConfirmDialog
                 open={confirming}
@@ -188,16 +189,12 @@ export function FinalInvoice({ data }: { data: Detail }) {
                 onConfirm={cancelNow}
                 onClose={() => setConfirming(false)}
               >
-                <p>Es wird sofort eine Stornorechnung mit neuer Nummer erzeugt und gebucht.</p>
+                <p>
+                  Es wird sofort eine Stornorechnung mit neuer Nummer erzeugt.
+                  {hatKorrekturen && " Jede festgeschriebene Korrektur bekommt ein eigenes Storno."}
+                </p>
               </ConfirmDialog>
-              <div className="actions">
-                <button type="button" className="btn btn-danger" onClick={() => setConfirming(true)} disabled={busy}>
-                  Stornieren
-                </button>
-                <button type="button" className="btn" onClick={onCorrect} disabled={busy}>
-                  Rechnungskorrektur anlegen
-                </button>
-              </div>
+              <KorrekturAktionen busy={busy} onCancel={() => setConfirming(true)} onCorrect={onCorrect} />
             </section>
           )}
         </div>
