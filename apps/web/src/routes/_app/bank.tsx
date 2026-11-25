@@ -11,7 +11,8 @@ import { ExcludedAccounts } from "../../components/BankKontoAusschliessen.tsx";
 import { isDialogOpen } from "../../components/ConfirmDialog.tsx";
 import { BestaetigenLeiste, useBestaetigen, useLeertasteMarkiert, ZeilenMarkierung } from "../../components/BankBestaetigen.tsx";
 import { BankSortierKopf } from "../../components/BankSortierKopf.tsx";
-import type { Data } from "./-bank-daten.ts";
+import { type Data, gezeigteKonten, nextOpenAfter } from "./-bank-daten.ts";
+import { Fortschritt, LeereListe } from "./-bank-fortschritt.tsx";
 import { AllocationPanel } from "./-bank-zuordnung.tsx";
 import { BankSync } from "./-bank-verbindung.tsx";
 import { AccountSettings, ImportControls, SearchBox } from "./-bank-konto.tsx";
@@ -126,7 +127,7 @@ function BankPage() {
   const selectedAccount = data.accounts.find((a) => a.id === data.accountId);
   // „Alle Konten“ zeigt die Umsätze aller Konten, etwa für „Alle anzeigen“ der Schnellsuche (#617)
   const konto = data.allAccounts ? ("alle" as const) : (data.accountId ?? undefined);
-  const openCount = data.allAccounts ? data.accounts.reduce((sum, a) => sum + a.openCount, 0) : (selectedAccount?.openCount ?? 0);
+  const openCount = gezeigteKonten(data).reduce((sum, a) => sum + a.openCount, 0);
   const accountName = new Map(data.accounts.map((a) => [a.id, a.name]));
 
   const bestaetigen = useBestaetigen(sichtbar);
@@ -215,13 +216,10 @@ function BankPage() {
                 {/* key: beim Kontowechsel leer neu aufsetzen, sonst trägt die Suche ins neue Konto */}
                 <SearchBox key={konto ?? ""} initial={search.suche ?? ""} />
               </div>
+              <Fortschritt data={data} sichtbar={sichtbar} selectedId={selectedId} />
               <BestaetigenLeiste b={bestaetigen} />
               <BankSortierKopf sort={sortierung} dir={richtung} />
-              {data.transactions.length === 0 && (
-                <p className="muted" style={{ margin: 0, padding: "16px 20px" }}>
-                  {filter === "offen" ? "Alles zugeordnet." : filter === "vorschlag" ? "Keine Umsätze mit Vorschlag." : "Keine Umsätze."}
-                </p>
-              )}
+              <LeereListe data={data} filter={filter} />
               {zeilen.map(({ umsatz: tx, gebuehr }) => (
                 <div key={tx.id} className="tx-wrap">
                   {bestaetigen.markierbar.length > 0 && <ZeilenMarkierung id={tx.id} b={bestaetigen} label={tx.counterpartyName || "Umsatz"} />}
@@ -280,11 +278,4 @@ function BankPage() {
       <ExcludedAccounts accounts={data.excludedAccounts} />
     </>
   );
-}
-
-/** Nächster offener Umsatz nach dem gewählten, am Ende der Liste wieder von vorn */
-function nextOpenAfter(transactions: Data["transactions"], id: string): string | undefined {
-  const index = transactions.findIndex((t) => t.id === id);
-  const after = [...transactions.slice(index + 1), ...transactions.slice(0, Math.max(index, 0))];
-  return after.find((t) => t.open !== 0 && t.id !== id)?.id;
 }

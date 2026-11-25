@@ -1146,6 +1146,7 @@ textarea { font: inherit; font-size: 14px; padding: 10px 12px; border: 1px solid
   .card:has(.tx-check) .tx-cols { grid-template-columns: 84px minmax(0, 1fr) 112px 112px; }
 }
 .tx-confirm-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 4px 20px 8px; }
+.tx-fortschritt { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0; padding: 4px 20px 8px; }
 .tx-row.selected { background: var(--accent-tint); box-shadow: inset 3px 0 0 var(--accent); }
 .tx-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .section-label { font-size: 13px; color: var(--muted); }

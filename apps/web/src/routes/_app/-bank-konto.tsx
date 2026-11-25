@@ -1,4 +1,4 @@
-import { useNavigate, useRouter } from "@tanstack/react-router";
+import { useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { AMAZON_MARKETPLACES } from "@haben/core";
 import { useEffect, useState, type FormEvent } from "react";
@@ -13,7 +13,7 @@ import { Field } from "../../components/Field.tsx";
 import { UploadButton } from "../../components/UploadButton.tsx";
 import { ImportMeldungen, importMessages, type ImportMessage } from "../../components/BankImportMeldungen.tsx";
 import { NeuesKontoForm } from "./-bank-konto-neu.tsx";
-import type { Data } from "./-bank-daten.ts";
+import { type Data, offenerEntwurf, suchziel } from "./-bank-daten.ts";
 
 /** Name und Zweck des gewählten Kontos, etwa „Geschäftskonto“ und „Steuerkonto“ bei derselben Bank */
 export function AccountSettings({
@@ -152,12 +152,14 @@ export function AccountSettings({
 
 export function SearchBox({ initial }: { initial: string }) {
   const navigate = useNavigate({ from: "/bank" });
-  const [value, setValue] = useState(initial);
+  const suche = useRouterState({ select: (state) => suchziel(state, initial) });
+  const [entwurf, setEntwurf] = useState<string | null>(null);
   useEffect(() => {
-    if (value === initial) return;
-    const timer = setTimeout(() => void navigate({ search: (prev) => ({ ...prev, suche: value || undefined, umsatz: undefined }), replace: true }), 300);
+    const offen = offenerEntwurf(entwurf, suche);
+    if (offen === null) return setEntwurf(null);
+    const timer = setTimeout(() => void navigate({ search: (prev) => ({ ...prev, suche: offen || undefined, umsatz: undefined }), replace: true }), 300);
     return () => clearTimeout(timer);
-  }, [value, initial, navigate]);
+  }, [entwurf, suche, navigate]);
   return (
     <label className="search-box">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
@@ -165,7 +167,7 @@ export function SearchBox({ initial }: { initial: string }) {
         <path d="M20 20l-3.5-3.5" />
       </svg>
       <span className="visually-hidden">Umsätze durchsuchen</span>
-      <input type="search" placeholder="Suchen" value={value} onChange={(e) => setValue(e.target.value)} />
+      <input type="search" placeholder="Suchen" value={entwurf ?? suche} onChange={(e) => setEntwurf(e.target.value)} />
     </label>
   );
 }
