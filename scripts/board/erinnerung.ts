@@ -10,6 +10,7 @@ import {
   zugewieseneIssues,
   zuweisungAufheben,
 } from "./github.ts";
+import { boardNummer } from "./projekt.ts";
 import { STATUS, verweise } from "./regel.ts";
 import { faellig, MARKE_ERINNERUNG, textAutomatischFreigegeben, textErinnerung } from "./uebernahme.ts";
 
@@ -27,6 +28,8 @@ const github = process.env.GITHUB_TOKEN ?? "";
 const projectToken = process.env.PROJECT_TOKEN;
 const repo = process.env.GITHUB_REPOSITORY ?? "Speicherstadt/haben";
 const jetzt = new Date();
+// Eine falsche Nummer bricht vor dem ersten Schreiben ab, nicht erst nach dem Aufheben einer Zuweisung
+if (projectToken) boardNummer();
 
 const beiPrs = new Set((await offenePrs(github, repo)).flatMap((text) => Object.values(verweise(text)).flat()));
 const vertraut = new Map<string, boolean>();

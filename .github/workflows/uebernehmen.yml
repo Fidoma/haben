@@ -47,6 +47,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          BOARD_NUMMER: ${{ vars.BOARD_NUMMER }}
 
   erinnerung:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
@@ -67,3 +68,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          BOARD_NUMMER: ${{ vars.BOARD_NUMMER }}

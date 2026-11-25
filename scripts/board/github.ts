@@ -1,11 +1,10 @@
+import { BOARD_INHABER, boardNummer } from "./projekt.ts";
 import type { Status } from "./regel.ts";
 
 /*
  * Zugriff auf GitHub für das Board: GraphQL für das Project (Token PROJECT_TOKEN, klassisches Token mit Scope
  * `project`, weil GITHUB_TOKEN kein Project erreicht, auch nicht das der Organisation) und REST für Issues.
  */
-
-export const PROJECT = { owner: "Speicherstadt", number: 3 };
 
 const API = "https://api.github.com";
 
@@ -61,7 +60,7 @@ export async function projekt(token: string, status: readonly Status[]): Promise
     `query($owner: String!, $number: Int!) {
       organization(login: $owner) { projectV2(number: $number) { id
         field(name: "Status") { ... on ProjectV2SingleSelectField { id options { id name } } } } } }`,
-    PROJECT,
+    { owner: BOARD_INHABER, number: boardNummer() },
   );
   const { id, field } = daten.organization.projectV2;
   if (!field) throw new Error("Das Project hat kein Feld „Status“.");

@@ -57,6 +57,7 @@ describe("befehl.ts", () => {
     vi.stubEnv("GITHUB_TOKEN", "github-token");
     vi.stubEnv("PROJECT_TOKEN", "project-token");
     vi.stubEnv("GITHUB_REPOSITORY", "o/r");
+    vi.stubEnv("BOARD_NUMMER", "3");
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(process, "exit").mockImplementation((code) => {
       throw new Error(`process.exit(${code})`);

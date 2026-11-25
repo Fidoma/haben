@@ -52,7 +52,7 @@ Wer mitbauen will, sucht sich eine Aufgabe im [Project „Roadmap Haben“](http
     - Pull Request mit `Umgesetzt` gemergt → „Im nächsten Release“.
     - Eine fertige Version (kein Release Candidate) schließt diese Issues mit Link auf das Release (Job `issues-schliessen` in `release.yml`) → „Erledigt“.
 
-    Fehlt danach etwas, kommt es in ein neues Issue mit Verweis auf das alte. Die Workflows brauchen das Secret `PROJECT_TOKEN` (klassisches Token mit Scope `project`). Was die Automatik nicht sieht, also neue Issues einordnen, offene Gespräche und Übernahme-Wünsche finden und aufräumen, erledigt der Skill [`board-pflegen`](https://github.com/Speicherstadt/haben/blob/main/.claude/skills/board-pflegen/SKILL.md); jedes Issue bekommt dabei einen kurzen Kommentar mit dem Ergebnis.
+    Fehlt danach etwas, kommt es in ein neues Issue mit Verweis auf das alte. Die Workflows brauchen das Secret `PROJECT_TOKEN` (klassisches Token mit Scope `project`). Ein anderes Repository mit eigenem Board setzt dessen Nummer als Variable `BOARD_NUMMER` (am Repository, nicht an der Organisation); Haben braucht sie nicht. Was die Automatik nicht sieht, also neue Issues einordnen, offene Gespräche und Übernahme-Wünsche finden und aufräumen, erledigt der Skill [`board-pflegen`](https://github.com/Speicherstadt/haben/blob/main/.claude/skills/board-pflegen/SKILL.md); jedes Issue bekommt dabei einen kurzen Kommentar mit dem Ergebnis.
 
 - **Commits im Pull Request:** gern im Stil von [Conventional Commits](https://www.conventionalcommits.org/de/) auf Deutsch, etwa `fix(belege): Fremdwährung in der Rechnungswährung vergleichen` (Empfehlung, keine Prüfung).
 

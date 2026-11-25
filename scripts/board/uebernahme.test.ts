@@ -1,5 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { befehl, entscheiden, faellig, type Lage, MARKE_ERINNERUNG, textErinnerung } from "./uebernahme.ts";
+
+// In CI steht hier das Repository, in dem sie läuft; boardNummer() bricht sonst in einem Fork ab
+beforeEach(() => {
+  vi.stubEnv("GITHUB_REPOSITORY", "Speicherstadt/haben");
+  vi.stubEnv("BOARD_NUMMER", undefined);
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 describe("befehl", () => {
   it.each([

@@ -1,3 +1,4 @@
+import { boardLink } from "./projekt.ts";
 import { ohneCode } from "./regel.ts";
 
 /*
@@ -11,7 +12,6 @@ export const TAGE_BIS_FREIGABE = 7;
 /** Unsichtbare Marke im Kommentar der Erinnerung, damit der nächste Lauf sie wiederfindet */
 export const MARKE_ERINNERUNG = "<!-- board:erinnerung -->";
 
-const BOARD = "[Board](https://github.com/orgs/Speicherstadt/projects/3)";
 const ANLEITUNG = "[Etwas übernehmen](https://haben.app/mitwirken.html#etwas-übernehmen)";
 const TAG = 24 * 60 * 60 * 1000;
 
@@ -51,7 +51,7 @@ export function entscheiden(was: Befehl, lage: Lage): Entscheidung {
   if (zugewiesen.includes(person)) return ablehnen("das Issue ist dir schon zugewiesen.");
   if (zugewiesen.length > 0) return ablehnen(`das Issue ist schon vergeben an ${erwaehnen(zugewiesen)}. Frag gern dort nach, ob ihr es teilen könnt.`);
   if (lage.status === null) {
-    return ablehnen(`das Issue ist noch nicht im ${BOARD} eingeordnet. Ein Maintainer schaut es sich an und meldet sich hier.`);
+    return ablehnen(`das Issue ist noch nicht im ${boardLink()} eingeordnet. Ein Maintainer schaut es sich an und meldet sich hier.`);
   }
   // „In Arbeit“ ohne Zuweisung: die Karte hat ein Pull Request mit `Refs` oder `Umgesetzt` vorgezogen, vergeben ist sie nicht
   if (lage.status !== "Geplant" && lage.status !== "Später" && lage.status !== "In Arbeit") {
@@ -63,7 +63,7 @@ export function entscheiden(was: Befehl, lage: Lage): Entscheidung {
 export function textZugewiesen(person: string, status: string): string {
   const spaeter = status === "Später" ? " Die Karte stand unter „Später“; klär den Umfang am besten kurz hier, bevor du viel baust." : "";
   return [
-    `@${person} gehört dir! Das Issue ist dir zugewiesen, die Karte steht jetzt im ${BOARD} unter „In Arbeit“.${spaeter}`,
+    `@${person} gehört dir! Das Issue ist dir zugewiesen, die Karte steht jetzt im ${boardLink()} unter „In Arbeit“.${spaeter}`,
     "",
     `Ein kurzer Plan hier im Issue oder ein früher Entwurf als Pull Request hilft, wenn du unsicher bist, ob der Weg passt. Kommt 14 Tage nichts, fragen wir nach; aufhören geht jederzeit mit \`/freigeben\` (${ANLEITUNG}).`,
   ].join("\n");

@@ -5,6 +5,7 @@
 # pull_request_target, damit das Secret auch bei PRs aus Forks da ist. Sicher, weil nur die Basis ausgecheckt
 # wird und das Skript vom PR nur die Beschreibung liest, nie seinen Code.
 # Secret PROJECT_TOKEN: klassisches Token mit Scope `project`; ohne es endet der Lauf mit einem Hinweis.
+# Variable BOARD_NUMMER: Nummer des Boards, in Haben nicht nötig (scripts/board/projekt.ts).
 name: Board
 
 on:
@@ -36,3 +37,4 @@ jobs:
       - run: bun scripts/board/ereignis.ts
         env:
           PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          BOARD_NUMMER: ${{ vars.BOARD_NUMMER }}
