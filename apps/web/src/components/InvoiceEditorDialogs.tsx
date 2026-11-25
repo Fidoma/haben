@@ -2,6 +2,7 @@ import { formatDecimal, formatEuro } from "@haben/core";
 import { ArticleDialog } from "./ArticleDialog.tsx";
 import { ConfirmDialog } from "./ConfirmDialog.tsx";
 import { FestschreibenHinweise } from "./FestschreibenHinweise.tsx";
+import { FINALIZE_DIALOG_TEXT } from "./InvoiceEditorHinweise.tsx";
 import { NewContactDialog } from "./NewContactDialog.tsx";
 import { UmsatzgrenzeDialog } from "./UmsatzgrenzeDialog.tsx";
 import type { InvoiceEditorModel } from "./use-invoice-editor.ts";
@@ -58,7 +59,7 @@ export function InvoiceEditorDialogs({ editor }: { editor: InvoiceEditorModel })
         ) : (
           <>
             <FestschreibenHinweise open={confirming} earlierThanLast={earlierThanLast} numberDate={numberDate} ustId={ustIdPruefen} />
-            <p>PDF und XML werden erzeugt und gebucht.</p>
+            <p>{FINALIZE_DIALOG_TEXT}</p>
             <p>Danach ist die Rechnung nicht mehr änderbar; Korrekturen laufen über Storno oder Rechnungskorrektur.</p>
           </>
         )}

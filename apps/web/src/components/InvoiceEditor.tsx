@@ -6,6 +6,7 @@ import { ActionBar } from "./ActionBar.tsx";
 import { DesignPanel, useDesignDraft } from "./DesignPanel.tsx";
 import { PreviewButton, PreviewLayout, useDocumentPreview } from "./DocumentPreview.tsx";
 import { Icon } from "./Icon.tsx";
+import { FINALIZE_HINT, FINALIZE_HINT_ID } from "./InvoiceEditorHinweise.tsx";
 import { InvoiceEditorPreview } from "./InvoiceEditorPreview.tsx";
 import { useInvoiceCopy } from "./InvoiceCopyButton.tsx";
 import { MoreActionsMenu } from "./MoreActionsMenu.tsx";
@@ -218,7 +219,7 @@ export function InvoiceEditor(props: InvoiceEditorProps) {
 
             {attachments}
 
-            <div className="banner banner-info">
+            <div className="banner banner-info" id={FINALIZE_HINT_ID}>
               <Icon name="info" />
               <span>
                 {quote
@@ -266,7 +267,7 @@ export function InvoiceEditor(props: InvoiceEditorProps) {
         <button type="submit" form="invoice-form" className="btn" disabled={busy || !dirty}>
           Entwurf speichern
         </button>
-        <button type="button" className="btn btn-primary" disabled={busy} onClick={onFinalize}>
+        <button type="button" className="btn btn-primary" title={FINALIZE_HINT} aria-describedby={FINALIZE_HINT_ID} disabled={busy} onClick={onFinalize}>
           Festschreiben
         </button>
       </ActionBar>
