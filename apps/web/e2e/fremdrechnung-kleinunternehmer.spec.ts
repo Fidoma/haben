@@ -37,6 +37,10 @@ test("Kleinunternehmer: § 19 oder Auslandsleistung mit Pflicht-Leistungsort; ü
   await expect(behandlung.locator("option[value=steuerfrei]")).toHaveCount(0);
   await expect(behandlung).toHaveValue("kleinunternehmer");
   await expect(behandlung).toHaveAccessibleDescription(/Auslandsleistungen mit geklärtem Leistungsort/);
+  // Ohne deutsche Umsatzsteuer nur der Nettobetrag, auch ohne E-Rechnung in der Datei (#1880)
+  await expect(page.getByLabel("Steuersatz 1")).toHaveCount(0);
+  await expect(page.getByLabel("Steuer 1 (€)")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Weiteren Steuersatz" })).toHaveCount(0);
   // Für eine Auslandsleistung sind Land und Bestätigung Pflicht (§ 19 Abs. 2 UStG zählt nur steuerbare Umsätze)
   await behandlung.selectOption("drittland");
   await expect(page.getByLabel("Land des tatsächlichen Leistungsorts")).toHaveJSProperty("required", true);
@@ -48,9 +52,7 @@ test("Kleinunternehmer: § 19 oder Auslandsleistung mit Pflicht-Leistungsort; ü
   await page.getByLabel("Rechnungsdatum").fill(day(-20));
   await page.getByLabel("Fällig am").fill(day(-6));
   await page.getByLabel("Befreiungsvorschrift").fill("Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.");
-  await page.getByLabel("Steuersatz 1").selectOption("0");
-  await page.getByLabel("Netto 1 (€)").fill("120.000,00");
-  await page.getByLabel("Steuer 1 (€)").fill("0,00");
+  await page.getByLabel("Netto (€)").fill("120.000,00");
   await kundeWaehlen(page, KUNDE);
 
   // 120.000 € netto liegen über der Jahresgrenze: Rückfrage; bei „Abbrechen“ bleibt alles, wie es ist

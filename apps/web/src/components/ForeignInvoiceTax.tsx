@@ -1,4 +1,4 @@
-import { type OutgoingTaxDetails, TAX_TREATMENTS, type TaxTreatment } from "@haben/core";
+import { formatDecimal, type OutgoingTaxDetails, parseEuro, TAX_TREATMENTS, type TaxTreatment } from "@haben/core";
 import { Field } from "./Field.tsx";
 import { EMPTY_DETAILS, ForeignTaxFields, treatmentHint } from "./OutgoingTaxFields.tsx";
 
@@ -24,6 +24,30 @@ function offeredTreatments(kleinunternehmer: boolean): TaxTreatment[] {
   const all = Object.keys(TAX_TREATMENTS) as TaxTreatment[];
   return kleinunternehmer ? all.filter((key) => key === "kleinunternehmer" || FOREIGN.has(key)) : all.filter((key) => key !== "kleinunternehmer");
 }
+
+/**
+ * Ohne deutsche Umsatzsteuer stehen alle Positionen auf 0 % (`treatmentIssues`), also gibt es nur eine Zeile ohne Steuer (#1880).
+ * Mehrere Zeilen werden zum Nettobetrag zusammengerechnet; eine einzelne behält die Eingabe, wie sie ist. Ist ein Betrag
+ * unlesbar, bleibt er stehen, damit das Absenden ihn meldet, statt dass er still aus der Summe fällt.
+ */
+export function nurNetto(rows: TaxRow[]): TaxRow[] {
+  const filled = rows.map((r) => r.net.trim()).filter((net) => net !== "");
+  const unreadable = filled.find((net) => parseEuro(net) === null);
+  const net = rows.length === 1 ? rows[0]!.net : (unreadable ?? (filled.length > 0 ? formatDecimal(filled.reduce((sum, n) => sum + parseEuro(n)!, 0)) : ""));
+  return [{ rate: "0", net, tax: "0,00" }];
+}
+
+/**
+ * Zeilen beim Öffnen: aus der E-Rechnung so, wie sie gelesen wurden (ein Satz über 0 % bei einer Sonderbehandlung bleibt
+ * sichtbar und wird beim Übernehmen abgelehnt), ohne E-Rechnung eine leere Zeile, regulär zu 19 %, sonst zu 0 %.
+ */
+export function startZeilen(taxes: { rate: number; net: number; tax: number }[], treatment: TaxTreatment): TaxRow[] {
+  if (taxes.length > 0) return taxes.map((t) => ({ rate: String(t.rate), net: formatDecimal(t.net), tax: formatDecimal(t.tax) }));
+  return treatment === "regulaer" ? [{ rate: "1900", net: "", tax: "" }] : nurNetto([{ rate: "1900", net: "", tax: "" }]);
+}
+
+/** Nur der Nettobetrag, wenn ohne deutsche Umsatzsteuer eine Zeile zu 0 % bleibt; sonst Satz, Netto und Steuer je Zeile */
+const nurNettoFeld = (treatment: TaxTreatment, rows: TaxRow[]) => treatment !== "regulaer" && rows.length === 1 && rows[0]!.rate === "0";
 
 export function TaxSection({
   treatment,
@@ -83,12 +107,28 @@ export function TaxSection({
           kleinunternehmer={kleinunternehmer}
         />
       )}
-      <TaxRowFields rows={rows} onChange={onRows} />
-      <div className="actions">
-        <button type="button" className="btn btn-sm" onClick={() => onRows([...rows, { rate: "0", net: "", tax: "0,00" }])}>
-          Weiteren Steuersatz
-        </button>
-      </div>
+      {!nurNettoFeld(treatment, rows) ? (
+        <>
+          <TaxRowFields rows={rows} onChange={onRows} />
+          <div className="actions">
+            <button type="button" className="btn btn-sm" onClick={() => onRows([...rows, { rate: "0", net: "", tax: "0,00" }])}>
+              Weiteren Steuersatz
+            </button>
+          </div>
+        </>
+      ) : (
+        <Field label="Netto (€)" hint="Ohne deutsche Umsatzsteuer gilt 0 %; trag den Rechnungsbetrag ein.">
+          {(control) => (
+            <input
+              {...control}
+              inputMode="decimal"
+              value={rows[0]?.net ?? ""}
+              onChange={(e) => onRows([{ rate: "0", net: e.target.value, tax: "0,00" }])}
+              required
+            />
+          )}
+        </Field>
+      )}
     </section>
   );
 }

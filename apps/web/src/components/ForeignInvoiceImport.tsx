@@ -1,4 +1,4 @@
-import { amountError, formatDecimal, type OutgoingTaxDetails, parseEuro, type TaxTreatment } from "@haben/core";
+import { amountError, type OutgoingTaxDetails, parseEuro, type TaxTreatment } from "@haben/core";
 import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import type { UmsatzgrenzeBestaetigung } from "../lib/kleinunternehmer.ts";
@@ -7,7 +7,7 @@ import { EMPTY_DETAILS } from "./OutgoingTaxFields.tsx";
 import { ContactCombobox, savedAsChoice } from "./ContactCombobox.tsx";
 import { Field } from "./Field.tsx";
 import { FilePicker } from "./FilePicker.tsx";
-import { FOREIGN, TaxSection, type TaxRow } from "./ForeignInvoiceTax.tsx";
+import { FOREIGN, nurNetto, startZeilen, TaxSection, type TaxRow } from "./ForeignInvoiceTax.tsx";
 import { NewContactDialog } from "./NewContactDialog.tsx";
 import { UmsatzgrenzeDialog } from "./UmsatzgrenzeDialog.tsx";
 
@@ -110,15 +110,12 @@ function ForeignInvoiceForm({ file, read, onClose }: { file: File; read: Read; o
   const [contactId, setContactId] = useState(p.contactId ?? "");
   /** Offener Dialog „Neuer Kunde“ mit dem vorgetragenen Namen; null = geschlossen */
   const [newContactName, setNewContactName] = useState<string | null>(null);
-  const [treatment, setTreatment] = useState<TaxTreatment>(read.kleinunternehmer ? "kleinunternehmer" : p.taxTreatment);
+  const initialTreatment: TaxTreatment = read.kleinunternehmer ? "kleinunternehmer" : p.taxTreatment;
+  const [treatment, setTreatment] = useState<TaxTreatment>(initialTreatment);
   const [exemptionReason, setExemptionReason] = useState("");
   /** Nur der Leistungsort einer Auslandsleistung; null = ungeklärt, nie aus der Kundenanschrift vorbelegt */
   const [foreignPlace, setForeignPlace] = useState<OutgoingTaxDetails["foreignPlace"]>(null);
-  const [rows, setRows] = useState<TaxRow[]>(
-    p.taxes.length > 0
-      ? p.taxes.map((t) => ({ rate: String(t.rate), net: formatDecimal(t.net), tax: formatDecimal(t.tax) }))
-      : [{ rate: "1900", net: "", tax: "" }],
-  );
+  const [rows, setRows] = useState<TaxRow[]>(() => startZeilen(p.taxes, initialTreatment));
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -168,6 +165,7 @@ function ForeignInvoiceForm({ file, read, onClose }: { file: File; read: Read; o
           treatment={treatment}
           onTreatment={(value) => {
             setTreatment(value);
+            if (value !== "regulaer") setRows(nurNetto);
             // Wie im Rechnungseditor: Eine neue Behandlung braucht eine erneute Bestätigung des Leistungsorts
             setForeignPlace(null);
           }}
