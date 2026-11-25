@@ -37,10 +37,11 @@ docker exec -i "$app" sh < scripts/container/pdf-werkzeuge.sh
 unset DATABASE_URL MIGRATION_DATABASE_URL
 "${compose[@]}" up -d --wait --wait-timeout 180 --force-recreate app
 check_health
-docker exec -w /app/apps/web "$("${compose[@]}" ps -q app)" bun -e '
-const sql = (await import("postgres")).default(process.env.DATABASE_URL);
+# Mit dem PostgreSQL-Client von Bun: Pakete wie postgres sind im Image gebündelt, nicht in node_modules
+docker exec "$("${compose[@]}" ps -q app)" bun -e '
+const sql = new Bun.SQL(process.env.DATABASE_URL);
 try { const [role] = await sql`select current_user as name`; if (role.name !== "haben") throw new Error("Legacy-Anmeldung geändert"); }
-finally { await sql.end(); }
+finally { await sql.close(); }
 '
 "${compose[@]}" stop db
 health=$(curl --max-time 5 -sS -w '\n%{http_code}' "http://localhost:${HABEN_TEST_PORT:-3386}/api/health")

@@ -1,7 +1,10 @@
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type postgres from "postgres";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { setupTestDb, testDatabaseUrl } from "../test-db.ts";
-import { VERSION_HISTORY_GENESIS_NOTE, readAppVersion, recordAppVersion } from "./app-version.ts";
+import { findRootPackageJson, VERSION_HISTORY_GENESIS_NOTE, readAppVersion, recordAppVersion } from "./app-version.ts";
 
 describe.skipIf(!testDatabaseUrl)("Versionsverlauf in app_versions (#841)", () => {
   let sql: postgres.Sql;
@@ -98,5 +101,21 @@ describe.skipIf(!testDatabaseUrl)("Versionsverlauf in app_versions (#841)", () =
     await expect(sql`delete from app_versions`).rejects.toThrow();
     await expect(sql`truncate table app_versions`).rejects.toThrow();
     await expect(sql`truncate table app_versions cascade`).rejects.toThrow();
+  });
+});
+
+describe("Wurzel-package.json finden", () => {
+  it("findet sie auch aus einem anderen Verzeichnis als dem dieses Moduls, etwa gebündelt im Image", () => {
+    const umstellung = fileURLToPath(new URL("../modules/umstellung/", import.meta.url));
+    expect(findRootPackageJson(umstellung)).toBe(fileURLToPath(new URL("../../../../../package.json", import.meta.url)));
+  });
+
+  it("überspringt die package.json der Workspace-Pakete", () => {
+    const web = fileURLToPath(new URL("../../../", import.meta.url));
+    expect(findRootPackageJson(web)).toBe(join(web, "..", "..", "package.json"));
+  });
+
+  it("gibt außerhalb des Repositories null zurück", () => {
+    expect(findRootPackageJson(tmpdir())).toBeNull();
   });
 });

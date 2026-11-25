@@ -1,25 +1,20 @@
 /*
  * Prüft im fertigen Image, dass alle Pakete da sind, die zur Laufzeit geladen werden (CI-Job container). Das
- * Laufzeit-Image installiert nur die Laufzeitabhängigkeiten ohne Peers (Containerfile); fehlt eines, fiele das sonst
- * erst beim Nutzer auf, etwa bei der ersten Übermittlung an ELSTER. Zwei Teile:
- * - das Server-Bundle und der Befehl haben: jedes Paket, das sie von außen importieren, wird geladen;
- * - die Skripte, die Bun aus den Quellen ausführt (Migrationen, ERiC-Worker und -Installation, SSO-Übernahme): Bun
- *   löst sie samt allen Importen auf, ohne sie auszuführen.
+ * Laufzeit-Image hat nur die nativen Pakete in node_modules, alles andere ist gebündelt (scripts/container/laufzeit.ts);
+ * fehlt eines, fiele das sonst erst beim Nutzer auf, etwa bei der ersten Übermittlung an ELSTER. Geprüft wird jede
+ * JavaScript- und TypeScript-Datei unter /app außerhalb von node_modules: das Server-Bundle, der Befehl haben und die
+ * gebündelten Skripte (Migrationen, ERiC-Worker und -Installation, Render-Worker, Befehle für Betreiber). Jedes Paket,
+ * das eine davon von außen importiert, wird geladen.
  * Aufruf im Container: bun /tmp/externe-module.ts
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { builtinModules } from "node:module";
 import { join } from "node:path";
 
-const BUNDLE = "/app/apps/web/.output/server";
-/** Der Befehl haben, gebaut mit --packages external (Containerfile) */
-const CLI = "/app/apps/web/.output/haben-cli.js";
-const SKRIPTE = [
-  "/app/apps/web/src/server/db/migrate.ts",
-  "/app/apps/web/src/server/db/sso-uebernahme.ts",
-  "/app/packages/elster/src/worker.ts",
-  "/app/packages/elster/src/install-cli.ts",
-];
+/** Im Image /app; ein anderer Ordner als Argument, etwa der Zielordner von laufzeit.ts */
+const APP = process.argv[2] ?? "/app";
+/** Darf nicht fehlen: sonst hätte die Suche den falschen Ordner erwischt */
+const ERWARTET = ["koffi", "@myriaddreamin/typst-ts-node-compiler"];
 
 const builtin = new Set(builtinModules);
 const transpiler = new Bun.Transpiler({ loader: "js" });
@@ -27,43 +22,31 @@ let fehler = 0;
 
 function* dateien(dir: string): Generator<string> {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name === "node_modules") continue;
+    if (entry.name === "node_modules" || entry.name === "public") continue;
     const path = join(dir, entry.name);
     if (entry.isDirectory()) yield* dateien(path);
-    else if (/\.[cm]?js$/.test(entry.name)) yield path;
+    else if (/\.([cm]?js|ts)$/.test(entry.name)) yield path;
   }
 }
 
 const pakete = new Map<string, string>();
-for (const datei of [...dateien(BUNDLE), CLI]) {
+for (const datei of dateien(APP)) {
   for (const { path } of transpiler.scanImports(readFileSync(datei, "utf8"))) {
     if (/^[./#]/.test(path) || path.includes(":") || builtin.has(path) || pakete.has(path)) continue;
     pakete.set(path, datei);
   }
 }
-if (pakete.size === 0) {
-  console.error(`Keine externen Importe unter ${BUNDLE}; stimmt der Pfad?`);
+for (const name of ERWARTET.filter((n) => !pakete.has(n))) {
+  console.error(`Kein Import von ${name} unter ${APP}; stimmt der Pfad?`);
   fehler++;
 }
 for (const [name, datei] of pakete) {
   try {
     await import(Bun.resolveSync(name, datei));
-    console.log(`ok     Bundle: ${name}`);
+    console.log(`ok     ${name} (${datei})`);
   } catch (error) {
     fehler++;
-    console.log(`FEHLT  Bundle: ${name}: ${error instanceof Error ? error.message.split("\n")[0] : String(error)}`);
-  }
-}
-
-for (const skript of SKRIPTE) {
-  // packages: "bundle" löst jedes Paket bis in die letzte Datei auf; das Ergebnis bleibt im Speicher
-  const ergebnis = await Bun.build({ entrypoints: [skript], target: "bun", packages: "bundle", throw: false });
-  if (ergebnis.success) {
-    console.log(`ok     Skript: ${skript}`);
-  } else {
-    fehler++;
-    console.log(`FEHLT  Skript: ${skript}`);
-    for (const log of ergebnis.logs) console.log(`         ${log.message}`);
+    console.log(`FEHLT  ${name} (${datei}): ${error instanceof Error ? error.message.split("\n")[0] : String(error)}`);
   }
 }
 

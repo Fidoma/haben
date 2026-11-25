@@ -1,11 +1,11 @@
 #!/bin/sh
 # Prüft die echte Laufzeit-Anmeldung eines gestarteten App-Containers, nicht eine vom Test abgesicherte Verbindung.
 # PostgreSQL 18: sql-altertable.html, sql-set-role.html und runtime-config-client.html#GUC-SESSION-REPLICATION-ROLE.
+# Mit dem PostgreSQL-Client von Bun (Bun.SQL, SQLSTATE in errno): Pakete wie postgres sind im Image gebündelt.
 set -eu
 container=${1:?Aufruf: rollen-pruefen.sh <App-Container>}
 docker exec --user bun -i -w /app/apps/web "$container" bun -e "$(cat <<'JAVASCRIPT'
-const { default: postgres } = await import("postgres");
-const sql = postgres(process.env.DATABASE_URL, { max: 1, onnotice: () => {} });
+const sql = new Bun.SQL(process.env.DATABASE_URL, { max: 1 });
 const failures = [];
 try {
   const [role] = await sql`select current_user as current, session_user as session`;
@@ -40,7 +40,7 @@ try {
       });
     } catch (error) {
       if (error === allowed) failures.push(`${name}: erlaubt statt 42501`);
-      else if (error.code !== "42501") failures.push(`${name}: ${error.code ?? "Fehler"} statt 42501`);
+      else if (error.errno !== "42501") failures.push(`${name}: ${error.errno ?? error.message} statt 42501`);
       else console.log(`${name}: 42501`);
     }
   }
@@ -64,6 +64,6 @@ try {
     });
   } catch (error) { if (error !== rollback) throw error; }
   console.log("App-Anmeldung, Schreibweg, Audit-Kette und Siegel stimmen");
-} finally { await sql.end(); }
+} finally { await sql.close(); }
 JAVASCRIPT
 )"

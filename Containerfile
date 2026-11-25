@@ -14,16 +14,12 @@ COPY packages/gobd-kern/package.json packages/gobd-kern/
 COPY packages/import/package.json packages/import/
 RUN bun install --frozen-lockfile
 COPY . .
-# Danach nur noch die Laufzeitabhängigkeiten; neu installieren statt entfernen, die Pakete liegen im Cache. Ohne
-# Peer-Abhängigkeiten: Über sie kämen Build-Werkzeuge ins Image (vite, vitest, drizzle-kit, tsx, esbuild mit eigener
-# Go-Laufzeit), die zur Laufzeit nicht laufen. Was die App als Peer braucht (react, zod, postgres …), steht in
-# apps/web/package.json als direkte Abhängigkeit; der CI-Job container lädt die externen Module des Bundles.
-# Der Befehl haben (Betriebsstatus) als eine Datei; Pakete aus node_modules bleiben außen vor und kommen zur Laufzeit
-# aus apps/web/node_modules, so bleibt etwa die native Bibliothek von Typst nur einmal im Image
+# Ins Laufzeit-Image kommt nur, was zur Laufzeit läuft (scripts/container/laufzeit.ts): das Server-Bundle, die Skripte,
+# die Bun im Image startet, gebündelt unter ihrem Pfad aus dem Repository, und ein node_modules nur mit den nativen
+# Paketen (Typst, koffi). Keine Build-Werkzeuge und keine Pakete, die schon im Bundle stecken; der CI-Job container
+# lädt die externen Module aller Bundles
 RUN bun run build \
- && bun build apps/web/src/server/modules/betrieb/cli.ts --target bun --packages external --outfile apps/web/.output/haben-cli.js \
- && rm -rf node_modules apps/web/node_modules packages/*/node_modules \
- && bun install --frozen-lockfile --production --omit=peer
+ && bun scripts/container/laufzeit.ts /laufzeit
 
 # Laufzeit auf Wolfi statt Debian: glibc wie bisher (ERiC ist eine glibc-Bibliothek, Alpine mit musl ginge nicht),
 # aber aktuelle Upstream-Versionen, vor allem von poppler, das jedes hochgeladene PDF liest. Wolfi ist rollend; der
@@ -50,16 +46,7 @@ ENV NODE_ENV=production \
     XDG_CACHE_HOME=/tmp/.cache
 # XDG_CACHE_HOME: Fontconfig (pdftoppm) braucht einen beschreibbaren Cache, auch bei schreibgeschütztem Dateisystem
 WORKDIR /app
-# Der ERiC-Worker läuft aus den Quellen von packages/elster (Bun führt TypeScript direkt aus, nicht unter node_modules).
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/packages ./packages
-COPY --from=build /app/apps/web/node_modules ./apps/web/node_modules
-COPY --from=build /app/apps/web/.output ./apps/web/.output
-COPY --from=build /app/apps/web/drizzle ./apps/web/drizzle
-# Betreiberbefehle für SSO und Bestandsübernahme nutzen dieselben geprüften Geschäftsregeln wie die App.
-COPY --from=build /app/apps/web/src ./apps/web/src
-COPY --from=build /app/apps/web/package.json ./apps/web/package.json
-COPY --from=build /app/package.json ./package.json
+COPY --from=build /laufzeit ./
 COPY deploy/entrypoint.sh /usr/local/bin/haben-entrypoint
 # haben status [--json]: Version, ERiC, letzte Sicherung und Speicher, etwa für deploy/instanzen
 COPY deploy/haben.sh /usr/local/bin/haben

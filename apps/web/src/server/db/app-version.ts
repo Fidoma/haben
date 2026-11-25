@@ -1,18 +1,29 @@
 import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type postgres from "postgres";
 
 /** Hinweis in der ersten Zeile auf Bestandsinstanzen (#841). */
 export const VERSION_HISTORY_GENESIS_NOTE = "Versionsverlauf ab diesem Start aufgezeichnet; für die Zeit davor liegt keine Aufzeichnung vor.";
 
-const PACKAGE_JSON_PATH = fileURLToPath(new URL("../../../../../package.json", import.meta.url));
+/**
+ * Sucht ab `start` aufwärts die Wurzel-`package.json` (Name `haben`). Nicht über einen festen relativen Pfad: Im Image
+ * ist dieser Code in Skripte und den Server gebündelt, `import.meta.url` zeigt dann auf die gebündelte Datei.
+ */
+export function findRootPackageJson(start = fileURLToPath(new URL(".", import.meta.url))): string | null {
+  for (let dir = start; ; dir = dirname(dir)) {
+    const path = join(dir, "package.json");
+    if (existsSync(path) && (JSON.parse(readFileSync(path, "utf8")) as { name?: unknown }).name === "haben") return path;
+    if (dirname(dir) === dir) return null;
+  }
+}
 
 /**
  * Liest die Haben-Version aus der Wurzel-`package.json`. Gibt `null` zurück, wenn die Datei in einer
  * isolierten Testumgebung außerhalb des Repositories fehlt.
  */
-export function readAppVersion(packageJsonPath = PACKAGE_JSON_PATH): string | null {
-  if (!existsSync(packageJsonPath)) return null;
+export function readAppVersion(packageJsonPath = findRootPackageJson()): string | null {
+  if (!packageJsonPath || !existsSync(packageJsonPath)) return null;
   const parsed = JSON.parse(readFileSync(packageJsonPath, "utf8")) as { version?: unknown };
   return typeof parsed.version === "string" && parsed.version.length > 0 ? parsed.version : null;
 }

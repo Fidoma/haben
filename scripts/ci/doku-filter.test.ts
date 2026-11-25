@@ -131,6 +131,7 @@ describe("Filter des Jobs changes in ci.yml", () => {
     ["Containerfile", { schreiben: { Containerfile: "neu\n" } }, "true"],
     ["compose.yml", { schreiben: { "compose.yml": "neu\n" } }, "true"],
     ["deploy/", { schreiben: { "deploy/backup/backup.sh": "neu\n" } }, "true"],
+    ["scripts/container/", { schreiben: { "scripts/container/laufzeit.ts": "neu\n" } }, "true"],
     ["bun.lock", { schreiben: { "bun.lock": "neu\n" } }, "true"],
   ] as [string, Aenderung, string][])("%s: bild=%s", (_name, aenderung, bild) => {
     expect(filterFuer(aenderung, { EREIGNIS: "pull_request" }).bild).toBe(bild);

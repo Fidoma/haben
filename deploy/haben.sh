@@ -1,4 +1,4 @@
 #!/bin/sh
 # Befehle für Betreiber im Image, etwa: docker compose exec app haben status --json
-# (Quelle: apps/web/src/server/modules/betrieb/cli.ts, gebündelt im Containerfile)
+# (Quelle: apps/web/src/server/modules/betrieb/cli.ts, gebündelt von scripts/container/laufzeit.ts)
 exec bun /app/apps/web/.output/haben-cli.js "$@"
