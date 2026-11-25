@@ -81,6 +81,9 @@ async function gestaltungOeffnen(p: Page): Promise<void> {
   } else {
     await vorschauKnopf(p).click();
   }
+  // Erst klicken, wenn die Leiste steht: Fährt der Knopf zwischen Drücken und Loslassen unter der Maus weg, landet der Klick
+  // auf der Leiste statt auf ihm
+  await dialog(p).evaluate((leiste) => Promise.all(leiste.getAnimations().map((animation) => animation.finished)));
   await dialog(p).getByRole("button", { name: "Gestaltung" }).click();
   await expect(panel(p)).toBeVisible();
 }
