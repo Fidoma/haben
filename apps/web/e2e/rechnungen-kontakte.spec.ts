@@ -358,9 +358,16 @@ test("Unsere Lieferantennummer beim Kunden steht im Kopf der Rechnung (#711)", a
   await go("/kontakte/neu");
   await page.getByLabel("Name oder Firma").fill("Wohnbau Nord eG");
   await page.getByLabel("Ort").fill("Lübeck");
+  // Die Nummer steht in „Weitere Angaben“ (#1253): zugeklappt geht sie mit dem Speichern und steht in der Überschrift
+  const bereich = page.locator("details.weitere-angaben");
+  await weitereAngabenOeffnen(page);
   await page.getByLabel("Unsere Lieferantennummer bei diesem Kunden").fill("70815");
+  await bereich.locator("summary").click();
+  await expect(bereich).toHaveJSProperty("open", false);
   await page.getByRole("button", { name: "Kontakt anlegen" }).click();
   await expect(page.getByRole("heading", { name: "Versionen" })).toBeVisible();
+  await expect(bereich.locator("summary")).toContainText("Unsere Lieferantennummer 70815");
+  await weitereAngabenOeffnen(page);
   await expect(page.getByLabel("Unsere Lieferantennummer bei diesem Kunden")).toHaveValue("70815");
   // Die eigene Lieferantennummer (Gegenrichtung) bleibt leer
   await expect(page.getByLabel("Lieferantennummer", { exact: true })).toHaveValue("");

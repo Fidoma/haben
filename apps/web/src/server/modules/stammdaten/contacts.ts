@@ -76,7 +76,7 @@ export const contactSchema = z.object({
   ]),
   leitwegId: z.string().trim().max(46, "Leitweg-ID: höchstens 46 Zeichen"),
   /** Unsere Lieferantennummer beim Kunden (#711), im XML Verkäuferkennung BT-29; fehlt = leer */
-  unsereLieferantennummer: z.string().trim().max(40).default(""),
+  unsereLieferantennummer: z.string().trim().max(40, "Unsere Lieferantennummer: höchstens 40 Zeichen").default(""),
   defaultFormat: z.enum(["zugferd", "xrechnung-cii", "xrechnung-ubl"]).nullable(),
   /**
    * Skonto für Rechnungen an diesen Kunden; null = Vorgabe aus den Firmendaten, leer = kein Skonto, fehlt = unverändert.
