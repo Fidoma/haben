@@ -3,6 +3,7 @@ import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { getAusschuettungen } from "../../server/functions/ausschuettung.ts";
 import styles from "../../styles/auswertungen.css?url";
+import { EricHinweis } from "../../components/EricHinweis.tsx";
 import { Field } from "../../components/Field.tsx";
 import { NeueAusschuettung } from "./-ausschuettungen-neu.tsx";
 import { AusschuettungCard } from "./-ausschuettungen-teile.tsx";
@@ -41,6 +42,7 @@ function AusschuettungenPage() {
       </div>
       {isKapitalgesellschaft(data.rechtsform) ? (
         <div className="stack" style={{ gap: 24 }}>
+          {data.mode === "simuliert" && <EricHinweis />}
           <p className="muted small" style={{ margin: 0, maxWidth: 760 }}>
             Eine GmbH oder UG schüttet ihren Gewinn mit einem Gewinnverwendungsbeschluss aus. Haben bucht ihn, behält Kapitalertragsteuer, Soli und
             Kirchensteuer je Gesellschafter ein und meldet sie über ELSTER an. Gesellschafter, Anteile und Kirchensteuerabzugsmerkmale stehen unter{" "}

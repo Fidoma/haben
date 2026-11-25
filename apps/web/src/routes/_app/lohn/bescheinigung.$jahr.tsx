@@ -3,6 +3,7 @@ import { Link, createFileRoute, notFound, useNavigate, useRouter } from "@tansta
 import { useServerFn } from "@tanstack/react-start";
 import { useId, useState, type FormEvent } from "react";
 import { ElsterSubmit } from "../../../components/ElsterSubmit.tsx";
+import { EricHinweis } from "../../../components/EricHinweis.tsx";
 import { Icon } from "../../../components/Icon.tsx";
 import { NoticeBanner } from "../../../components/NoticeBanner.tsx";
 import { ELSTER_KIND_LABEL, elsterNotice, type ElsterKind } from "../../../lib/elster.ts";
@@ -80,6 +81,7 @@ function LstbPage() {
         </Field>
       </div>
       <div className="stack" style={{ gap: 24 }}>
+        {data.mode === "simuliert" && !data.ohneSchnittstelle && <EricHinweis />}
         <p className="muted small" style={{ margin: 0, maxWidth: 760 }}>
           Nach dem Abschluss des Lohnkontos, am Jahresende oder mit dem Austritt, übermittelt der Arbeitgeber je Arbeitnehmer die elektronische
           Lohnsteuerbescheinigung, für {data.year} bis zum {formatLongDate(data.frist)} (§ 41b EStG, § 93c AO), und gibt ihm einen Ausdruck. Haben nimmt die

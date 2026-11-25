@@ -454,9 +454,11 @@ Ist weder `ERIC_HOME` gesetzt noch ERiC unter Einstellungen › ELSTER › ERiC 
 - Zusammenfassende Meldung (mit „Bundeszentralamt für Steuern“ statt „Finanzamt“)
 - Jahreserklärung
 - Lohnsteuer-Anmeldung
+- Lohnsteuerbescheinigung (nur in Jahren, die ERiC sendet)
+- Ausschüttungen (Kapitalertragsteuer-Anmeldung, nur bei GmbH und UG)
 - Finanzamt
 
-Ein Ersatz-Client prüft dann nur, ob das XML wohlgeformt ist und Kz 83 enthält. Übermittlungen bekommen ein erfundenes Ticket (`fake-…`) und ein Protokoll-PDF mit dem Text „Testprotokoll – keine echte Übermittlung“.
+Ein Ersatz-Client prüft dann nur, ob das XML wohlgeformt ist (bei der Voranmeldung auch, ob Kz 83 gesetzt ist). Übermittlungen bekommen ein erfundenes Ticket (`fake-…`) und ein Protokoll-PDF mit dem Text „Testprotokoll – keine echte Übermittlung“; Lohnsteuerbescheinigungen und was du auf der Seite Finanzamt sendest, haben kein Protokoll-PDF.
 
 Eine Echtübermittlung ist im simulierten Modus nicht möglich: Der Haken **Nur Testübermittlung** bleibt gesetzt, und Haben lehnt eine Echtübermittlung ab, solange kein ERiC eingerichtet ist. So wird keine Anmeldung als gesendet festgeschrieben, die nie beim Finanzamt war.
 
