@@ -9,6 +9,7 @@ import {
   uploadDocument,
   type DocumentReference,
 } from "../belege/index.ts";
+import { type DocumentKind, sniff } from "../../storage.ts";
 import { fail, notFound, ok, validate, type ApiRequest, type ApiResult } from "./http.ts";
 import { documentQuerySchema, documentUploadSchema, type documentSchema, type documentSummarySchema } from "./belege-schemas.ts";
 
@@ -118,6 +119,26 @@ async function existing(id: string, reference: DocumentReference | null, request
   });
 }
 
+/** Endungen der Formate, die Haben annimmt; ein Datum wie „Rechnung 24.11.2026“ endet damit nicht auf einer. */
+const DATEIENDUNG = /\.(?:pdf|jpe?g|png|webp|hei[cf]|xml)$/i;
+
+/**
+ * Anzeigename des Belegs. Werkzeuge mit festem Feldnamen schicken die Datei als „document.pdf“ und kennen den richtigen
+ * Namen nur als eigenes Feld (#1904): Dann gilt der mitgeschickte Name. Pfadanteile und Steuerzeichen fallen weg, und
+ * ohne Endung kommt die des erkannten Dateityps dazu. Bleibt nichts übrig, etwa bei einem leeren Platzhalter der Quelle,
+ * gilt der Name aus dem Upload.
+ */
+function belegDateiname(wunsch: string, original: string, kind: DocumentKind): string {
+  // Ein Zeilenumbruch im Namen landete sonst in der Liste und in Fehlermeldungen
+  const bereinigt = wunsch.replace(/\p{Cc}/gu, "");
+  const name = bereinigt.split(/[\\/]/).pop()?.trim() ?? "";
+  if (!name.replace(DATEIENDUNG, "")) return original;
+  if (DATEIENDUNG.test(name)) return name;
+  const endung = kind === "jpeg" ? ".jpg" : `.${kind}`;
+  // Platz für die Endung lassen, sonst schneidet das Speichern bei 200 Zeichen sie wieder ab
+  return `${name.slice(0, 200 - endung.length)}${endung}`;
+}
+
 /** Neuer Beleg wie beim Upload unter Belege; mit externer Referenz idempotent */
 export async function createDocumentHandler(request: ApiRequest): Promise<ApiResult> {
   const input = validate(documentUploadSchema, request.body);
@@ -126,16 +147,17 @@ export async function createDocumentHandler(request: ApiRequest): Promise<ApiRes
   // Genau eines der beiden Felder ist gesetzt (documentUploadSchema); Fehler nennen das Feld, in dem die Datei kam
   const field = input.data.datei ? "datei" : "file";
   const datei = (input.data.datei ?? input.data.file)!;
-  const filename = datei.name || "beleg";
+  const original = datei.name || "beleg";
   // Vor dem Einlesen, wie beim Upload in Haben
-  if (datei.size > MAX_DOCUMENT_SIZE) return fail("payload_too_large", `${filename}: größer als ${MAX_DOCUMENT_SIZE / 1024 / 1024} MB.`);
-  const file = { bytes: new Uint8Array(await datei.arrayBuffer()), filename };
-  const problem = documentFileProblem(file);
+  if (datei.size > MAX_DOCUMENT_SIZE) return fail("payload_too_large", `${original}: größer als ${MAX_DOCUMENT_SIZE / 1024 / 1024} MB.`);
+  const bytes = new Uint8Array(await datei.arrayBuffer());
+  const problem = documentFileProblem({ bytes, filename: original });
   if (problem?.kind === "format") return fail("unsupported_media_type", problem.message);
   if (problem) return fail("validation_failed", problem.message, { issues: [{ path: field, message: problem.message }] });
 
+  const filename = belegDateiname(input.data.dateiname ?? "", original, sniff(bytes)!.kind);
   const reference = externalSource && externalId ? { externalSource, externalId } : null;
-  const { id, duplicate } = await uploadDocument(request.actor, file, { background: inBackground, note, ...(reference ? { reference } : {}) });
+  const { id, duplicate } = await uploadDocument(request.actor, { bytes, filename }, { background: inBackground, note, ...(reference ? { reference } : {}) });
   if (duplicate) return existing(id, reference, request);
   return respondWith(id, request, 201, { Location: location(id) });
 }

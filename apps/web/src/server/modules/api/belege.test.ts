@@ -29,6 +29,8 @@ vi.mock("../belege/extraction.ts", async (importOriginal) => {
 
 /** Kleinste Datei, die Haben als JPEG erkennt; das letzte Byte macht jede Datei einzigartig (anderer SHA-256) */
 const jpeg = (marker: number) => new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 1, 2, 3, marker]);
+/** Kleinste Datei, die Haben als PDF erkennt */
+const pdf = (marker: number) => new TextEncoder().encode(`%PDF-1.4\n% ${marker}\n%%EOF\n`);
 
 describe.skipIf(!testDatabaseUrl)("REST-API /api/v1/belege (Postgres)", () => {
   let api: typeof import("./index.ts");
@@ -292,6 +294,83 @@ describe.skipIf(!testDatabaseUrl)("REST-API /api/v1/belege (Postgres)", () => {
       again.append("externalId", "4711");
       expect((await send(t, "POST", "/belege", { body: again })).status).toBe(200);
       expect(await count()).toBe(1);
+    });
+
+    it("nimmt den Anzeigenamen aus dem Feld dateiname, wie ihn die Webhook-Aktion von Paperless-ngx nicht mitschickt (#1904)", async () => {
+      const t = await token(["belege:anlegen"]);
+      const form = new FormData();
+      form.append("file", new File([pdf(60)], "document.pdf"));
+      form.append("externalSource", "paperless");
+      form.append("externalId", "9001");
+      form.append("dateiname", "2026-11-24-Lieferant-Rechnung 123456789");
+      const created = await send(t, "POST", "/belege", { body: form });
+      expect(created.status).toBe(201);
+      // Ohne Endung ergänzt Haben die des am Inhalt erkannten Formats
+      expect(schemas.documentSchema.parse(created.json)).toMatchObject({ filename: "2026-11-24-Lieferant-Rechnung 123456789.pdf" });
+    });
+
+    it("nimmt die ergänzte Endung aus dem erkannten Dateityp, nicht aus dem Namen im Multipart-Teil (#1904)", async () => {
+      const t = await token(["belege:anlegen"]);
+      const foto = await upload(t, jpeg(65), { dateiname: "Tankquittung" }, "document.pdf");
+      expect(foto.json).toMatchObject({ filename: "Tankquittung.jpg", mimeType: "image/jpeg" });
+      const ohneEndung = await upload(t, pdf(66), { dateiname: "Rechnung 42" }, "upload");
+      expect(ohneEndung.json).toMatchObject({ filename: "Rechnung 42.pdf", mimeType: "application/pdf" });
+      // Haben nimmt kein TIFF an, also ist .tiff keine Endung eines Belegs
+      const tiff = await upload(t, pdf(67), { dateiname: "Scan.tiff" }, "document.pdf");
+      expect(tiff.json).toMatchObject({ filename: "Scan.tiff.pdf" });
+    });
+
+    it("behält den Namen aus dem Upload, wenn der Platzhalter der Quelle leer war (#1904)", async () => {
+      // {{ filename }} füllt Paperless-ngx beim Auslöser „Dokument hinzugefügt“ noch nicht, „{{ filename }}.pdf“ wird dann „.pdf“
+      const t = await token(["belege:anlegen"]);
+      const namen: unknown[] = [];
+      for (const [index, dateiname] of [".pdf", "", "  ", "ordner/"].entries()) {
+        const created = await upload(t, pdf(70 + index), { dateiname }, "document.pdf");
+        namen.push(created.status === 201 ? created.json!.filename : created.status);
+      }
+      expect(namen).toEqual(["document.pdf", "document.pdf", "document.pdf", "document.pdf"]);
+    });
+
+    it("hält ein Datum am Ende nicht für eine Endung und ergänzt die des Formats", async () => {
+      const t = await token(["belege:anlegen"]);
+      const form = new FormData();
+      form.append("file", new File([pdf(62)], "document.pdf"));
+      form.append("dateiname", "Rechnung 24.11.2026");
+      const created = await send(t, "POST", "/belege", { body: form });
+      expect(created.status).toBe(201);
+      expect(schemas.documentSchema.parse(created.json)).toMatchObject({ filename: "Rechnung 24.11.2026.pdf" });
+    });
+
+    it("kürzt einen sehr langen dateiname so, dass die Endung erhalten bleibt", async () => {
+      const t = await token(["belege:anlegen"]);
+      const form = new FormData();
+      form.append("file", new File([pdf(63)], "document.pdf"));
+      form.append("dateiname", "A".repeat(200));
+      const created = await send(t, "POST", "/belege", { body: form });
+      expect(created.status).toBe(201);
+      const { filename } = schemas.documentSchema.parse(created.json);
+      expect(filename.length).toBe(200);
+      expect(filename.endsWith(".pdf")).toBe(true);
+    });
+
+    it("entfernt Steuerzeichen und trennt auch an Backslashes", async () => {
+      const t = await token(["belege:anlegen"]);
+      const form = new FormData();
+      form.append("file", new File([jpeg(64)], "scan.jpg"));
+      form.append("dateiname", "..\\..\\Rechnung\n42");
+      const created = await send(t, "POST", "/belege", { body: form });
+      expect(created.status).toBe(201);
+      expect(schemas.documentSchema.parse(created.json)).toMatchObject({ filename: "Rechnung42.jpg" });
+    });
+
+    it("lässt Pfadanteile im dateiname weg und behält eine vorhandene Endung", async () => {
+      const t = await token(["belege:anlegen"]);
+      const form = new FormData();
+      form.append("datei", new File([jpeg(61)], "scan.jpg"));
+      form.append("dateiname", "../../etc/Rechnung 42.PDF");
+      const created = await send(t, "POST", "/belege", { body: form });
+      expect(created.status).toBe(201);
+      expect(schemas.documentSchema.parse(created.json)).toMatchObject({ filename: "Rechnung 42.PDF" });
     });
 
     it("lehnt eine Anfrage mit datei und file zugleich ab: eine Datei je Anfrage (#104)", async () => {
