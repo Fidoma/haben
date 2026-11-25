@@ -1,5 +1,5 @@
 import { XMLParser } from "fast-xml-parser";
-import { ElsterEingabeError, elsterXml, escapeXml, TESTMERKER } from "./xml.ts";
+import { ElsterEingabeError, elsterXml, escapeXml, hasTestmerker } from "./xml.ts";
 import { findDeep, int, text } from "./xml-lesen.ts";
 
 /**
@@ -11,6 +11,20 @@ import { findDeep, int, text } from "./xml-lesen.ts";
  * 3. PostfachBestaetigung quittiert die Abholung. Ohne Quittung innerhalb von 24 Stunden
  *    droht die Sperre der Hersteller-ID.
  */
+
+/**
+ * Testmerker für PostfachAnfrage und PostfachBestaetigung: Das ERiC-Entwicklerhandbuch 44.3.6.0 nennt dafür eigene
+ * Werte (Tabelle 9-4 und 9-5), nicht den allgemeinen 700000004; der wird an dieser Stelle vom Server abgelehnt.
+ */
+export const POSTFACH_TESTMERKER = "700000001";
+
+/**
+ * Ob eine Anfrage in die Test-Datenbank geht: nur dann gehört der Rat zum Testmerker in die Meldung, denn außerhalb
+ * des Postfachs und beim echten Abruf nennt derselbe Code andere Gründe (#1791).
+ */
+export function testabruf(op: string, xml: string): boolean {
+  return op === "postfach" && hasTestmerker(xml);
+}
 
 /** Was die Anfrage abholt: Bescheide (DIVA), Steuerbescheid-Daten (ESB) und Postfach-Mitteilungen */
 export const POSTFACH_DATENARTEN = [
@@ -54,7 +68,7 @@ function datenabholungXml(datenArt: "PostfachAnfrage" | "PostfachBestaetigung", 
     {
       verfahren: "ElsterDatenabholung",
       datenArt,
-      testmerker: input.test ? TESTMERKER : undefined,
+      testmerker: input.test ? POSTFACH_TESTMERKER : undefined,
       herstellerId: input.herstellerId,
       datenlieferant: input.datenlieferant,
     },

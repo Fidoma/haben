@@ -82,8 +82,8 @@ export function datenartVersionFromXml(xml: string): string | undefined {
 }
 
 /**
- * Trägt das XML irgendeinen Testmerker? Haben setzt 700000004 (Anmeldungen, Erklärungen, Nachrichten,
- * Postfach) und 370000001 (Belegabruf, Berechtigungsmanagement); jeder andere Wert gilt ebenso als Test.
+ * Trägt das XML irgendeinen Testmerker? Haben setzt 700000004 (Anmeldungen, Erklärungen, Nachrichten),
+ * 700000001 (Postfach) und 370000001 (Belegabruf, Berechtigungsmanagement); jeder andere Wert gilt ebenso als Test.
  */
 export function hasTestmerker(xml: string): boolean {
   return /<Testmerker>\s*[^<\s][^<]*<\/Testmerker>/.test(xml);

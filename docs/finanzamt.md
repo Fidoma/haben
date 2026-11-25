@@ -23,6 +23,8 @@ Der Abruf läuft in drei Schritten, wie bei viking:
 
 ELSTER erwartet die Bestätigung innerhalb von 24 Stunden, sonst droht die Sperre der Hersteller-ID. Scheitert sie, zeigt die Seite einen Hinweis; der nächste Abruf holt die Bestätigung nach. Abgeholte Dokumente legt Haben nicht doppelt ab. Jeder Abruf und jede Bestätigung wird mit dem XML gespeichert, ebenso wie die Dokumente unveränderlich.
 
+Mit Testmerker liest ein Abruf nur die Test-Datenbank. Für die PostfachAnfrage gilt dort ein eigener Testmerker (700000001 laut ERiC-Entwicklerhandbuch); der allgemeine Wert gilt nur für Übermittlungen. Scheitert der Testabruf, nennt der Hinweis den Weg zum echten Abruf: den Haken „Nur Testübermittlung“ unter dem PIN-Feld ausschalten, dann heißt der Knopf „Postfach abrufen“. Das geht nur mit eingetragener Hersteller-ID, ohne sie ist der Haken gesperrt. Auch der echte Abruf bestätigt die Abholung (siehe oben). Ohne ERiC bleibt der Haken sinnvoll, dann liefert Haben einen erfundenen Testbescheid, damit du die Seite ausprobieren kannst.
+
 ### Automatisch abrufen
 
 Mit Hersteller-ID und eingerichtetem ERiC kannst du beim Abruf „PIN verschlüsselt speichern und täglich automatisch abrufen“ wählen. Haben ruft dann sofort echt ab und speichert die PIN erst, wenn das klappt. Danach holt der Hintergrundjob das Postfach höchstens alle 20 Stunden selbst ab und bestätigt die Abholung; die 24-Stunden-Frist für die Bestätigung ist damit automatisch eingehalten.
@@ -42,8 +44,6 @@ Der Vermerk ändert den Bescheid nicht. Er steht als eigenes Ereignis daneben, m
 Ein Änderungsbescheid (§§ 164, 165, 172 ff. AO) tritt an die Stelle des Bescheids, den er ändert; der alte bleibt nur wirksam, soweit der neue ihn nicht erledigt ([§ 124 Abs. 2 AO](https://www.gesetze-im-internet.de/ao_1977/__124.html)). Ergeht er, solange die Frist des alten läuft, kannst du ihn in vollem Umfang anfechten ([§ 351 Abs. 1 AO](https://www.gesetze-im-internet.de/ao_1977/__351.html) beschränkt das nur bei Änderungen unanfechtbarer Bescheide), und seine Frist endet nie früher. Stimmen Datenart, Veranlagungszeitraum, Steuernummer und die Bezeichnungen der Dateien überein, steht deshalb nur der jüngste Bescheid unter den Aufgaben, den Fristen und im Kalender-Abo; der ältere bleibt unter Finanzamt in der Liste. Liefert ELSTER Monat oder Quartal nicht im Veranlagungszeitraum mit, unterscheidet nur die Bezeichnung zwei Zeiträume eines Jahres („Umsatzsteuer-Vorauszahlungsbescheid Januar 2025“). Ein Bescheid mit anderer Bezeichnung steht deshalb als eigene Aufgabe daneben, auch wenn er den alten ändert: lieber eine Aufgabe zu viel als eine Frist zu wenig. Aus demselben Grund legt Haben sonstige Bescheide (etwa zwei Verspätungszuschläge eines Jahres) und Bescheide ohne Veranlagungszeitraum nie zusammen.
 
 Bei Bescheiden, die nur im Postfach zum Abruf bereitgestellt werden, gilt der Bescheid am vierten Tag nach der Bereitstellung als bekannt gegeben ([§ 122a Abs. 4 Satz 1 AO](https://www.gesetze-im-internet.de/ao_1977/__122a.html)). Haben rechnet mit dem Bescheiddatum statt dem Tag der Bereitstellung; meist ist es derselbe Tag. Im Zweifel muss das Finanzamt den Zeitpunkt der Bereitstellung nachweisen (Satz 2).
-
-Der Testabruf läuft wie die Testübermittlung mit Testmerker und deiner Hersteller-ID. Ohne ERiC liefert er einen erfundenen Testbescheid, damit du die Seite ausprobieren kannst.
 
 ## Vorauszahlungen herabsetzen
 

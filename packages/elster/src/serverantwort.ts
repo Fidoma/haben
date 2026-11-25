@@ -57,10 +57,34 @@ export function serverRueckmeldungen(serverResponseXml: string): ServerRueckmeld
   ];
 }
 
-/** Die Meldung von ERiC, ergänzt um Code und Text des Servers; unverändert, wenn der Server nichts meldet */
-export function mitServerMeldung(message: string, serverResponseXml: string): string {
+/**
+ * 601015001 ist der allgemeine Code der Verfahrensprüfung; der Text des Annahmeservers benennt, was nicht passt
+ * (Kombination aus Verfahren, Datenart und Vorgang, Hersteller-ID). Der Text bleibt stehen, damit der Hinweis zur
+ * Ursache führt; ergänzt wird nur im Postfach mit Testmerker ein Satz zur Einordnung (#1791).
+ */
+const VERFAHRENSPRUEFUNG = 601015001;
+
+/**
+ * Was beim Postfach dahintersteckt. Gehört nur zum Postfachweg: In der Voranmeldung und im Belegabruf nennt
+ * derselbe Code andere Gründe, dort wäre der Rat falsch (#1791).
+ */
+const POSTFACH_HINWEIS =
+  "Zum Einordnen: Der genannte CN ist das Übertragungszertifikat von ERiC, nicht das eigene. Der Abruf aus der " +
+  "Test-Datenbank ist gescheitert; echt abrufen: Haken „Nur Testübermittlung“ ausschalten (braucht die eingetragene " +
+  "Hersteller-ID), dann heißt der Knopf „Postfach abrufen“.";
+
+/**
+ * Die Meldung von ERiC, ergänzt um Code und Text des Servers; unverändert, wenn der Server nichts meldet.
+ * `testmerker: true` heißt: Antwort auf eine PostfachAnfrage mit Testmerker; nur dort steht der Rat zum Haken
+ * „Nur Testübermittlung“. Beim echten Abruf und außerhalb des Postfachs bleibt der Text des Servers stehen.
+ */
+export function mitServerMeldung(message: string, serverResponseXml: string, testmerker = false): string {
   const meldungen = serverRueckmeldungen(serverResponseXml);
   if (meldungen.length === 0) return message;
-  const zeilen = meldungen.map((m) => `${m.quelle} ${m.code}${m.text ? ` – ${m.text}` : ""}`);
+  const zeilen = meldungen.map((m) => {
+    const rat = testmerker && m.code === VERFAHRENSPRUEFUNG ? POSTFACH_HINWEIS : "";
+    const teile = [m.text, rat].filter((teil) => teil !== "");
+    return `${m.quelle} ${m.code}${teile.length > 0 ? ` – ${teile.join(" ")}` : ""}`;
+  });
   return `${message} Antwort des ELSTER-Servers: ${zeilen.join("; ")}`;
 }

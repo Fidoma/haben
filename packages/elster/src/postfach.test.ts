@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { checkXml } from "./fake-client.ts";
-import { buildPostfachAnfrageXml, buildPostfachBestaetigungXml, parsePostfachAntwort, postfachDateiname } from "./postfach.ts";
+import { buildPostfachAnfrageXml, buildPostfachBestaetigungXml, parsePostfachAntwort, testabruf, postfachDateiname } from "./postfach.ts";
 import { datenartVersionFromXml, hasTestmerker } from "./xml.ts";
 
 const base = { datenlieferant: "Max Muster", herstellerId: "74931", produktVersion: "0.1.0", test: true };
@@ -26,6 +26,17 @@ describe("Postfach-XML", () => {
     expect(xml).toContain(`<Bereitstellung id="a1"/>`);
     expect(xml).toContain(`<Bereitstellung id="b&amp;2"/>`);
     expect(() => buildPostfachBestaetigungXml([], base)).toThrow();
+  });
+
+  it("setzt beim Testabruf den Postfach-Testmerker 700000001 in Anfrage und Bestätigung", () => {
+    expect(buildPostfachAnfrageXml(base)).toContain("<Testmerker>700000001</Testmerker>");
+    expect(buildPostfachBestaetigungXml(["a1"], base)).toContain("<Testmerker>700000001</Testmerker>");
+  });
+
+  it("ordnet nur PostfachAnfragen mit Testmerker als Testabruf ein", () => {
+    expect(testabruf("postfach", buildPostfachAnfrageXml(base))).toBe(true);
+    expect(testabruf("postfach", buildPostfachAnfrageXml({ ...base, test: false }))).toBe(false);
+    expect(testabruf("ustva", buildPostfachAnfrageXml(base))).toBe(false);
   });
 });
 

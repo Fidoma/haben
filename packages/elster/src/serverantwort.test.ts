@@ -99,6 +99,57 @@ describe("mitServerMeldung", () => {
     expect(mitServerMeldung(eric, antwort(ok))).toBe(eric);
   });
 
+  const zertifikatssatz =
+    "Es ist ein Fehler bei der Verfahrenspruefung aufgetreten - Die Kombination ... ist fuer ihr Client-Zertifikat mit CN: extern-eric nicht zugelassen.";
+
+  it("lässt den Servertext stehen, damit der Hinweis zur Ursache führt", () => {
+    // Der Text nennt Testmerker und CN; beides braucht man, um die Ursache zu finden (#1791)
+    const meldung = mitServerMeldung("M", antwort(fehler(601015001, zertifikatssatz)));
+    expect(meldung).toContain("601015001");
+    expect(meldung).toContain("extern-eric");
+    expect(meldung).not.toContain("Nur Testübermittlung");
+  });
+
+  it("ergänzt im Postfach mit Testmerker die Einordnung", () => {
+    const xml = antwort(fehler(601015001, zertifikatssatz));
+    const meldung = mitServerMeldung("M", xml, true);
+    expect(meldung).toContain("Test-Datenbank");
+    expect(meldung).toContain("Übertragungszertifikat von ERiC");
+    expect(meldung).toContain("Nur Testübermittlung");
+    expect(meldung).toContain("extern-eric");
+    // Der Hinweis darf nicht behaupten, die Kombination sei generell nicht zugelassen: mit dem eigenen Testmerker
+    // gelingt der Testabruf (#1791)
+    expect(meldung).not.toContain("diese Kombination nicht");
+  });
+
+  it("nennt beim Testabruf den Schalter und den Knopf, nicht den Testmerker als Hebel", () => {
+    // Haben schickt 700000001 schon; der Testabruf scheiterte damit weiter (#1791), helfen kann nur der echte Abruf
+    const meldung = mitServerMeldung("M", antwort(fehler(601015001, zertifikatssatz)), true);
+    expect(meldung).toContain("Haken „Nur Testübermittlung“ aus");
+    expect(meldung).toContain("„Postfach abrufen“");
+    expect(meldung).not.toContain("hilft der eigene Testmerker");
+  });
+
+  it("rät beim echten Abruf nicht, den Haken auszuschalten", () => {
+    const xml = antwort(fehler(601015001, zertifikatssatz));
+    expect(mitServerMeldung("M", xml)).not.toContain("Test-Datenbank");
+    expect(mitServerMeldung("M", xml, false)).not.toContain("Test-Datenbank");
+    expect(mitServerMeldung("M", antwort(fehler(610101210, "Anderer Text.")), true)).not.toContain("Test-Datenbank");
+  });
+
+  it("lässt den Text stehen, wenn 601015001 einen anderen Grund nennt", () => {
+    const text = "Die HerstellerID ist nicht zugelassen.";
+    expect(mitServerMeldung("M", antwort(fehler(601015001, text)))).toBe(
+      "M Antwort des ELSTER-Servers: Transferheader 601015001 – Die HerstellerID ist nicht zugelassen.",
+    );
+  });
+
+  it("lässt einen Fremdtext mit 601015001 außerhalb des Postfachs unverändert", () => {
+    const text = "Die Kombination aus Verfahren DatenArt Vorgang Testmerker Verschluesselung Kompression ist nicht zugelassen";
+    const meldung = mitServerMeldung("M", antwort(fehler(601015001, text)));
+    expect(meldung).toBe(`M Antwort des ELSTER-Servers: Transferheader 601015001 – ${text}`);
+  });
+
   it("nennt auch einen Code ohne Text", () => {
     expect(mitServerMeldung("M", antwort(fehler(7, "")))).toBe("M Antwort des ELSTER-Servers: Transferheader 7");
   });
