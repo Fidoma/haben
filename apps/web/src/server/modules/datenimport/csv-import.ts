@@ -49,6 +49,8 @@ export const csvImportOptionsSchema = z.object({
   stichtag: z.iso.date().nullable().default(null),
   /** DATEV-Stammdaten: erste Zeile je bestätigtem Vorschlag, einem vorhandenen Kontakt die Nummer zu geben */
   confirm: z.array(z.int().min(1)).max(5000).default([]),
+  /** DATEV-Stammdaten: erste Zeile je Vorschlag über den Namen, der statt zugeordnet als neuer Kontakt angelegt wird */
+  createNew: z.array(z.int().min(1)).max(5000).default([]),
 });
 
 export type CsvImportOptions = z.output<typeof csvImportOptionsSchema>;
@@ -124,7 +126,14 @@ export async function previewCsvImport(bytes: Uint8Array, options: CsvImportOpti
       mapping: {} as ColumnMapping,
       problem: null as string | null,
       counts: counted(rows) as ReturnType<typeof planCounts> & { zuordnen?: number },
-      rows: rows.map(({ line, lines, title, status, message }) => ({ line, lines, title, status: status as PreviewStatus, message })),
+      rows: rows.map((r) => ({
+        line: r.line,
+        lines: r.lines,
+        title: r.title,
+        status: r.status as PreviewStatus,
+        message: r.message,
+        canCreate: r.status === "zuordnen" && r.orNew !== null,
+      })),
     };
   }
   const table = readTable(bytes, options);
@@ -140,7 +149,7 @@ export async function previewCsvImport(bytes: Uint8Array, options: CsvImportOpti
     mapping,
     problem,
     counts: planCounts(rows) as ReturnType<typeof planCounts> & { zuordnen?: number },
-    rows: rows.map(({ line, title, status, message }) => ({ line, lines: [line], title, status: status as PreviewStatus, message })),
+    rows: rows.map(({ line, title, status, message }) => ({ line, lines: [line], title, status: status as PreviewStatus, message, canCreate: false })),
   };
 }
 
@@ -178,14 +187,17 @@ const lock = (tx: Tx) => tx.execute(sql`select pg_advisory_xact_lock(hashtext('h
 async function runDatevImport(actor: string, bytes: Uint8Array, options: CsvImportOptions): Promise<CsvImportResult> {
   const parsed = readDatev(bytes, options);
   const confirmed = new Set(options.confirm);
+  const createNew = new Set(options.createNew);
+  const both = options.confirm.find((line) => createNew.has(line));
+  if (both !== undefined) throw new CsvImportError(`Zeile ${both}: zuordnen oder neu anlegen, nicht beides.`);
   return withActor(actor, async (tx) => {
     await lock(tx);
     const rows = await planDatevContactImport(tx, parsed.rows);
     const counts = counted(rows);
-    const confirmedCount = rows.filter((r) => r.status === "zuordnen" && confirmed.has(r.line)).length;
-    if (counts.neu + confirmedCount === 0)
+    const chosen = rows.filter((r) => r.status === "zuordnen" && (confirmed.has(r.line) || (createNew.has(r.line) && r.orNew !== null))).length;
+    if (counts.neu + chosen === 0)
       throw new CsvImportError(counts.zuordnen > 0 ? "Nichts zu übernehmen: Bestätige einen Vorschlag oder lade eine andere Datei." : NOTHING);
-    const { created, assigned } = await applyDatevContactImport(tx, rows, confirmed);
-    return { created, assigned, duplicates: counts.dublette, failed: counts.fehler, unconfirmed: counts.zuordnen - assigned };
+    const { created, assigned } = await applyDatevContactImport(tx, rows, confirmed, createNew);
+    return { created, assigned, duplicates: counts.dublette, failed: counts.fehler, unconfirmed: counts.zuordnen - chosen };
   });
 }

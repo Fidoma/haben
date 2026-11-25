@@ -41,17 +41,19 @@ export async function planDatevContactImport(q: Db | Tx, rows: readonly DatevGpR
 }
 
 /**
- * Neue Kontakte anlegen und bestätigten Vorschlägen die Nummer geben, mit der Rolle dazu (ein Debitor macht zum Kunden,
+ * Neue Kontakte anlegen, dazu Vorschläge über den Namen, die die Vorschau als neuen Kontakt gewählt hat (`createNew`),
+ * und bestätigten Vorschlägen die Nummer geben, mit der Rolle dazu (ein Debitor macht zum Kunden,
  * ein Kreditor zum Lieferanten). Nur leere Nummern werden gesetzt; die Version erhöht der Trigger wie bei jeder Änderung.
  */
 export async function applyDatevContactImport(
   tx: Tx,
   plan: readonly DatevContactImportPlan[],
   confirmed: ReadonlySet<number>,
+  createNew: ReadonlySet<number> = new Set(),
 ): Promise<{ created: number; assigned: number }> {
   const created = await insertImportedContacts(
     tx,
-    plan.flatMap((p) => (p.status === "neu" ? [p.value] : [])),
+    plan.flatMap((p) => (p.status === "neu" ? [p.value] : p.status === "zuordnen" && p.orNew && createNew.has(p.line) ? [p.orNew] : [])),
   );
   let assigned = 0;
   for (const p of plan) {

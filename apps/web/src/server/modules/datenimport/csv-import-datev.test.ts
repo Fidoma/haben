@@ -142,8 +142,17 @@ describe.skipIf(!testDatabaseUrl)("CSV-Import: Kontakte aus DATEV-Stammdaten (Po
     const preview = await csv.previewCsvImport(datei, options());
     expect(preview.counts).toEqual({ neu: 0, zuordnen: 1, dublette: 0, fehler: 0 });
     expect(preview.rows).toEqual([
-      { line: 3, lines: [3], title: "Müller & Söhne GmbH", status: "zuordnen", message: "Debitor 10001 an „Müller GmbH“ vergeben (gleiche USt-IdNr.)" },
+      {
+        line: 3,
+        lines: [3],
+        title: "Müller & Söhne GmbH",
+        status: "zuordnen",
+        message: "Debitor 10001 an „Müller GmbH“ vergeben (gleiche USt-IdNr.)",
+        canCreate: false,
+      },
     ]);
+    // Neu anlegen gibt es nur bei gleichem Namen allein
+    await expect(csv.runCsvImport(actor, datei, options({ createNew: [3] }))).rejects.toThrow("Nichts zu übernehmen");
     // Ohne Bestätigung legt der Import weder einen zweiten Kontakt an noch vergibt er die Nummer
     await expect(csv.runCsvImport(actor, datei, options())).rejects.toThrow("Nichts zu übernehmen");
     expect(await csv.runCsvImport(actor, datei, options({ confirm: [3] }))).toEqual({ created: 0, assigned: 1, duplicates: 0, failed: 0, unconfirmed: 0 });
@@ -154,6 +163,50 @@ describe.skipIf(!testDatabaseUrl)("CSV-Import: Kontakte aus DATEV-Stammdaten (Po
     const versions = await sql`select version from contact_versions where contact_id = ${bestand!.id} order by version`;
     expect(versions.map((v) => v.version)).toEqual([1, 2]);
     expect((await csv.previewCsvImport(datei, options())).rows.map((r) => r.status)).toEqual(["dublette"]);
+  });
+
+  it("gleicher Name: Vorschlag an den einen Kontakt ohne Nummer; zuordnen, neu anlegen oder überspringen", async () => {
+    const [papier] = await sql`insert into contacts (name, land, ort) values ('Papierwerk Süd AG', 'DE', 'Stuttgart') returning id`;
+    await sql`insert into contacts (name, land, debitor_nr) values ('Agentur Blau GmbH', 'DE', 10050)`;
+    const datei = gpStamm(firma("70001", "Papierwerk Süd AG", { Ort: "Stuttgart" }), firma("10001", "Agentur Blau GmbH"), firma("70002", "Papierwerk Süd AG"));
+    const preview = await csv.previewCsvImport(datei, options());
+    expect(preview.rows.map((r) => [r.line, r.status, r.message, r.canCreate])).toEqual([
+      [3, "zuordnen", "Kreditor 70001 an „Papierwerk Süd AG“ vergeben (gleicher Name)", true],
+      [4, "neu", "Gleicher Name wie „Agentur Blau GmbH“ in Haben, der Debitor 10050 hat; eigener Kontakt", false],
+      [
+        5,
+        "neu",
+        "Gleicher Name wie „Papierwerk Süd AG“ in Haben, dem schon Zeile 3 vorgeschlagen ist; eigener Kontakt; Gleicher Name wie Zeile 3; ohne gleiche USt-IdNr. oder Steuernummer ein eigener Kontakt",
+        false,
+      ],
+    ]);
+    // Beides für dieselbe Zeile ist ein Bedienfehler
+    await expect(csv.runCsvImport(actor, datei, options({ confirm: [3], createNew: [3] }))).rejects.toThrow("Zeile 3");
+    // Ohne Wahl übersprungen: nur die beiden neuen Kontakte, Papierwerk unverändert
+    expect(await csv.runCsvImport(actor, datei, options())).toEqual({ created: 2, assigned: 0, duplicates: 0, failed: 0, unconfirmed: 1 });
+    const [unverändert] = await sql`select kreditor_nr, version from contacts where id = ${papier!.id}`;
+    expect({ ...unverändert }).toEqual({ kreditor_nr: null, version: 1 });
+  });
+
+  it("gleicher Name: neu anlegen statt zuordnen legt einen zweiten Kontakt mit der Nummer an", async () => {
+    const [papier] = await sql`insert into contacts (name, land) values ('Papierwerk Süd AG', 'DE') returning id`;
+    const datei = gpStamm(firma("70001", "Papierwerk Süd AG", { Ort: "Ulm" }));
+    expect(await csv.runCsvImport(actor, datei, options({ createNew: [3] }))).toEqual({ created: 1, assigned: 0, duplicates: 0, failed: 0, unconfirmed: 0 });
+    const rows = await sql`select id, kreditor_nr, ort, is_supplier from contacts where name = 'Papierwerk Süd AG' order by kreditor_nr nulls first`;
+    expect(rows.map((r) => ({ ...r }))).toEqual([
+      { id: papier!.id, kreditor_nr: null, ort: "", is_supplier: false },
+      { id: expect.any(String), kreditor_nr: 70001, ort: "Ulm", is_supplier: true },
+    ]);
+    // Danach ist die Nummer vergeben: ein zweiter Import ändert nichts
+    expect((await csv.previewCsvImport(datei, options())).rows.map((r) => r.status)).toEqual(["dublette"]);
+  });
+
+  it("gleicher Name: zuordnen gibt dem vorhandenen Kontakt die Nummer und die Rolle", async () => {
+    const [papier] = await sql`insert into contacts (name, land, is_customer, is_supplier) values ('Papierwerk Süd AG', 'DE', true, false) returning id`;
+    const datei = gpStamm(firma("70001", "Papierwerk Süd AG"));
+    expect(await csv.runCsvImport(actor, datei, options({ confirm: [3] }))).toEqual({ created: 0, assigned: 1, duplicates: 0, failed: 0, unconfirmed: 0 });
+    const rows = await sql`select id, kreditor_nr, is_customer, is_supplier from contacts`;
+    expect(rows.map((r) => ({ ...r }))).toEqual([{ id: papier!.id, kreditor_nr: 70001, is_customer: true, is_supplier: true }]);
   });
 
   it("lehnt einen GP-Stamm unter Artikeln ab und nennt den Grund einer anderen Sachkontenlänge", async () => {

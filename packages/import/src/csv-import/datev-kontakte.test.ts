@@ -151,10 +151,78 @@ describe("datevContactCandidates", () => {
 });
 
 describe("planDatevContacts", () => {
-  it("legt neue Partner an, mit Hinweis bei gleichem Namen wie ein Kontakt in Haben", () => {
-    expect(plan([gp(3, { nr: 10001, name: "Müller GmbH" }), gp(4, { nr: 70001, name: "Papier AG" })], [stock({ name: "papier ag" })])).toEqual([
-      [[3], "neu", null],
-      [[4], "neu", "Gleicher Name wie „papier ag“ in Haben; eigener Kontakt"],
+  it("legt neue Partner an", () => {
+    expect(plan([gp(3, { nr: 10001, name: "Müller GmbH" })], [stock({ name: "Papier AG" })])).toEqual([[[3], "neu", null]]);
+  });
+
+  it("schlägt einem einzigen gleichnamigen Kontakt ohne Nummer für die Rolle die Nummer vor; wahlweise wird er ein neuer Kontakt", () => {
+    const planned = planDatevContacts(datevContactCandidates([gp(4, { nr: 70001, name: "Papier AG", ort: "Stuttgart" })]), [
+      stock({ id: "p", name: "papier ag", debitorNr: 10007 }),
+    ]);
+    expect(planned).toEqual([
+      expect.objectContaining({
+        lines: [4],
+        status: "zuordnen",
+        message: "Kreditor 70001 an „papier ag“ vergeben (gleicher Name)",
+        assign: { contactId: "p", debitorNr: null, kreditorNr: 70001 },
+        orNew: expect.objectContaining({ name: "Papier AG", ort: "Stuttgart", kreditorNr: 70001 }),
+      }),
+    ]);
+  });
+
+  it("macht bei gleichem Namen keinen Vorschlag, wenn Nummer, USt-IdNr. oder die Zahl der Treffer dagegen sprechen", () => {
+    const contacts = [
+      stock({ id: "a", name: "Agentur Blau GmbH", debitorNr: 10050 }),
+      stock({ id: "b", name: "Druck AG", ustId: "DE111111125" }),
+      stock({ id: "c", name: "Doppelt KG" }),
+      stock({ id: "d", name: "Doppelt KG" }),
+      stock({ id: "e", name: "Einmal GmbH" }),
+    ];
+    expect(
+      plan(
+        [
+          gp(3, { nr: 10001, name: "Agentur Blau GmbH" }),
+          gp(4, { nr: 10002, name: "Druck AG", ustId: "DE136695976" }),
+          gp(5, { nr: 10003, name: "Doppelt KG" }),
+          gp(6, { nr: 10004, name: "Einmal GmbH" }),
+          gp(7, { nr: 70004, name: "Einmal GmbH" }),
+        ],
+        contacts,
+      ),
+    ).toEqual([
+      [[3], "neu", "Gleicher Name wie „Agentur Blau GmbH“ in Haben, der Debitor 10050 hat; eigener Kontakt"],
+      [[4], "neu", "Gleicher Name wie „Druck AG“ in Haben, aber andere USt-IdNr. (DE111111125); eigener Kontakt"],
+      [[5], "neu", "Gleicher Name wie mehrere Kontakte in Haben („Doppelt KG“, „Doppelt KG“); eigener Kontakt"],
+      [[6], "zuordnen", "Debitor 10004 an „Einmal GmbH“ vergeben (gleicher Name)"],
+      [
+        [7],
+        "neu",
+        "Gleicher Name wie „Einmal GmbH“ in Haben, dem schon Zeile 6 vorgeschlagen ist; eigener Kontakt; Gleicher Name wie Zeile 6; ohne gleiche USt-IdNr. oder Steuernummer ein eigener Kontakt",
+      ],
+    ]);
+  });
+
+  it("bietet bei Vorschlägen über USt-IdNr. und Kundennummer keinen neuen Kontakt an", () => {
+    const planned = planDatevContacts(datevContactCandidates([gp(3, { nr: 10001, name: "Müller", ustId: "DE136695976" })]), [
+      stock({ id: "a", name: "Müller GmbH", ustId: "DE136695976" }),
+    ]);
+    expect(planned).toEqual([expect.objectContaining({ status: "zuordnen", orNew: null })]);
+  });
+
+  it("lässt einen Vorschlag über den Namen einem späteren über die USt-IdNr. an denselben Kontakt den Vortritt", () => {
+    // Zeile 3 passt nur über den Namen, Zeile 4 über die USt-IdNr.; ohne Vorschlag über den Namen war 3 neu und 4 ein Vorschlag
+    expect(
+      plan(
+        [gp(3, { nr: 10001, name: "Müller GmbH" }), gp(4, { nr: 70001, name: "Müller GmbH", ustId: "DE136695976" })],
+        [stock({ id: "m", name: "Müller GmbH", ustId: "DE136695976" })],
+      ),
+    ).toEqual([
+      [[3], "neu", "Gleicher Name wie „Müller GmbH“ in Haben, dem schon Zeile 4 vorgeschlagen ist; eigener Kontakt"],
+      [
+        [4],
+        "zuordnen",
+        "Kreditor 70001 an „Müller GmbH“ vergeben (gleiche USt-IdNr.); Gleicher Name wie Zeile 3; ohne gleiche USt-IdNr. oder Steuernummer ein eigener Kontakt",
+      ],
     ]);
   });
 

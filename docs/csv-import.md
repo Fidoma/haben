@@ -54,7 +54,7 @@ Haben legt nichts doppelt an und überschreibt nichts:
 | Art | Wiedererkannt an |
 | --- | --- |
 | Kontakte | Kundennummer, Lieferantennummer, Debitor, Kreditor, jeder E-Mail-Adresse, USt-IdNr. oder Name (Groß- und Kleinschreibung egal) |
-| Kontakte aus DATEV | Debitor oder Kreditor, nicht am Namen ([Kontakte aus DATEV](#kontakte-aus-datev)) |
+| Kontakte aus DATEV | Debitor oder Kreditor; am Namen nur als Vorschlag ([Kontakte aus DATEV](#kontakte-aus-datev)) |
 | Artikel | Artikelnummer; eine Zeile ohne Nummer an der Bezeichnung, auch gegen einen Artikel mit Nummer |
 | Anlagen | Bezeichnung, Anschaffungsdatum und Anschaffungskosten zusammen |
 
@@ -105,7 +105,7 @@ Wiedererkannt wird ein Kontakt am Personenkonto, nicht am Namen:
 
 - **Zweiter Import:** Trägt ein Kontakt schon alle Personenkonten des Partners, ist die Zeile eine Dublette, auch wenn sich der Name geändert hat. Derselbe Import ein zweites Mal ändert nichts.
 - **Debitor und Kreditor eines Partners:** Haben sie dieselbe USt-IdNr. oder Steuernummer, wird daraus ein Kontakt mit beiden Rollen; die Vorschau zeigt beide Zeilen. Leere Felder des Debitors füllt der Kreditor, die Anschrift aber nur ganz: Straße, PLZ, Ort und Land kommen aus derselben Zeile.
-- **Gleicher Name allein** führt nicht zusammen, denn zwei Kunden dürfen gleich heißen: Die Zeile wird ein eigener Kontakt, die Vorschau nennt den gleichnamigen.
+- **Gleicher Name allein** führt nie still zusammen, denn zwei Kunden dürfen gleich heißen. Heißt genau ein Kontakt in Haben so, fehlt ihm die Nummer für die Rolle und widerspricht seine USt-IdNr. nicht, zeigt die Vorschau einen Vorschlag mit drei Wegen: **Zuordnen** gibt ihm die Nummer, **Neu anlegen** legt die Zeile als eigenen Kontakt an, **Überspringen** (vorgewählt) übernimmt nichts. Hat der gleichnamige Kontakt für die Rolle schon eine andere Nummer oder eine andere USt-IdNr., ist er schon einer früheren Zeile vorgeschlagen, schlägt ihn eine andere Zeile über USt-IdNr., Kundennummer oder Personenkonto vor (das geht vor, auch aus einer späteren Zeile) oder heißen mehrere so, wird die Zeile ein eigener Kontakt mit Hinweis.
 - **Vorhandener Kontakt ohne Personenkonto für die Rolle,** mit gleicher USt-IdNr. oder Kundennummer oder mit dem anderen Personenkonto desselben Partners: Die Vorschau zeigt einen Vorschlag. Die Nummer bekommt der Kontakt nur, wenn du ihn mit **Bestätigen** annimmst; er wird dabei Kunde bzw. Lieferant, sonst ändert sich nichts an ihm. Ohne Bestätigung überspringt Haben die Zeile und legt keinen zweiten Kontakt an.
 - **Fehler:** Trägt ein Kontakt mit anderer USt-IdNr. die Nummer oder dieselbe Kundennummer schon, hat der passende Kontakt für diese Rolle eine andere Nummer oder passen mehrere Kontakte, übernimmt Haben die Zeile nicht. Eine Nummer, die schon in einem DATEV-Export stand, bleibt fest.
 

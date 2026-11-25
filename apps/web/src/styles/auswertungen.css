@@ -94,6 +94,9 @@
 /* Ziel eines Links auf eine Buchung (BWA → Kontenblatt, #1635) */
 .report-table tr[aria-current] > td { background: var(--accent-soft); }
 
+/* Vorschau des CSV-Imports: Status in der letzten Spalte, 12px mehr Abstand zur Spalte davor (DESIGN.md, Status) */
+.csv-preview .csv-status { padding-left: 20px; white-space: nowrap; }
+
 /* Schmale Bildschirme: Tabellenzeilen als Karten */
 @media (max-width: 720px) {
   .stack-table thead { display: none; }
@@ -108,6 +111,13 @@
   .stack-table td:empty { display: none; }
   .stack-table tr[aria-current] { background: var(--accent-soft); border-radius: 8px; margin-inline: -8px; padding-inline: 8px; width: calc(100% + 16px); }
   .stack-table .group-row, .stack-table .subtotal-row { padding: 6px 0; }
+  /* Vorschau des CSV-Imports: Zeile, Kontakt und Status oben, Hinweis und Auswahl darunter über die ganze Breite */
+  .csv-preview tr { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; column-gap: 12px; align-items: first baseline; }
+  .csv-preview td.num::before { content: "Zeile "; color: var(--muted); }
+  /* Status oben rechts wie am Desktop am Ende der Zeile (DESIGN.md, Status), der Hinweis darunter */
+  .csv-preview td.csv-status { grid-column: 3; grid-row: 1; padding-left: 0 !important; }
+  .csv-preview td.csv-status .status-urgent:not(.status-inline) .status-label { margin-left: 0; margin-right: -8px; }
+  .csv-preview td:nth-child(3) { grid-column: 1 / -1; grid-row: 2; }
 }
 
 @media (max-width: 720px) {

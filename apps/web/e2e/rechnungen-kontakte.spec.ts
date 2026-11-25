@@ -1232,6 +1232,51 @@ test("CSV-Import: Bei mehr als 200 Zeilen bleibt jeder Vorschlag aus DATEV-Stamm
   }
 });
 
+test("CSV-Import: Bei gleichem Namen wählt die Vorschau zuordnen, neu anlegen oder überspringen (#472)", async ({ browser }) => {
+  // Rheinpixel GmbH (Einrichtung) und Weinhaus Ahr GmbH (CSV-Import) stehen ohne Kreditor in Haben; der GP-Stamm nennt sie mit Kreditor
+  const spalten = readFileSync(new URL("../../../packages/import/test-fixtures/sevdesk/buchhaltung-2.0/extf-gp-stamm.csv", import.meta.url), "utf-8")
+    .split(/\r?\n/)[1]!
+    .split(";");
+  const zeile = (werte: Record<string, string>) => spalten.map((name) => werte[name] ?? "").join(";");
+  const gpStamm = [
+    `"EXTF";700;16;"Debitoren/Kreditoren";5;;;;;;1;1;${YEAR}0101;4;;;;;;;;;;;;;;;;;`,
+    spalten.join(";"),
+    zeile({ Konto: "70911", "Name (Adressatentyp Unternehmen)": "Rheinpixel GmbH" }),
+    zeile({ Konto: "70912", "Name (Adressatentyp Unternehmen)": "Weinhaus Ahr GmbH", Ort: "Ahrweiler" }),
+    zeile({ Konto: "70913", "Name (Adressatentyp Unternehmen)": "Nordwerk Software GmbH" }),
+  ].join("\r\n");
+  const datei = [{ name: `EXTF_GP_Stamm_${YEAR}.csv`, mimeType: "text/csv", buffer: Buffer.from(gpStamm) }];
+  await go("/csv-import?art=kontakte");
+  await page.getByLabel("CSV-Datei").setInputFiles(datei);
+  await page.getByRole("button", { name: "Vorschau" }).click();
+  const preview = page.getByRole("region", { name: "Vorschau" });
+  await expect(preview).toContainText("0 neu, 3 Vorschläge zum Bestätigen");
+  await expect(preview).toContainText("Kreditor 70911 an „Rheinpixel GmbH“ vergeben (gleicher Name)");
+  const wahl = (name: string) => preview.getByRole("group", { name: `Gleicher Name: ${name}` });
+  await expect(wahl("Rheinpixel GmbH").getByRole("radio", { name: "Überspringen" })).toBeChecked();
+  await expect(preview.getByRole("checkbox", { name: "Bestätigen" })).toHaveCount(0);
+  // Barrierefreiheit mit den Optionsfeldern in der Tabelle, in eigenem Kontext wie in den Tests davor
+  const context = await browser.newContext({ storageState: await page.context().storageState() });
+  const axePage = await context.newPage();
+  await axePage.goto(new URL("/csv-import?art=kontakte", page.url()).toString());
+  await axePage.getByLabel("CSV-Datei").setInputFiles(datei);
+  await axePage.getByRole("button", { name: "Vorschau" }).click();
+  await expect(axePage.getByRole("radio", { name: "Neu anlegen" }).first()).toBeVisible();
+  expect(await axeVerstoesse(axePage)).toEqual([]);
+  await context.close();
+  await wahl("Rheinpixel GmbH").getByRole("radio", { name: "Zuordnen" }).check();
+  await wahl("Weinhaus Ahr GmbH").getByRole("radio", { name: "Neu anlegen" }).check();
+  await preview.getByRole("button", { name: "2 Kontakte übernehmen" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "übernommen" })).toHaveText(
+    "1 Kontakt übernommen, 1 Personenkonto zugeordnet, 1 nicht bestätigter Vorschlag übersprungen.",
+  );
+  // Danach stehen beide Nummern an einem Kontakt; Nordwerk bleibt ein Vorschlag
+  await page.getByRole("button", { name: "Vorschau" }).click();
+  await expect(preview).toContainText("0 neu, 1 Vorschlag zum Bestätigen, 2 Dubletten, 0 mit Fehlern");
+  await go("/kontakte");
+  await expect(page.getByRole("region", { name: "Kontaktliste" }).getByText("Weinhaus Ahr GmbH")).toHaveCount(2);
+});
+
 test("Seiten mit den Daten dieses Abschnitts ohne axe-Verstöße", async () => {
   await ohneAxeVerstoesse(page, ["/kontakte", "/rechnungen", "/anlagen", "/einstellungen?bereich=ki"]);
 });

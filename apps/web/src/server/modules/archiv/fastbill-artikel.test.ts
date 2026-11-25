@@ -82,6 +82,7 @@ describe.skipIf(!testDatabaseUrl)("Artikel aus FastBill (Postgres)", () => {
       mapping: null,
       stichtag: null,
       confirm: [],
+      createNew: [],
     });
 
   it("verlangt hinterlegte Zugangsdaten", async () => {
