@@ -56,8 +56,7 @@ function createServer(access: McpAccess): McpServer {
       const started = performance.now();
       let ok = false;
       try {
-        // Jede Logzeile des Werkzeugs trägt den Bereich mcp (log-kontext.ts)
-        const result = await withLogComponent("mcp", () => tool.run(args as never, todayContext()));
+        const result = await tool.run(args as never, todayContext());
         ok = true;
         return { text: JSON.stringify(result) };
       } catch (error) {
@@ -75,7 +74,12 @@ function createServer(access: McpAccess): McpServer {
  * Eine Anfrage an /api/mcp (Streamable HTTP, zustandslos): Zugang prüfen, Rate begrenzen, dann ein frischer MCP-Server
  * für genau diese Anfrage. Ist der Zugang ausgeschaltet, sieht der Endpunkt aus wie jedes unbekannte Token (401).
  */
-export async function handleMcpRequest(request: Request): Promise<Response> {
+export function handleMcpRequest(request: Request): Promise<Response> {
+  // Jede Logzeile der Anfrage trägt den Bereich mcp (log-kontext.ts), auch die eines unerwarteten Fehlers
+  return withLogComponent("mcp", () => beantworten(request));
+}
+
+async function beantworten(request: Request): Promise<Response> {
   if (request.method !== "POST") return jsonError(405, "Nur POST; dieser Server hält keine Sitzungen.", { Allow: "POST" });
   const access = await authenticateMcp(request);
   if (!access)

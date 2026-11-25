@@ -1,6 +1,7 @@
 import { unzipSync } from "fflate";
 import type postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { captureLog } from "../../log.ts";
 import { setupTestDb, testDatabaseUrl } from "../../test-db.ts";
 
 /*
@@ -124,6 +125,19 @@ describe.skipIf(!testDatabaseUrl)("Zugang der Steuerberatung (Postgres)", () => 
     await expect(
       sql`insert into invitations (token_hash, role, label, created_by, expires_at) values ('h', 'inhaber', 'x', ${ownerId}, now())`,
     ).rejects.toThrow(/invitations_role/);
+  });
+
+  it("die Middleware schreibt einen unerwarteten Fehler mit seiner Fehler-ID unter server ins Log (#1860)", async () => {
+    const { lines, restore } = captureLog("error");
+    try {
+      const result = await call(middleware.authMiddleware, ownerCookie, async () => {
+        throw new Error("kaputt");
+      });
+      expect(lines).toEqual([expect.objectContaining({ component: "server", msg: "Unerwarteter Fehler in einer Server Function" })]);
+      expect(result).toMatchObject({ ok: false, message: `Interner Fehler (Fehler-ID ${lines[0]!.errorId}). Details stehen im Server-Log.` });
+    } finally {
+      restore();
+    }
   });
 
   it("die Middleware lässt die Steuerberatung nur lesen; jede Änderung wird auch innerhalb einer lesenden Funktion abgelehnt", async () => {

@@ -711,7 +711,7 @@ export const MCP_TOOLS: McpTool[] = [
     input: { id: z.uuid() },
     run: async ({ id }) => {
       const detail = await orderDocumentDetail(id);
-      if (!detail) throw new Error("Archivdokument nicht gefunden.");
+      if (!detail) throw new McpError("Archivdokument nicht gefunden.");
       return { ...detail, link: link(`/archiv/auftrag/${id}`) };
     },
   }),

@@ -1,5 +1,6 @@
 import type postgres from "postgres";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { captureLog } from "../../log.ts";
 import { leeren, setupTestDb, testDatabaseUrl } from "../../test-db.ts";
 import { kleinunternehmerStand } from "../auswertungen/test-umsatz-stand.ts";
 
@@ -71,6 +72,22 @@ describe.skipIf(!testDatabaseUrl)("REST-API /api/v1 (Postgres)", () => {
     issueDate: `${year}-03-02`,
     lines: [{ description: "Keramikbecher handgemacht", quantity: 2000, unit: "Stk.", unitPrice: 2_400, taxRate: 1900 }],
     ...extra,
+  });
+
+  it("schreibt einen unerwarteten Fehler mit seiner Fehler-ID unter api ins Log (#1860)", async () => {
+    const { API_ROUTES } = await import("./routes.ts");
+    const t = await token(["kontakte:lesen"]);
+    const endpunkt = vi.spyOn(API_ROUTES.find((r) => r.method === "GET" && r.path === "/kontakte")!, "handler").mockRejectedValue(new Error("kaputt"));
+    const { lines, restore } = captureLog("error");
+    try {
+      const response = await call(t, "GET", "/kontakte");
+      expect(response.status).toBe(500);
+      expect(lines).toEqual([expect.objectContaining({ component: "api", msg: "Unerwarteter Fehler in der REST-API" })]);
+      expect(response.json!.error!.message).toBe(`Interner Fehler (Fehler-ID ${lines[0]!.errorId}). Details stehen im Server-Log.`);
+    } finally {
+      restore();
+      endpunkt.mockRestore();
+    }
   });
 
   describe("Wiederkehrende Rechnungen", () => {

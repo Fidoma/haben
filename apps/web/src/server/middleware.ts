@@ -33,18 +33,20 @@ function toClientError(error: unknown): unknown {
  * mit Audit-Akteur wird dann abgelehnt, auch wenn eine lesende Funktion aus Versehen etwas schreibt.
  */
 function withAccess(zugriff: Zugriff) {
-  return createMiddleware({ type: "function" }).server(async ({ next }) => {
-    try {
-      const user = await sessionUser(getRequestHeaders());
-      if (!user) throw new UnauthorizedError();
-      if (!darf(user.role, zugriff)) throw new ForbiddenError();
-      // Jede Logzeile der Server Function trägt den Bereich server (log-kontext.ts)
-      const run = () => withLogComponent("server", () => next({ context: { user } }));
-      return await (user.role === "inhaber" ? run() : runReadOnly(run));
-    } catch (error) {
-      throw toClientError(error);
-    }
-  });
+  return createMiddleware({ type: "function" }).server(({ next }) =>
+    // Jede Logzeile der Server Function trägt den Bereich server (log-kontext.ts), auch die eines unerwarteten Fehlers
+    withLogComponent("server", async () => {
+      try {
+        const user = await sessionUser(getRequestHeaders());
+        if (!user) throw new UnauthorizedError();
+        if (!darf(user.role, zugriff)) throw new ForbiddenError();
+        const run = () => next({ context: { user } });
+        return await (user.role === "inhaber" ? run() : runReadOnly(run));
+      } catch (error) {
+        throw toClientError(error);
+      }
+    }),
+  );
 }
 
 /**

@@ -116,8 +116,7 @@ function readBody(route: ApiRoute, request: Request): Promise<{ body: unknown } 
 
 async function runHandler(route: ApiRoute, request: ApiRequest): Promise<ApiResult> {
   try {
-    // Jede Logzeile des Handlers trägt den Bereich api (log-kontext.ts)
-    return await withLogComponent("api", () => route.handler(request));
+    return await route.handler(request);
   } catch (error) {
     // Fachliche Ablehnung aus dem Modul oder einem Trigger: Meldung weitergeben, sonst nur ins Server-Log
     const message = userMessage(error);
@@ -186,6 +185,7 @@ async function dispatch(request: Request): Promise<ApiResult> {
 }
 
 /** Eine Anfrage an /api/v1/… */
-export async function handleApiRequest(request: Request): Promise<Response> {
-  return toResponse(await dispatch(request));
+export function handleApiRequest(request: Request): Promise<Response> {
+  // Jede Logzeile der Anfrage trägt den Bereich api (log-kontext.ts), auch die eines unerwarteten Fehlers
+  return withLogComponent("api", async () => toResponse(await dispatch(request)));
 }
