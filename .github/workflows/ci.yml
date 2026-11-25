@@ -461,9 +461,11 @@ jobs:
           docker tag haben:ci tristanteu/haben:latest
           bun deploy/instanzen/haben-instanzen.ts neu firma1 firma1.haben.test
           # Die zweite Instanz baut den gemeinsamen Caddy nicht neu auf (#1013): derselbe Container, und er antwortet für
-          # firma1 durchgehend. Ohne Zertifikat leitet er HTTP auf HTTPS um (308); 000 hieße: keine Verbindung
+          # firma1 durchgehend. Ohne Zertifikat leitet er HTTP auf HTTPS um (308); 000 hieße: keine Verbindung.
+          # `|| true`: Die Schleife erbt `bash -e`; ohne es beendet ein einziger Timeout sie still, und `kill` scheitert,
+          # statt dass die 000 unten in der Auswertung als Aussetzer auffällt
           caddy_id="$(cd "$HABEN_INSTANZEN/proxy" && docker compose ps -q caddy)"
-          (set +x; while :; do curl -s -o /dev/null -m 2 -w '%{http_code}\n' -H 'Host: firma1.haben.test' http://127.0.0.1/; sleep 0.1; done) > "$RUNNER_TEMP/antworten.txt" &
+          (set +x; while :; do curl -s -o /dev/null -m 2 -w '%{http_code}\n' -H 'Host: firma1.haben.test' http://127.0.0.1/ || true; sleep 0.1; done) > "$RUNNER_TEMP/antworten.txt" &
           schleife=$!
           bun deploy/instanzen/haben-instanzen.ts neu firma2 firma2.haben.test
           kill "$schleife"
