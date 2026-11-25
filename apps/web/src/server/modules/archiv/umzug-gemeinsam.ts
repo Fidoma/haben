@@ -1,12 +1,11 @@
-import { INTERNAL_ERROR, UserError, userMessage } from "../../errors.ts";
+import { reportInternalError, UserError, userMessage } from "../../errors.ts";
 import type { LegacyVoucher } from "@haben/import";
 import { sniff } from "../../storage.ts";
 
 export class LexofficeError extends UserError {}
 export function progressMessage(error: unknown): string {
   const message = userMessage(error);
-  if (message === undefined) console.error("Lexoffice-Abruf", error);
-  return message ?? INTERNAL_ERROR;
+  return message ?? reportInternalError("Lexoffice-Abruf", error);
 }
 export function fallbackName(voucher: Pick<LegacyVoucher, "number" | "lexofficeId">, role: "pdf" | "xml" | "anhang", bytes: Uint8Array): string {
   const base = (voucher.number || voucher.lexofficeId).replace(/[^\w.-]+/g, "_");

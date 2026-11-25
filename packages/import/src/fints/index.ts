@@ -16,3 +16,4 @@ export {
   type FintsZugang,
 } from "./sitzung.ts";
 export type { BankAccount as FintsKonto, BankingInformation as FintsBankdaten, FinTSClient as FintsClient } from "lib-fints";
+export { ohneBankdaten } from "./log.ts";

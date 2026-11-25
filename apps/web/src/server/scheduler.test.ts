@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { captureLog, configureLog } from "./log.ts";
 
 // Die Module selbst testen ihre Tests; hier zählt nur, wer auf wen wartet
 const jobs = vi.hoisted(() => ({
@@ -63,6 +64,33 @@ describe("Scheduler", () => {
     jobs.runDueUstIdPruefung.mockResolvedValue(null);
     jobs.runDueFristenMails.mockResolvedValue(null);
     scheduler = await import("./scheduler.ts");
+  });
+
+  it("meldet bei debug Start, Dauer und Ergebnis jedes Jobs unter seinem Namen, auch ohne Ergebnis; bei info nichts davon (#1860)", async () => {
+    jobs.runDueFileCheck.mockResolvedValue(null);
+    const debug = captureLog("debug");
+    try {
+      await scheduler.runScheduledJobs();
+      await vi.waitFor(() => expect(debug.lines.some((z) => z.component === "audit_checksum_mail" && z.durationMs !== undefined)).toBe(true));
+    } finally {
+      debug.restore();
+    }
+    const ende = debug.lines.filter((z) => z.level === "debug" && typeof z.durationMs === "number");
+    const { JOBS } = await import("./metriken.ts");
+    expect(new Set(ende.map((z) => z.component))).toEqual(new Set(JOBS));
+    // Der Kontoabruf ohne fällige Verbindung hat nichts zu melden, läuft aber sichtbar
+    expect(ende.find((z) => z.component === "bank_sync")).toMatchObject({ msg: "Kontoabruf: fertig", ok: true });
+    expect(debug.lines.find((z) => z.component === "bank_sync" && z.msg === "Kontoabruf: gestartet")).toBeDefined();
+
+    const info = captureLog("info");
+    try {
+      // runScheduledJobs wartet auf alle stündlichen Jobs
+      await scheduler.runScheduledJobs();
+    } finally {
+      info.restore();
+      configureLog();
+    }
+    expect(info.lines.filter((z) => z.level === "debug")).toEqual([]);
   });
 
   it("bestätigt die USt-IdNrn. vor der Fristen-Erinnerung und erinnert auch nach einem Fehler dabei", async () => {

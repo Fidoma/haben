@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { parseOrigin } from "@haben/core";
 import { parseFirmen } from "../lib/firmen.ts";
+import { LOG_FORMATS, LOG_LEVELS } from "../lib/log-werte.ts";
 
 const envSchema = z
   .object({
@@ -33,6 +34,10 @@ const envSchema = z
     ERIC_HOME: z.string().optional(),
     /** Commit, aus dem das Image gebaut ist; setzt das Containerfile aus dem gleichnamigen Build-Argument */
     HABEN_COMMIT: z.string().optional(),
+    /** Ab welcher Stufe der Serverprozess schreibt (#1860); debug meldet jeden Lauf der Hintergrundjobs mit Dauer */
+    HABEN_LOG_LEVEL: z.enum(LOG_LEVELS).default("info"),
+    /** text: lesbare Zeilen, wie bisher mit console.*; json: ein Objekt je Zeile mit time, level, component und msg (#1860) */
+    HABEN_LOG_FORMAT: z.enum(LOG_FORMATS).default("text"),
     /** Bearer-Token für GET /api/metrics (#1858); ohne ihn gibt es den Endpunkt nicht. Getrimmt wie credentials_file in Prometheus, etwa für ein Secret mit Zeilenumbruch */
     HABEN_METRICS_TOKEN: z.string().trim().min(32, "mindestens 32 Zeichen, z. B. openssl rand -hex 32").optional(),
     ERIC_LOG_DIR: z.string().optional(),

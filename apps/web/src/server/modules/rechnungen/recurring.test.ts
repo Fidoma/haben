@@ -1,5 +1,4 @@
 import type { Recurrence } from "@haben/core";
-import { INTERNAL_ERROR } from "../../errors.ts";
 import type postgres from "postgres";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { leeren, setupTestDb, testDatabaseUrl } from "../../test-db.ts";
@@ -194,9 +193,13 @@ describe.skipIf(!testDatabaseUrl)("Wiederkehrende Rechnungen (Postgres)", () => 
     await recurring.createRecurring(actor, template({ name: "Heil", nextDate: "2026-10-01" }));
     const result = await recurring.runDueRecurring("2026-10-02", kleinunternehmerStand);
     expect(result.created).toBe(1);
-    expect(result.errors).toEqual([`Kaputt: ${INTERNAL_ERROR}`]);
+    // „Interner Fehler“ mit der Fehler-ID der Zeile im Log, damit der Betreiber sie findet (#1860)
+    const intern = /^Interner Fehler \(Fehler-ID [0-9a-f]{8}\)\. Details stehen im Server-Log\.$/;
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]!.replace(/^Kaputt: /, "")).toMatch(intern);
     const [after] = await sql`select last_error, next_date::text from recurring_invoices where id = ${broken.id}`;
-    expect(after).toEqual({ last_error: INTERNAL_ERROR, next_date: "2026-10-01" });
+    expect(after).toMatchObject({ next_date: "2026-10-01" });
+    expect(after?.last_error).toBe(result.errors[0]!.replace(/^Kaputt: /, ""));
   });
 
   it("zwei gleichzeitige Läufe legen jeden Termin nur einmal an", async () => {

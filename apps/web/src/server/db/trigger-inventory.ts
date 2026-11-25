@@ -169,10 +169,14 @@ export async function checkTriggerIntegrity(reader: Reader): Promise<{ problems:
   return { problems, hints };
 }
 
-/** Eine Zeile beim Start; Befunde verhindern den Betrieb nicht und werden niemals automatisch repariert. */
-export async function logTriggerIntegrity(reader: Reader, write: (line: string) => void = console.info): Promise<void> {
+/**
+ * Eine Zeile beim Start; Befunde verhindern den Betrieb nicht und werden niemals automatisch repariert. `write` bekommt mit,
+ * ob es Befunde gibt, damit der Logger sie als Warnung schreibt (plugins/trigger-integrity.ts).
+ */
+export async function logTriggerIntegrity(reader: Reader, write: (line: string, befunde: boolean) => void): Promise<void> {
   const result = await checkTriggerIntegrity(reader);
   write(
     `Sperrtrigger: ${result.problems.length} Befunde, ${result.hints.length} Hinweise${result.problems.length + result.hints.length === 0 ? "" : `; ${[...result.problems.map((p) => `${p.tabelle}: ${p.befund}`), ...result.hints].join("; ")}`}`,
+    result.problems.length > 0,
   );
 }

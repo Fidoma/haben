@@ -5,6 +5,7 @@ import { erklaerteAbweichungsZeilen } from "./modules/jahreserklaerung/index.ts"
 import { runDueBankSyncs, runDueFintsSyncs, runExistingDuplicateCheck } from "./modules/bank/index.ts";
 import { elsterClient, elsterMode } from "./modules/elster/index.ts";
 import { env } from "./env.ts";
+import { withLogComponent } from "./log-kontext.ts";
 import { type Job, recordJobRun } from "./metriken.ts";
 import { applyPublishedRates, runDueDauerbelege, runDueInboxFetch } from "./modules/belege/index.ts";
 import { runDueExchangeRates } from "./modules/stammdaten/index.ts";
@@ -31,13 +32,20 @@ interface ScheduledJob {
 
 /** Ein Job nach dem anderen; ein Fehler landet im Log und hält die übrigen nicht auf, der nächste Lauf versucht es erneut */
 async function runJob({ task, label, run }: ScheduledJob): Promise<void> {
-  let ok = false;
-  try {
-    ok = await run();
-  } catch (error) {
-    console.error(label, error);
-  }
-  recordJobRun(task, ok);
+  // Jede Logzeile des Jobs trägt seinen Namen als Bereich (log-kontext.ts), wie in /api/metrics, auch die von lib-fints
+  await withLogComponent(task, async () => {
+    const started = performance.now();
+    console.debug(`${label}: gestartet`);
+    let ok = false;
+    try {
+      ok = await run();
+    } catch (error) {
+      console.error(label, error);
+    }
+    recordJobRun(task, ok);
+    // Auch ein Lauf ohne Ergebnis, damit bei debug sichtbar ist, dass der Job lief und wie lange
+    console.debug(`${label}: ${ok ? "fertig" : "gescheitert"}`, { ok, durationMs: Math.round(performance.now() - started) });
+  });
 }
 
 /** Meldet die Fehler eines Abrufs einzeln im Log; ok, wenn es keine gab */

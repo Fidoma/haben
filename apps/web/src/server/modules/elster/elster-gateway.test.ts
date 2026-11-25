@@ -116,7 +116,8 @@ describe.skipIf(!testDatabaseUrl)("ELSTER-Gateway (Postgres)", () => {
       console.error = original;
     }
     expect(errors).toHaveLength(1);
-    expect(errors[0]?.[1]).toEqual({ transferTicket: "tt-1", requestXml: "<xml/>" });
+    // Transferticket und XML als Felder, der Fehler darin (log.ts)
+    expect(errors[0]?.[1]).toMatchObject({ transferTicket: "tt-1", requestXml: "<xml/>", error: expect.any(Error) });
   });
   it("zählt die Antworten von ERiC für /api/metrics nach Vorgang und Ergebnis, eine fehlende PIN nicht", async () => {
     const metriken = await import("../../metriken.ts");

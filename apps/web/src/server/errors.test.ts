@@ -1,8 +1,9 @@
 import { AssetError } from "@haben/core";
 import { StatementParseError } from "@haben/import";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { z } from "zod";
-import { userClientError, userMessage, UserError } from "./errors.ts";
+import { reportInternalError, userClientError, userMessage, UserError } from "./errors.ts";
+import { captureLog, configureLog } from "./log.ts";
 
 describe("UserError", () => {
   it("nennt die Felder, an denen der Fehler liegt, und behält die Ursache", () => {
@@ -80,5 +81,22 @@ describe("userClientError", () => {
     // Ohne Pfad und für interne Fehler gibt es keine Felder bzw. keinen Fehler für den Browser
     expect(Object.hasOwn(userClientError(new UserError("Konto fehlt"))!, "felder")).toBe(false);
     expect(userClientError(new Error("SQL intern"))).toBeUndefined();
+  });
+});
+
+describe("reportInternalError (#1860)", () => {
+  afterEach(() => configureLog());
+
+  it("schreibt den Fehler mit einer neuen Fehler-ID ins Log und nennt dieselbe ID in der Meldung, ohne SQL-Parameter", () => {
+    const fehler = new Error('Failed query: update "contacts" set "iban" = $1\nparams: DE89370400440532013000');
+    const { lines, restore } = captureLog();
+    const meldung = reportInternalError("Unerwarteter Fehler in einer Server Function", fehler);
+    const zweite = reportInternalError("Unerwarteter Fehler in einer Server Function", fehler);
+    restore();
+    const id = /Fehler-ID ([0-9a-f]{8})/.exec(meldung)?.[1];
+    expect(meldung).toBe(`Interner Fehler (Fehler-ID ${id}). Details stehen im Server-Log.`);
+    expect(lines[0]).toMatchObject({ level: "error", errorId: id, msg: "Unerwarteter Fehler in einer Server Function" });
+    expect(zweite).not.toBe(meldung);
+    expect(JSON.stringify(lines)).not.toContain("DE89");
   });
 });

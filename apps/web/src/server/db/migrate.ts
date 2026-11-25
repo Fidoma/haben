@@ -4,6 +4,10 @@ import postgres from "postgres";
 import { fileURLToPath } from "node:url";
 import { recordAppVersion } from "./app-version.ts";
 import { checkApplicationConnection, grantApplicationAccess } from "./roles.ts";
+import { routeConsoleThroughLogger } from "../log.ts";
+
+// Läuft im Container vor dem Server (deploy/entrypoint.sh): Stufe, Format und Filter wie im Server
+routeConsoleThroughLogger({ component: "migration" });
 
 const applicationUrl = process.env.DATABASE_URL;
 if (!applicationUrl) throw new Error("DATABASE_URL fehlt");

@@ -11,6 +11,7 @@ import {
   fintsUmsaetze,
   type FintsZugang,
 } from "./sitzung.ts";
+import { ohneBankdaten } from "./log.ts";
 import { type FintsTestbank, startFintsTestbank } from "./testbank.ts";
 
 const PRODUKT = { id: "TESTPRODUKT0123456789ABCD", version: "0.9" };
@@ -233,7 +234,8 @@ describe("FinTS-Sitzung gegen die nachgebaute Bank", () => {
 
   it("schreibt eine Antwort, die lib-fints nicht lesen kann, nicht ins Log", async () => {
     // lib-fints 1.5.3 schreibt sie sonst mit console.error ganz ins Log (httpClient.js, sendMessage), auch ohne debugEnabled:
-    // Umsätze, Namen und IBANs der Inhaberin im Log des Servers
+    // Umsätze, Namen und IBANs der Inhaberin im Log des Servers. Der Logger der App schickt jede Ausgabe von console durch
+    // ohneBankdaten; der Test prüft, dass das auch die Zeilen dieser Version von lib-fints erkennt
     const geheim = "Max Mustermann DE89370400440532013000";
     const server = createServer((_req, res) => res.end(Buffer.from(`HNHBK:1:3+kaputt'HIRMG:2:2+${geheim}'`, "latin1").toString("base64")));
     await new Promise<void>((fertig) => server.listen(0, "127.0.0.1", fertig));
@@ -241,7 +243,13 @@ describe("FinTS-Sitzung gegen die nachgebaute Bank", () => {
     try {
       const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
       await expect(fintsSynchronisieren(fintsClient(PRODUKT, { ...zugang, url }))).rejects.toThrow();
-      expect(log.mock.calls.flat().map(String).join("\n")).not.toContain(geheim);
+      expect(log.mock.calls.length).toBeGreaterThan(0);
+      expect(
+        log.mock.calls
+          .flatMap((args) => ohneBankdaten(args))
+          .map(String)
+          .join("\n"),
+      ).not.toContain(geheim);
     } finally {
       log.mockRestore();
       server.close();

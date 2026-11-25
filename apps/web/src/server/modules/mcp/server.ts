@@ -1,4 +1,5 @@
-import { INTERNAL_ERROR, userMessage } from "../../errors.ts";
+import { reportInternalError, userMessage } from "../../errors.ts";
+import { withLogComponent } from "../../log-kontext.ts";
 import { authenticateMcp, hasScope, recordMcpCall, type McpAccess } from "./tokens.ts";
 import { MCP_TOOLS, todayContext } from "./tools.ts";
 import { OAUTH_SCOPE, protectedResourceMetadataUrl } from "./oauth.ts";
@@ -55,13 +56,13 @@ function createServer(access: McpAccess): McpServer {
       const started = performance.now();
       let ok = false;
       try {
-        const result = await tool.run(args as never, todayContext());
+        // Jede Logzeile des Werkzeugs trägt den Bereich mcp (log-kontext.ts)
+        const result = await withLogComponent("mcp", () => tool.run(args as never, todayContext()));
         ok = true;
         return { text: JSON.stringify(result) };
       } catch (error) {
-        const message = userMessage(error);
-        if (message === undefined) console.error(error);
-        return { text: message ?? INTERNAL_ERROR, isError: true };
+        const text = userMessage(error) ?? reportInternalError("Unerwarteter Fehler in einem MCP-Werkzeug", error);
+        return { text, isError: true };
       } finally {
         await recordMcpCall(access, tool.name, ok, performance.now() - started).catch((error: unknown) => console.error(error));
       }

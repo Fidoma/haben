@@ -169,11 +169,13 @@ describe.skipIf(!testDatabaseUrl)("Sperrtrigger in Kette prüfen (Postgres, #764
       expect(sent[0]!.text).toContain("year_closings_append_only");
       const { logTriggerIntegrity } = await import("../../db/trigger-inventory.ts");
       const { db } = await import("../../db/index.ts");
-      const lines: string[] = [];
-      await logTriggerIntegrity(db, (line) => lines.push(line));
+      const lines: [string, boolean][] = [];
+      await logTriggerIntegrity(db, (line, befunde) => lines.push([line, befunde]));
       expect(lines).toHaveLength(1);
-      expect(lines[0]).toContain("year_closings");
-      expect(lines[0]).toContain("year_closings_append_only");
+      // Mit Befund schreibt der Start die Zeile als Warnung, sonst ginge sie bei HABEN_LOG_LEVEL=warn unter
+      expect(lines[0]![1]).toBe(true);
+      expect(lines[0]![0]).toContain("year_closings");
+      expect(lines[0]![0]).toContain("year_closings_append_only");
     });
   });
 });

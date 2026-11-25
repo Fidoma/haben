@@ -1,4 +1,4 @@
-import { INTERNAL_ERROR, isUniqueViolation, UserError, userMessage } from "../../errors.ts";
+import { reportInternalError, isUniqueViolation, UserError, userMessage } from "../../errors.ts";
 import {
   fillPlaceholders,
   invoiceDueDate,
@@ -271,11 +271,10 @@ export interface RunResult {
   errors: string[];
 }
 
-/** Meldung für lastError: Fachfehler und Eingabefehler im Klartext, alles andere nur ins Server-Log */
+/** Meldung für lastError: Fachfehler und Eingabefehler im Klartext, alles andere als „Interner Fehler“ mit der Fehler-ID der Zeile im Log */
 function describe(error: unknown): string {
   const message = userMessage(error);
-  if (message === undefined) console.error("Wiederkehrende Rechnung:", error);
-  return message ?? INTERNAL_ERROR;
+  return message ?? reportInternalError("Wiederkehrende Rechnung", error);
 }
 
 async function runOne(recurring: RecurringInvoice, today: string, umsatzStand: UmsatzStand, result: RunResult): Promise<void> {

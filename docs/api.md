@@ -90,7 +90,7 @@ Jeder Fehler hat dieselbe Form, mit einer deutschen Meldung und bei ungültigen 
 | 413, 415 | `payload_too_large`, `unsupported_media_type` | Body größer als 1 MB (Beleg: Datei größer als 20 MB) oder nicht als JSON (Beleg: nicht als `multipart/form-data`, oder die Datei ist kein PDF, Bild oder E-Rechnungs-XML) |
 | 422 | `unprocessable` | Fachlich abgelehnt, etwa ein unbekannter Kontakt |
 | 429 | `rate_limited` | Zu viele Anfragen |
-| 500 | `internal_error` | Fehler im Server; die Details stehen nur im Server-Log |
+| 500 | `internal_error` | Fehler im Server; die Meldung nennt eine Fehler-ID, die Details stehen nur unter ihr im [Server-Log](installation-probleme.md) |
 
 ## Bereits bezahlte Rechnungen
 

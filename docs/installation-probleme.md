@@ -8,6 +8,8 @@ description: >-
 
 **Die App zeigt nur einen Fehler, im Log steht ein Zod-Fehler zu einer Variablen.** Die Umgebung besteht die Prüfung in `env.ts` nicht. Häufig: `ELSTER_HERSTELLER_ID` hat nicht genau fünf Ziffern, `HABEN_ENCRYPTION_KEY` ist nicht genau 32 Byte base64 oder `BETTER_AUTH_SECRET` ist kürzer als 32 Zeichen.
 
+**„Interner Fehler (Fehler-ID 3f9a1c07). Details stehen im Server-Log.“** Haben ist auf einen Fehler gestoßen, den es nicht erwartet hat. Die Zeile im Log trägt dieselbe Fehler-ID: Mit `docker compose logs app | grep -A 20 3f9a1c07` bzw. `journalctl --user -u haben-app | grep -A 20 3f9a1c07` findest du sie, im Textformat mit Fehlermeldung und Stack in den Zeilen darunter. Beides gehört in ein Issue, wenn du den Fehler meldest.
+
 **`haben-app` startet nicht, Fehler beim Mount von `/opt/eric`.** Podman bricht ab, wenn das Quellverzeichnis eines Bind-Mounts fehlt. Lege ERiC dort ab oder lass die `Volume`-Zeile auskommentiert.
 
 **„DATABASE_URL fehlt“ oder Verbindungsfehler beim Start.** Prüfe die Adresse und das Passwort der darin genannten Datenbankrolle. Bei Quadlets enthält `haben-database-url` den App-Zugang; bei getrennten Rollen enthält `haben-migration-database-url` den Eigentümerzugang mit dem Passwort aus `haben-db-password`. Beachte: Postgres übernimmt `POSTGRES_PASSWORD` nur beim ersten Anlegen des Volumes. Ein später geändertes Secret ändert das Passwort in der Datenbank nicht.

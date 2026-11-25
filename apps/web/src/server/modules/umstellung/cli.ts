@@ -2,6 +2,10 @@ import { readAppVersion } from "../../db/app-version.ts";
 import { closeDatabase } from "../../db/index.ts";
 import { today } from "../../today.ts";
 import { umstellungPruefen } from "./pruefung.ts";
+import { routeConsoleThroughLogger } from "../../log.ts";
+
+// Läuft im Container vor dem Server (deploy/entrypoint.sh): Stufe, Format und Filter wie im Server
+routeConsoleThroughLogger({ component: "journal_check" });
 
 /*
  * Beim Start nach den Migrationen (deploy/entrypoint.sh, deploy/dev/start.sh): Prüfung beim Update auf das Journal als

@@ -52,6 +52,7 @@ export default defineConfig(({ command }) => ({
     nitro({
       preset: "node-server",
       plugins: [
+        "./src/server/plugins/log.ts",
         "./src/server/plugins/scheduler.ts",
         "./src/server/plugins/setup-code.ts",
         "./src/server/plugins/datenbank.ts",

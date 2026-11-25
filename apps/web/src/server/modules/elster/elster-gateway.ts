@@ -109,7 +109,9 @@ export async function protocolSubmission(vorgang: ElsterVorgang, result: ElsterR
     await write();
   } catch (error) {
     if (vorgang !== "send" || !result.ok) throw error;
-    console.error("ELSTER: Echtübermittlung erfolgt, Protokoll nicht gespeichert", { transferTicket: result.transferTicket, requestXml: xml }, error);
+    // Gewollte Ausnahme von der Regel, keine Daten ins Log zu schreiben (architektur.md): der Nachweis der Übermittlung.
+    // Der Filter maskiert IBANs auch hier; der Nachweis ist das Transferticket.
+    console.error("ELSTER: Echtübermittlung erfolgt, Protokoll nicht gespeichert", { transferTicket: result.transferTicket, requestXml: xml, error });
     throw new UserError(
       `Die Übermittlung ist erfolgt (Transferticket ${result.transferTicket ?? "unbekannt"}), ließ sich aber nicht speichern. Bitte nicht erneut senden; Transferticket und gesendete Daten stehen im Server-Log.`,
       { cause: error },

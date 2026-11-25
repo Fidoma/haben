@@ -9,7 +9,7 @@ import { and, eq, lte } from "drizzle-orm";
 import { z } from "zod";
 import { withActor } from "../../db/actor.ts";
 import { db, schema, type Tx } from "../../db/index.ts";
-import { INTERNAL_ERROR, userMessage } from "../../errors.ts";
+import { reportInternalError, userMessage } from "../../errors.ts";
 import { allocateIn } from "../bank/index.ts";
 import { DauerbelegError, type Dauerbeleg } from "./dauerbelege.ts";
 import { bookDocumentIn } from "./documents.ts";
@@ -99,8 +99,7 @@ async function runTermin(id: string, heute: string): Promise<{ created: boolean 
 
 function describe(error: unknown): string {
   const message = userMessage(error);
-  if (message === undefined) console.error("Dauerbeleg:", error);
-  return message ?? INTERNAL_ERROR;
+  return message ?? reportInternalError("Dauerbeleg", error);
 }
 
 /** Legt für alle fälligen Termine Belege an; verpasste Termine mit ihrem Datum */

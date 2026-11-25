@@ -75,6 +75,22 @@ export async function mitBezeichnung<T>(bezeichnung: string, anlegen: () => Prom
 
 export const INTERNAL_ERROR = "Interner Fehler. Details stehen im Server-Log.";
 
+/** „Interner Fehler“ mit der Fehler-ID der Zeile im Server-Log, damit der Betreiber sie findet (#1860) */
+export const internalError = (errorId: string) => `Interner Fehler (Fehler-ID ${errorId}). Details stehen im Server-Log.`;
+
+/** Acht Hexziffern; Web Crypto statt node:crypto, weil auch der Browser diese Datei lädt */
+export const newErrorId = () => Array.from(crypto.getRandomValues(new Uint8Array(4)), (b) => b.toString(16).padStart(2, "0")).join("");
+
+/**
+ * Schreibt einen unerwarteten Fehler mit neuer Fehler-ID ins Log und gibt die Meldung für den Nutzer zurück, die dieselbe ID
+ * nennt. Für jede Stelle, an der der Nutzer „Interner Fehler“ sieht (Server Functions, REST-API, MCP, gespeicherte Fehler).
+ */
+export function reportInternalError(label: string, error: unknown): string {
+  const errorId = newErrorId();
+  console.error(label, { errorId, error });
+  return internalError(errorId);
+}
+
 type Issue = { message: string; path?: readonly unknown[] };
 
 function issueText(issues: readonly Issue[]): string {

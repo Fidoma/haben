@@ -66,6 +66,11 @@ describe.skipIf(!testDatabaseUrl)("Migration und echte App-Anmeldung (Postgres, 
     mkdirSync(db, { recursive: true });
     mkdirSync(meta, { recursive: true });
     for (const name of ["migrate.ts", "roles.ts", "app-version.ts"]) if (existsSync(join(source, name))) copyFileSync(join(source, name), join(db, name));
+    // migrate.ts schreibt über den Logger (#1860)
+    mkdirSync(join(fixture, "src/lib"), { recursive: true });
+    copyFileSync(join(source, "../log.ts"), join(fixture, "src/server/log.ts"));
+    copyFileSync(join(source, "../log-kontext.ts"), join(fixture, "src/server/log-kontext.ts"));
+    copyFileSync(join(source, "../../lib/log-werte.ts"), join(fixture, "src/lib/log-werte.ts"));
     symlinkSync(fileURLToPath(new URL("../../../node_modules", import.meta.url)), join(fixture, "node_modules"), "junction");
     // Nur eine synthetische Folgemigration; der ausgelieferte Migrationsbestand bleibt unverändert.
     writeFileSync(

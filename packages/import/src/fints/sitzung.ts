@@ -1,5 +1,4 @@
 import { type BankAccount, type BankAnswer, type BankingInformation, type ClientResponse, FinTSClient, FinTSConfig, type Statement } from "lib-fints";
-import { bankdatenNichtLoggen } from "./log.ts";
 import { lesefehler, lesefehlerMerken, type UmsatzFormat, umsatzFormat } from "./lesefehler.ts";
 import { gespeichertesSparkassenMediumErgaenzen, synchronisierenMitSparkassenMedium } from "./sparkasse-medium.ts";
 import { mitEingetippterTan } from "./tan-eintippen.ts";
@@ -82,7 +81,6 @@ export function fintsClient(produkt: FintsProdukt, zugang: FintsZugang, gespeich
     config.selectTanMedia(gespeichert.tanMedium);
   }
   config.debugEnabled = false;
-  bankdatenNichtLoggen();
   const client = new FinTSClient(config);
   lesefehlerMerken(client);
   return client;

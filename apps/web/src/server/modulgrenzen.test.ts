@@ -195,6 +195,8 @@ describe("Struktur der Module", () => {
         "file-response.ts",
         "grenzen.ts",
         "lese-route.ts",
+        "log-kontext.ts",
+        "log.ts",
         "metriken.ts",
         "middleware.ts",
         "rollen.ts",
