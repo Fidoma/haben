@@ -1,9 +1,8 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { INTERNAL_ERROR, userMessage } from "../../errors.ts";
 import { authenticateMcp, hasScope, recordMcpCall, type McpAccess } from "./tokens.ts";
 import { MCP_TOOLS, todayContext } from "./tools.ts";
 import { OAUTH_SCOPE, protectedResourceMetadataUrl } from "./oauth.ts";
+import { jsonFehler, type McpServer, mcpAntwort } from "./protokoll.ts";
 
 const INSTRUCTIONS = [
   "Haben ist die Buchhaltung und Steuer eines Selbständigen in Deutschland (EÜR, Umsatzsteuer-Voranmeldung, Rechnungen, Belege, Bank, ELSTER).",
@@ -41,42 +40,34 @@ async function messageCount(request: Request): Promise<number> {
   }
 }
 
-function jsonError(status: number, message: string, headers: Record<string, string> = {}): Response {
-  return new Response(JSON.stringify({ jsonrpc: "2.0", error: { code: -32000, message }, id: null }), {
-    status,
-    headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...headers },
-  });
-}
+const jsonError = (status: number, message: string, headers: Record<string, string> = {}): Response =>
+  jsonFehler(status, -32000, message, { "Cache-Control": "no-store", ...headers });
 
+/** Die Werkzeuge, die der Zugang sehen darf; jeder Aufruf wird ohne Inhalte protokolliert */
 function createServer(access: McpAccess): McpServer {
-  const server = new McpServer({ name: "haben", title: "Haben", version: "1.0.0" }, { instructions: INSTRUCTIONS });
-  for (const tool of MCP_TOOLS.filter((t) => hasScope(access.scopes, t.scope))) {
-    server.registerTool(
-      tool.name,
-      {
-        title: tool.title,
-        description: tool.description,
-        inputSchema: tool.input,
-        annotations: { title: tool.title, readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
-      },
-      async (args: Record<string, unknown>) => {
-        const started = performance.now();
-        let ok = false;
-        try {
-          const result = await tool.run(args as never, todayContext());
-          ok = true;
-          return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
-        } catch (error) {
-          const message = userMessage(error);
-          if (message === undefined) console.error(error);
-          return { isError: true, content: [{ type: "text" as const, text: message ?? INTERNAL_ERROR }] };
-        } finally {
-          await recordMcpCall(access, tool.name, ok, performance.now() - started).catch((error: unknown) => console.error(error));
-        }
-      },
-    );
-  }
-  return server;
+  const werkzeuge = MCP_TOOLS.filter((t) => hasScope(access.scopes, t.scope)).map((tool) => ({
+    name: tool.name,
+    title: tool.title,
+    description: tool.description,
+    input: tool.input,
+    annotations: { title: tool.title, readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    run: async (args: Record<string, unknown>) => {
+      const started = performance.now();
+      let ok = false;
+      try {
+        const result = await tool.run(args as never, todayContext());
+        ok = true;
+        return { text: JSON.stringify(result) };
+      } catch (error) {
+        const message = userMessage(error);
+        if (message === undefined) console.error(error);
+        return { text: message ?? INTERNAL_ERROR, isError: true };
+      } finally {
+        await recordMcpCall(access, tool.name, ok, performance.now() - started).catch((error: unknown) => console.error(error));
+      }
+    },
+  }));
+  return { info: { name: "haben", title: "Haben", version: "1.0.0" }, instructions: INSTRUCTIONS, werkzeuge };
 }
 
 /**
@@ -100,12 +91,5 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
   if (rateLimited(access.tokenId, Date.now(), await messageCount(request)))
     return jsonError(429, "Zu viele Anfragen, bitte kurz warten.", { "Retry-After": "60" });
 
-  const server = createServer(access);
-  const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
-  await server.connect(transport);
-  try {
-    return await transport.handleRequest(request);
-  } finally {
-    await server.close();
-  }
+  return mcpAntwort(request, createServer(access));
 }
