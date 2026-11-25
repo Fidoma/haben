@@ -236,6 +236,12 @@ Vorlagen für [Synology](synology.md) und [TrueNAS](truenas.md) ohne Kommandozei
 Wer nicht selbst installieren will, gibt Claude Code oder einem anderen Agenten SSH-Zugang zum Server
 und die [Installationsanleitung](installation.md).
 </div>
+<div markdown>
+**☁️ Oder gehostet**
+
+Kein eigener Server: Wir betreiben deine Instanz, mit Updates, Backups und ELSTER.
+[Haben gehostet](gehostet.md#haben-gehostet)
+</div>
 </div>
 
 <div class="showcase-hero" markdown>

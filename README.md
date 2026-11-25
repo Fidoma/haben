@@ -167,7 +167,7 @@ Podman Quadlets stehen in [Installation](https://haben.app/installation.html), E
 > sind ELSTER-Zertifikat und die Schlüssel für Lexoffice und sevDesk nach einer Wiederherstellung nicht mehr lesbar,
 > ohne das Passwort lässt sich das Backup nicht öffnen.
 
-Keinen eigenen Server oder keine eigene IT? Haben gibt es auf [Anfrage](https://haben.app/gehostet.html) gehostet oder über einen IT-Dienstleister aus dem [Partnerprogramm](https://speicherstadt.org/partner/).
+Keinen eigenen Server oder keine eigene IT? Haben gibt es [gehostet zum Buchen](https://haben.app/gehostet.html) oder über einen IT-Dienstleister aus dem [Partnerprogramm](https://speicherstadt.org/partner/).
 
 ## FAQ
 
