@@ -1,4 +1,4 @@
-import { EXPENSE_CATEGORIES, EXPENSE_CATEGORY_KEYS, SELF_ASSESSED_TAX_KEYS, type Cents } from "@haben/core";
+import { EXPENSE_CATEGORIES, EXPENSE_CATEGORY_KEYS, SELF_ASSESSED_TAX_KEYS, formatDecimal, formatEuro, type Cents } from "@haben/core";
 import { z } from "zod";
 import { UserError } from "../../errors.ts";
 import type { DocumentKind } from "../../storage.ts";
@@ -9,7 +9,7 @@ import type { DocumentKind } from "../../storage.ts";
  * eine nach diesem Schema geprüfte Antwort.
  */
 
-/** Festes Schema für die KI-Auslesung; Beträge als Dezimaltext, damit nichts gerundet wird. */
+/** Festes Schema für die KI-Auslesung; Beträge als Dezimaltext, gerundet wird erst in toFields. */
 export const extractionSchema = z.object({
   lieferant: z.string().nullable().describe("Name des Rechnungsstellers"),
   lieferantUstId: z.string().nullable().describe("USt-IdNr. des Rechnungsstellers, z. B. DE123456789"),
@@ -95,8 +95,9 @@ const CATEGORY_LIST = Object.entries(EXPENSE_CATEGORIES)
 
 export const EXTRACTION_INSTRUCTIONS = `Du liest Eingangsbelege (Rechnungen, Quittungen) eines deutschen Freiberuflers für die Buchhaltung aus.
 Gib nur zurück, was auf dem Beleg steht; rate keine Beträge oder Nummern. Fehlt eine Angabe, setze null.
+Beträge gibst du mit zwei Nachkommastellen an, so wie sie auf dem Beleg stehen; rechne sie nicht nach.
 Die IBAN des Rechnungsstellers nur, wenn sie als dessen Bankverbindung auf dem Beleg steht, nicht die des Empfängers oder aus einem Lastschrifttext; dazu den Textausschnitt, in dem sie steht.
-Weise die Beträge je Umsatzsteuersatz (19, 7 oder 0 %) aus. Wenn der Beleg nur einen Bruttobetrag und den Steuersatz nennt, rechne Netto und Steuer daraus.
+Weise die Beträge je Umsatzsteuersatz (19, 7 oder 0 %) aus. Wenn der Beleg nur einen Bruttobetrag und den Steuersatz nennt, rechne als Ausnahme Netto und Steuer daraus, auf zwei Nachkommastellen gerundet.
 Wähle die passende Ausgabenkategorie:
 ${CATEGORY_LIST}
 Steht ein Reverse-Charge-Hinweis auf dem Beleg (Steuerschuldnerschaft des Leistungsempfängers, Art. 196 MwStSystRL, „0 % USt. ausgewiesen“, „reverse charge“), dann setze reverseCharge: eu bei einem Rechnungssteller in der EU, drittland bei einem Dritten Land, ig_erwerb bei Ware aus der EU. Die Beträge bleiben wie auf dem Beleg, also mit 0 % USt.; Haben rechnet die Steuer aus dem Netto. Wähle für sonstige Leistungen in diesem Fall fremdleistung statt sonstiges.
@@ -127,18 +128,47 @@ export function decimalToCents(value: string): Cents | null {
   return match[1] ? -cents : cents;
 }
 
+/**
+ * Wie decimalToCents, aber ab vier Nachkommastellen: kaufmännisch auf Cent gerundet (#1906). Modelle rechnen Zwischenwerte
+ * aus und liefern dann etwa 42,1336 €, obwohl der Beleg 42,13 € druckt; verworfen wäre der Betrag verloren. Genau drei
+ * Stellen bleiben null, weil „1.234“ auch ein Tausendertrennzeichen sein kann (#1907).
+ */
+export function decimalToCentsGerundet(value: string): { cents: Cents; gerundet: boolean } | null {
+  const exakt = decimalToCents(value);
+  if (exakt !== null) return { cents: exakt, gerundet: false };
+  const match = /^(-)?(\d+)[.,](\d{4,})$/.exec(value.trim().replace(/\s/g, ""));
+  if (!match) return null;
+  const nachkomma = match[3] ?? "";
+  const cents = Number(match[2]) * 100 + Number(nachkomma.slice(0, 2)) + (Number(nachkomma[2]) >= 5 ? 1 : 0);
+  if (cents > MAX_CENTS) return null;
+  return { cents: match[1] ? -cents : cents, gerundet: true };
+}
+
 /** Wandelt die Modellantwort in Belegfelder um und prüft die Summen. */
 export function toFields(extraction: Extraction): ExtractedFields {
   const warnings: string[] = [];
   const sign = extraction.istGutschrift ? -1 : 1;
+  // „€“ oder „Euro“ statt des Codes ist trotzdem Euro
+  const code = extraction.waehrung.trim().toUpperCase();
+  const currency = code === "€" || code === "EURO" ? "EUR" : code.slice(0, 10);
+  const betrag = (cents: Cents) => (currency === "EUR" ? formatEuro(cents) : `${formatDecimal(cents)} ${currency}`);
   const amounts = extraction.betraege.flatMap((row) => {
-    const net = decimalToCents(row.netto);
-    const tax = decimalToCents(row.steuer);
+    const net = decimalToCentsGerundet(row.netto);
+    const tax = decimalToCentsGerundet(row.steuer);
     if (net === null || tax === null) {
       warnings.push(`Betrag zu ${row.steuersatz} % nicht lesbar`);
       return [];
     }
-    return [{ taxRate: (Number(row.steuersatz) * 100) as 1900 | 700 | 0, net: sign * Math.abs(net), tax: sign * Math.abs(tax) }];
+    if (net.gerundet || tax.gerundet) {
+      warnings.push(`Betrag zu ${row.steuersatz} % mit mehr als zwei Nachkommastellen: netto ${betrag(net.cents)}, Steuer ${betrag(tax.cents)}, gerundet`);
+    }
+    return [
+      {
+        taxRate: (Number(row.steuersatz) * 100) as 1900 | 700 | 0,
+        net: sign * Math.abs(net.cents),
+        tax: sign * Math.abs(tax.cents),
+      },
+    ];
   });
   // § 13b nur als Vorschlag; die Beträge bleiben wie auf dem Beleg. Ob er gilt und welcher Satz dann statt 0 % steht,
   // entscheidet applyFields in documents.ts (nicht bei einer eigenen Ausgangsrechnung)
@@ -146,14 +176,15 @@ export function toFields(extraction: Extraction): ExtractedFields {
   // Kein Vorschlag, wenn der Beleg Steuer ausweist (§ 14a Abs. 5 UStG: bei § 13b keine) oder aus Deutschland kommt:
   // Haben kennt § 13b nur für Leistungen aus dem EU-Ausland und dem Drittland
   const reverseCharge = amounts.some((a) => a.tax !== 0) || supplierUstId.startsWith("DE") ? null : (extraction.reverseCharge ?? null);
-  const gross = extraction.brutto ? decimalToCents(extraction.brutto) : null;
+  const grossBetrag = extraction.brutto ? decimalToCentsGerundet(extraction.brutto) : null;
+  const gross = grossBetrag?.cents ?? null;
+  if (grossBetrag?.gerundet) {
+    warnings.push(`Gesamtbetrag mit mehr als zwei Nachkommastellen, auf ${betrag(grossBetrag.cents)} gerundet`);
+  }
   const sum = amounts.reduce((total, a) => total + a.net + a.tax, 0);
   if (gross !== null && Math.abs(sum) !== Math.abs(gross)) {
     warnings.push("Summe aus Netto und Steuer weicht vom Gesamtbetrag ab");
   }
-  // „€“ oder „Euro“ statt des Codes ist trotzdem Euro
-  const code = extraction.waehrung.trim().toUpperCase();
-  const currency = code === "€" || code === "EURO" ? "EUR" : code.slice(0, 10);
   if (currency !== "EUR") warnings.push(`Währung ${currency}: bitte den Umrechnungskurs eintragen`);
   if (extraction.hinweis) warnings.push(extraction.hinweis.slice(0, 500));
   // Längen wie im Beleg-Formular (documentInputSchema)
