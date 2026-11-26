@@ -73,7 +73,7 @@ export function buildPageSection(pages: readonly SichtbareSeite[], query: string
       id: `page-${page.key}`,
       kind: "page",
       title: page.label,
-      meta: page.key === "uebersicht" ? "" : page.group,
+      meta: page.key === "uebersicht" ? "" : page.hinweis ? `${page.group}: ${page.hinweis}` : page.group,
       icon: page.icon,
       page,
     })),

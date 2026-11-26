@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildPageSection, buildRemoteSections, statusMessage } from "./befehlspalette.ts";
-import { sichtbareNavSeiten } from "./navigation.ts";
+import { NAV_GROUPS, sichtbareNavSeiten } from "./navigation.ts";
 import { SETTINGS_AREAS } from "./settings-areas.ts";
 
 describe("Befehlspalette-Ergebnisse (#617)", () => {
@@ -98,6 +98,14 @@ describe("Befehlspalette-Ergebnisse (#617)", () => {
     const rechnungen = buildPageSection(seiten, "Rech");
     expect(rechnungen?.items.some((item) => item.title === "Rechnungen")).toBe(true);
     expect(buildPageSection(seiten, "zzzz-nicht-vorhanden")).toBeNull();
+  });
+
+  it("nennt unter einer Seite ihre Gruppe mit dem Satz der Gruppe (#1253), unter der Übersicht nichts", () => {
+    const bank = buildPageSection(seiten, "Bank")?.items.find((item) => item.title === "Bank");
+    const geld = NAV_GROUPS.find((gruppe) => gruppe.label === "Geld");
+    expect(geld?.hinweis).toBeTruthy();
+    expect(bank?.meta).toBe(`Geld: ${geld?.hinweis}`);
+    expect(buildPageSection(seiten, "")?.items[0]?.meta).toBe("");
   });
 
   // Fachwörter stehen in `keywords`, nicht im Untertext; wer sie eintippt, muss den Bereich weiter finden (#1253)

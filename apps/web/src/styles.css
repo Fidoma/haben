@@ -254,6 +254,7 @@ button.nav-foot-link { width: 100%; background: none; border: 0; font: inherit; 
 .nav-flyout-title { padding-top: 8px; }
 /* Die eigene Firma unter „Firma wechseln“, in der Schrift der Menüpunkte */
 .nav-flyout-title[data-zusatz]::after { content: attr(data-zusatz); display: block; margin-top: 4px; color: var(--nav-ink-strong); font-size: 13px; overflow-wrap: anywhere; }
+.nav-flyout-hinweis { margin: 0; padding: 0 12px 8px; font-size: 12px; line-height: 1.4; color: var(--nav-ink); opacity: 0.85; }
 .nav-flyout-links { display: flex; flex-direction: column; gap: 2px; }
 .nav-flyout .nav-link { min-height: 36px; }
 .nav-flyout .nav-theme { margin: 8px 4px 4px; }

@@ -27,6 +27,8 @@ interface NavFlyoutProps {
   onClose: () => void;
   /** Zweite Zeile im Kopf, etwa die Firma, in der man bucht; per CSS (attr), damit der Text nicht doppelt im DOM steht */
   zusatz?: string | null;
+  /** Satz unter dem Namen der Gruppe (#1253); Beschreibung der Gruppe für Screenreader */
+  hinweis?: string;
   /** Optionales Auslöse-Zeichen (z. B. Avatar), ersetzt das Symbol */
   triggerContent?: ReactNode;
   children: ReactNode;
@@ -147,9 +149,10 @@ function useFlyoutSchliessen(
  * Leertaste ebenso (Tastatur und Touch). Es liegt direkt nach dem Knopf im DOM, sodass Tab in die Links läuft und
  * Esc den Fokus wieder auf den Knopf legt.
  */
-export function NavFlyout({ label, icon, active, open, onOpen, onClose, zusatz, triggerContent, children }: NavFlyoutProps) {
+export function NavFlyout({ label, icon, active, open, onOpen, onClose, zusatz, hinweis, triggerContent, children }: NavFlyoutProps) {
   const root = useRef<HTMLDivElement>(null);
   const panelId = useId();
+  const hinweisId = `${panelId}-hinweis`;
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const { triggerRef, panelRef, top } = usePanelPosition(open !== null);
   useFlyoutSchliessen(open, onClose, root, triggerRef, panelRef);
@@ -234,6 +237,7 @@ export function NavFlyout({ label, icon, active, open, onOpen, onClose, zusatz, 
         className="nav-flyout"
         role="group"
         aria-label={label}
+        aria-describedby={hinweis ? hinweisId : undefined}
         hidden={open === null}
         style={top !== null ? { top: `${top}px` } : undefined}
         onKeyDown={tasteImFlyout}
@@ -244,6 +248,11 @@ export function NavFlyout({ label, icon, active, open, onOpen, onClose, zusatz, 
         <div className="nav-group-label nav-flyout-title" aria-hidden="true" data-zusatz={zusatz || undefined}>
           {label}
         </div>
+        {hinweis && (
+          <p id={hinweisId} className="nav-flyout-hinweis">
+            {hinweis}
+          </p>
+        )}
         <div className="nav-flyout-links">{children}</div>
       </div>
     </div>

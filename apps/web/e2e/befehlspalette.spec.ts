@@ -20,6 +20,8 @@ test("Knopf in der Navigation und Strg+K öffnen die Befehlspalette und navigier
   await expect(input).toBeFocused();
   await input.fill("Dauerbe");
   await expect(dialog.getByRole("option", { name: /Dauerbelege/ })).toBeVisible();
+  // Unter der Seite stehen ihre Gruppe und deren Satz (#1253)
+  await expect(dialog.getByRole("option", { name: /Dauerbelege/ })).toContainText("Ausgaben: Was du ausgibst, belegst und überweist");
   await page.keyboard.press("Enter");
 
   await expect(dialog).toBeHidden();

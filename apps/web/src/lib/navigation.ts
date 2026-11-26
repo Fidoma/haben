@@ -57,6 +57,8 @@ export interface NavGroup {
   label: string;
   /** Symbol des Flyout-Knopfs in der eingeklappten Seitenleiste */
   icon: IconName;
+  /** Ein Satz in Klartext, was in der Gruppe liegt; steht im Flyout und unter der Seite in der Schnellsuche (#1253) */
+  hinweis: string;
   links: readonly NavLink[];
 }
 
@@ -65,6 +67,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   {
     label: "Verkauf",
     icon: "store",
+    hinweis: "Was du anbietest und in Rechnung stellst, samt allem, was du dafür brauchst",
     links: [
       { to: "/angebote", icon: "quote", label: "Angebote" },
       { to: "/rechnungen", icon: "invoice", label: "Rechnungen" },
@@ -78,6 +81,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   {
     label: "Ausgaben",
     icon: "cart",
+    hinweis: "Was du ausgibst, belegst und überweist",
     links: [
       { to: "/belege", icon: "receipt", label: "Belege" },
       { to: "/dauerbelege", icon: "repeat", label: "Dauerbelege" },
@@ -90,6 +94,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   {
     label: "Geld",
     icon: "wallet",
+    hinweis: "Wo dein Geld liegt, auf der Bank und in der Kasse, und was du als Darlehen schuldest",
     links: [
       { to: "/bank", icon: "bank", label: "Bank" },
       { to: "/kasse", icon: "cash", label: "Kasse" },
@@ -99,6 +104,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   {
     label: "Personal",
     icon: "badge",
+    hinweis: "Was deine Mitarbeiter bekommen und was du dafür an Lohnsteuer und Sozialversicherung meldest",
     links: [
       { to: "/lohn", icon: "payroll", label: "Lohn" },
       // Lohn bleibt immer sichtbar, dort entsteht der erste Mitarbeiter
@@ -108,6 +114,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   {
     label: "Steuern",
     icon: "calculator",
+    hinweis: "Was du dem Finanzamt meldest, was es dir schickt und bis wann",
     links: [
       { to: "/umsatzsteuer", icon: "vat", label: "Umsatzsteuer" },
       { to: "/jahreserklaerung", icon: "annual", label: "Jahreserklärung" },
@@ -120,6 +127,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   {
     label: "Buchhaltung",
     icon: "book",
+    hinweis: "Wie deine Zahlen gebucht, ausgewertet, abgeschlossen und aufbewahrt werden",
     links: [
       { to: "/auswertungen", icon: "reports", label: "Auswertungen" },
       { to: "/buchungen", icon: "journal", label: "Buchungen" },
@@ -136,6 +144,7 @@ export const STEUERBERATUNG_NAV: readonly NavGroup[] = [
   {
     label: "Steuerberatung",
     icon: "briefcase",
+    hinweis: "Zum Nachlesen da sind Auswertungen, Buchungen, Konten, Belege und Rechnungen",
     links: [
       { to: "/auswertungen", icon: "reports", label: "Auswertungen" },
       { to: "/buchungen", icon: "journal", label: "Buchungen" },
@@ -156,6 +165,8 @@ export interface SichtbareSeite {
   externalUrl?: string;
   settingsArea?: SettingsArea;
   keywords?: string;
+  /** Satz der Gruppe, nur bei Seiten der Navigation (#1253) */
+  hinweis?: string;
 }
 
 export interface EigeneSeiteNav {
@@ -187,7 +198,7 @@ export function sichtbareNavSeiten({
   for (const group of gruppen) {
     for (const link of group.links) {
       if (!navLinkSichtbar(link, { gesellschaft, hatMitarbeiter, ausgeblendet })) continue;
-      seiten.push({ key: link.to, label: link.label, group: group.label, icon: link.icon, to: link.to });
+      seiten.push({ key: link.to, label: link.label, group: group.label, icon: link.icon, to: link.to, hinweis: group.hinweis });
     }
   }
   if (inhaber) {

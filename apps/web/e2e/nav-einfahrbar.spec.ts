@@ -149,6 +149,8 @@ test("eingeklappt: Überfahren öffnet die Gruppe, Hinweise statt title, aktiv a
       linie: getComputedStyle(el.querySelector(".nav-flyout-title")!).borderBottomWidth,
     })),
   ).toEqual({ ecken: "8px", linie: "0px" });
+  // Unter dem Namen der Gruppe steht ihr Satz, damit „Ausgaben“ und „Geld“ eingeklappt unterscheidbar sind (#1253)
+  await expect(flyout).toContainText("Was du ausgibst, belegst und überweist");
 
   await page.mouse.move(900, 600);
   await expect(ausgaben).toHaveAttribute("aria-expanded", "false");

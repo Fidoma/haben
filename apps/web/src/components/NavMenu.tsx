@@ -166,6 +166,7 @@ export function NavRailBody({
           key={group.label}
           label={group.label}
           icon={group.icon}
+          hinweis={group.hinweis}
           active={group.links.some((link) => routeAktiv(pathname, link.to))}
           {...flyout(group.label)}
         >
