@@ -611,6 +611,8 @@ export const residualTerms = pgTable("residual_terms", {
 export interface AusschuettungEmpfaenger {
   name: string;
   anteil: BasisPoints;
+  /** Beteiligung in Euro (Nennbetrag), nach der verteilt wird (§ 29 Abs. 3 Satz 1 GmbHG, #1286); fehlt bei Ausschüttungen vor #1812 */
+  beteiligung?: Cents;
   brutto: Cents;
   ausEinlagekonto: Cents;
   ertrag: Cents;

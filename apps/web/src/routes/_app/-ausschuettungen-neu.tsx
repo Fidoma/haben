@@ -1,4 +1,4 @@
-import { formatEuro, parseEuro } from "@haben/core";
+import { formatEuro, formatPercent, parseEuro } from "@haben/core";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent } from "react";
@@ -19,14 +19,31 @@ export function faelligkeit(zufluss: string): string {
   return m === 12 ? `${y + 1}-01-10` : `${y}-${String(m + 1).padStart(2, "0")}-10`;
 }
 
+type Empfaenger = Vorschlag["empfaenger"][number];
+
+/**
+ * Maßstab der Verteilung je Empfänger (#1812): die Beteiligung in Euro (§ 29 Abs. 3 Satz 1 GmbHG, #1286). Ausschüttungen von
+ * vor #1812 haben nur den Anteil in Prozent gespeichert (bis #1286 auch der Maßstab); sie zeigen weiter ihn.
+ */
+function massstab(empfaenger: readonly Empfaenger[]) {
+  const inEuro = empfaenger.every((e) => e.beteiligung !== undefined);
+  return inEuro
+    ? { label: "Beteiligung", wert: (e: Empfaenger) => e.beteiligung ?? 0, format: formatEuro }
+    : { label: "Anteil", wert: (e: Empfaenger) => e.anteil, format: formatPercent };
+}
+
 export function EmpfaengerTabelle({ empfaenger }: { empfaenger: Vorschlag["empfaenger"] }) {
-  const summe = (f: (e: Vorschlag["empfaenger"][number]) => number) => empfaenger.reduce((s, e) => s + f(e), 0);
+  const summe = (f: (e: Empfaenger) => number) => empfaenger.reduce((s, e) => s + f(e), 0);
   const zeilen = [...empfaenger, null];
+  const m = massstab(empfaenger);
   return (
     <table className="report-table stack-table">
       <thead>
         <tr>
           <th scope="col">Gesellschafter</th>
+          <th scope="col" className="num">
+            {m.label}
+          </th>
           <th scope="col" className="num">
             Brutto
           </th>
@@ -50,7 +67,10 @@ export function EmpfaengerTabelle({ empfaenger }: { empfaenger: Vorschlag["empfa
       <tbody>
         {zeilen.map((e) => (
           <tr key={e?.name ?? "summe"} style={e ? undefined : { fontWeight: 600 }}>
-            <th scope="row">{e ? `${e.name} (${(e.anteil / 100).toLocaleString("de-DE")} %)` : "Summe"}</th>
+            <th scope="row">{e ? e.name : "Summe"}</th>
+            <td className="num" data-label={m.label}>
+              {m.format(e ? m.wert(e) : summe(m.wert))}
+            </td>
             <td className="num" data-label="Brutto">
               {formatEuro(e ? e.brutto : summe((x) => x.brutto))}
             </td>

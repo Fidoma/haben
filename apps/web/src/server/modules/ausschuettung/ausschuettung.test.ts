@@ -105,6 +105,15 @@ describe.skipIf(!testDatabaseUrl)("Ausschüttungen (Postgres)", () => {
           ].sort(),
         );
         expect((await a.dividendsOfYear(2026)).map((d) => [d.id, d.storniert, d.angemeldet])).toEqual([[id, false, false]]);
+        // #1812: je Empfänger auch die Beteiligung in Euro, den Maßstab der Verteilung, für die Tabelle der gebuchten Ausschüttung
+        expect(v.empfaenger.map((e) => [e.name, e.beteiligung])).toEqual([
+          ["Erika", 1_500_000],
+          ["Max", 1_000_000],
+        ]);
+        expect((await a.dividendsOfYear(2026))[0]!.empfaenger.map((e) => [e.name, e.beteiligung, e.anteil])).toEqual([
+          ["Erika", 1_500_000, 6000],
+          ["Max", 1_000_000, 4000],
+        ]);
         // In der Fristenliste: bis 10. Juli (Freitag), offen bis zur Echtübermittlung
         const { listFristen } = await import("../finanzamt/fristen.ts");
         const frist = () => listFristen(today).then((l) => l.find((f) => f.id === `kapest-${id}`));

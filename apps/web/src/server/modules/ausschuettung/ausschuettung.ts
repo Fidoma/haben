@@ -147,6 +147,7 @@ export async function ausschuettungVorschlag(input: AusschuettungInput, q: Db | 
     return {
       name: a.name,
       anteil: a.anteil,
+      beteiligung: a.beteiligung,
       brutto: r.brutto,
       ausEinlagekonto: r.ausEinlagekonto,
       ertrag: r.ertrag,
@@ -238,18 +239,17 @@ export async function dividendsOfYear(year: number, q: Db | Tx = db) {
     .from(schema.dividends)
     .where(and(gte(schema.dividends.zufluss, `${year}-01-01`), lte(schema.dividends.zufluss, `${year}-12-31`)))
     .orderBy(asc(schema.dividends.beschlussDate));
-  const own = rows;
   const [reversed, sent] = await Promise.all([
     reversedEntries(
-      own.map((r) => r.entryId),
+      rows.map((r) => r.entryId),
       q,
     ),
     sentIds(
-      own.map((r) => r.id),
+      rows.map((r) => r.id),
       q,
     ),
   ]);
-  return own.map((r) => ({ ...r, storniert: reversed.has(r.entryId), angemeldet: sent.has(r.id) }));
+  return rows.map((r) => ({ ...r, storniert: reversed.has(r.entryId), angemeldet: sent.has(r.id) }));
 }
 
 /** Storno per Gegenbuchung; nicht mehr, wenn die Kapitalertragsteuer schon angemeldet ist */
