@@ -196,4 +196,62 @@ describe.skipIf(!testDatabaseUrl)("USt-IdNr. des Lieferanten vor dem Buchen best
     expect(await modul.ustIdVorBuchen(actor, { contactId: belfast, ustId: "", behandlung: "ig_erwerb" }, AM_TAG, erwerb.via)).toEqual({ hinweis: null });
     expect(erwerb.anfragen).toEqual([{ anfragendeUstid: "DE123456788", angefragteUstid: "XI123456789" }]);
   });
+
+  it("§ 13b mit britischer USt-IdNr. (GB) oder Land GB am Kontakt: keine Abfrage, Hinweis auf § 13b Drittland; § 1a fragt wie bisher (#1603)", async () => {
+    // § 1 Abs. 2a UStG: Großbritannien gehört seit 2021 nicht mehr zum Gemeinschaftsgebiet, bei Leistungen auch Nordirland
+    const kontakt = (land: string, ustId: string) =>
+      contacts.createContact(actor, {
+        kundennummer: "",
+        name: `Studio London ${ustId || land}`,
+        strasse: "1 Baker Street",
+        plz: "NW1 6XE",
+        ort: "London",
+        land,
+        email: "",
+        ustId,
+        iban: "",
+        leitwegId: "",
+        defaultFormat: null,
+      });
+    const london = (await kontakt("GB", "GB123456789")).id;
+    const ohneNummer = (await kontakt("GB", "")).id;
+    const mitNummer =
+      "GB123456789: britische USt-IdNr.; das Vereinigte Königreich ist seit 2021 Drittland. Für eine Leistung von dort passt § 13b Drittland (Kz 84/85).";
+    const nurLand =
+      "Am Lieferanten-Kontakt steht das Land GB (Vereinigtes Königreich), seit 2021 Drittland. Für eine Leistung von dort passt § 13b Drittland (Kz 84/85).";
+    const ohneAntworten = dienst();
+    // Nummer vom Beleg (klein, mit Leerzeichen), vom Kontakt, ohne Kontakt und mit HABEN_EVATR=off
+    expect(await modul.ustIdVorBuchen(actor, { contactId: lieferant, ustId: "gb 123 456 789", behandlung: "eu" }, AM_TAG, ohneAntworten.via)).toEqual({
+      hinweis: mitNummer,
+    });
+    expect(await modul.ustIdVorBuchen(actor, { contactId: london, ustId: "", behandlung: "eu" }, AM_TAG, ohneAntworten.via)).toEqual({ hinweis: mitNummer });
+    expect(await modul.ustIdVorBuchen(actor, { contactId: null, ustId: "GB123456789", behandlung: "eu" }, AM_TAG, ohneAntworten.via)).toEqual({
+      hinweis: mitNummer,
+    });
+    expect(await modul.ustIdVorBuchen(actor, { contactId: ohneNummer, ustId: "", behandlung: "eu" }, AM_TAG, ohneAntworten.via)).toEqual({ hinweis: nurLand });
+    // Eine Nummer ohne GB vorn, die keine EU-Nummer ist, am Kontakt mit Land GB: derselbe Hinweis (Review #1955)
+    expect(await modul.ustIdVorBuchen(actor, { contactId: ohneNummer, ustId: "123 4567 89", behandlung: "eu" }, AM_TAG, ohneAntworten.via)).toEqual({
+      hinweis: nurLand,
+    });
+    process.env.HABEN_EVATR = "off";
+    expect(await modul.ustIdVorBuchen(actor, { contactId: ohneNummer, ustId: "123 4567 89", behandlung: "eu" }, AM_TAG, ohneAntworten.via)).toEqual({
+      hinweis: nurLand,
+    });
+    expect(await modul.ustIdVorBuchen(actor, { contactId: london, ustId: "", behandlung: "eu" }, AM_TAG, ohneAntworten.via)).toEqual({ hinweis: mitNummer });
+    expect(await modul.ustIdVorBuchen(actor, { contactId: ohneNummer, ustId: "", behandlung: "eu" }, AM_TAG, ohneAntworten.via)).toEqual({ hinweis: nurLand });
+    delete process.env.HABEN_EVATR;
+    expect(ohneAntworten.anfragen).toHaveLength(0);
+
+    // Eine EU-Nummer am britischen Kontakt (Betriebsstätte in der EU, § 13b Abs. 7 UStG) fragt wie bisher beim BZSt
+    const betriebsstaette = dienst(ok("nl"));
+    expect(await modul.ustIdVorBuchen(actor, { contactId: ohneNummer, ustId: "NL123456789B01", behandlung: "eu" }, AM_TAG, betriebsstaette.via)).toEqual({
+      hinweis: null,
+    });
+    expect(betriebsstaette.anfragen).toHaveLength(1);
+
+    // § 1a mit GB bleibt bei „Vor dem Buchen“: kein Hinweis zu § 13b, keine Abfrage einer nicht prüfbaren Nummer
+    const erwerb = dienst();
+    expect(await modul.ustIdVorBuchen(actor, { contactId: london, ustId: "", behandlung: "ig_erwerb" }, AM_TAG, erwerb.via)).toEqual({ hinweis: null });
+    expect(erwerb.anfragen).toHaveLength(0);
+  });
 });
