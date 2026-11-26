@@ -124,10 +124,12 @@ export {
   invoiceForDate,
   listRecurring,
   type ImportedRecurring,
-  recurringInputSchema,
+  patchPausedRecurring,
+  RecurringConflict,
   runDueRecurring,
   updateRecurring,
 } from "./recurring.ts";
+export { recurringInputSchema, recurringPatchSchema } from "./recurring-schema.ts";
 export { lastFinalizedByCircle, startRunning, type NumberKind } from "./number-counter.ts";
 export {
   InvoiceSettlementError,

@@ -719,6 +719,7 @@ describe.skipIf(!testDatabaseUrl)("REST-API /api/v1 (Postgres)", () => {
         "/leistungen/{id}",
         "/rechnungen",
         "/rechnungen/wiederkehrend",
+        "/rechnungen/wiederkehrend/{id}",
         "/rechnungen/{id}",
       ]);
       expect(doc.paths["/rechnungen"]!.post!.security).toEqual([{ token: ["rechnungen:entwuerfe"] }]);

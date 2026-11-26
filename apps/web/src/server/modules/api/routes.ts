@@ -11,7 +11,7 @@ import { createServiceEntryHandler, deleteServiceEntryHandler, getServiceEntryHa
 import { serviceEntryQuerySchema } from "./leistungen-schemas.ts";
 import { createQuoteHandler, deleteQuoteHandler, getQuoteHandler, listQuotesHandler, updateQuoteHandler } from "./quotes.ts";
 import { quoteQuerySchema } from "./quotes-schemas.ts";
-import { createRecurringInvoiceHandler } from "./recurring-invoices.ts";
+import { RECURRING_INVOICE_ROUTES } from "./recurring-invoices.ts";
 import { documentQuerySchema } from "./belege-schemas.ts";
 import { contactQuerySchema, invoiceQuerySchema } from "./schemas.ts";
 
@@ -112,17 +112,7 @@ export const API_ROUTES: ApiRoute[] = [
     },
     handler: createInvoiceHandler,
   },
-  {
-    method: "POST",
-    path: "/rechnungen/wiederkehrend",
-    scope: "rechnungen:vorlagen-anlegen",
-    tag: "Rechnungen",
-    summary: "Vorlage für wiederkehrende Rechnungen anlegen",
-    description: "Legt eine pausierte Vorlage im Entwurfsmodus an. Prüfung und Aktivierung erfolgen in Haben.",
-    requestBody: "RecurringInvoiceCreate",
-    responses: { 201: { schema: "RecurringInvoiceCreated", description: "Vorlage angelegt; Location führt zur Vorlage in Haben" } },
-    handler: createRecurringInvoiceHandler,
-  },
+  ...RECURRING_INVOICE_ROUTES,
   {
     method: "GET",
     path: "/rechnungen/{id}",

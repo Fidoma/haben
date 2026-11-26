@@ -79,6 +79,23 @@ describe("OpenAPI-Beschreibung der REST-API", () => {
     expect(doc.components.schemas.ArticlePatch).not.toHaveProperty("required");
   });
 
+  it("beschreibt Ändern und Löschen wiederkehrender Vorlagen mit eigenem Recht und Konfliktantwort", () => {
+    expect(doc.paths["/rechnungen/wiederkehrend/{id}"]).toMatchObject({
+      patch: {
+        security: [{ token: ["rechnungen:vorlagen-bearbeiten"] }],
+        requestBody: { content: { "application/json": { schema: { $ref: "#/components/schemas/RecurringInvoicePatch" } } } },
+        responses: { 200: { description: expect.any(String) }, 409: { description: "Die Vorlage ist aktiv" } },
+      },
+      delete: {
+        security: [{ token: ["rechnungen:vorlagen-bearbeiten"] }],
+        responses: { 204: { description: "Gelöscht" }, 409: { description: "Eine aus der Vorlage erzeugte Rechnung oder ein Entwurf ist vorhanden" } },
+      },
+    });
+    expect(doc.components.schemas.RecurringInvoicePatch).toMatchObject({ additionalProperties: false });
+    expect(doc.components.schemas.RecurringInvoicePatch).not.toHaveProperty("required");
+    expect(doc.components.schemas.RecurringInvoicePatch).not.toHaveProperty("properties.active");
+  });
+
   it("beschreibt den REST-Import von Bankumsätzen mit eigenem Recht, Vertrag als Eingabe und den Fehlern (#306)", () => {
     expect(doc.paths["/bankimporte"]).toMatchObject({
       post: {

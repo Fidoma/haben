@@ -516,7 +516,7 @@ Bezug ist der Leistungszeitraum, ohne Leistungszeitraum das Rechnungsdatum. „W
 
 Scheitert das Festschreiben, etwa weil in den Firmendaten die IBAN fehlt, bleibt die Rechnung als Entwurf stehen. Scheitert nur der E-Mail-Versand (kein E-Mail-Zugang, keine Adresse beim Kunden, Server nicht erreichbar), ist die Rechnung festgeschrieben und du schickst sie auf ihrer Seite von Hand. Die Vorlage zeigt den Fehler, bis du sie das nächste Mal speicherst.
 
-Die Seite einer Vorlage listet alle daraus erzeugten Rechnungen. Löschen lässt sich eine Vorlage nur, solange daraus keine Rechnung entstanden ist; sonst deaktivierst du sie.
+Die Seite einer Vorlage listet alle noch vorhandenen Rechnungen und Entwürfe, die daraus entstanden sind. Solange diese Liste Einträge enthält, kannst du die Vorlage deaktivieren. Ist sie leer, kannst du die Vorlage löschen.
 
 Vorlagen aus sevDesk und FastBill kommen pausiert an, siehe [Umzug aus sevDesk](sevdesk.md#wiederkehrende-rechnungen) und [Umzug aus FastBill](fastbill.md#wiederkehrende-rechnungen).
 
