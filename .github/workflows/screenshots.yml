@@ -17,11 +17,13 @@ jobs:
       bun-version: 1.4.5
       install: bun install --frozen-lockfile
       postgres: postgres:19
-      # Die Tests leeren nur eine Datenbank, deren Name auf „e2e“ endet
+      # Die Tests leeren nur eine Datenbank, deren Name auf „e2e“ endet. E2E_TEIL=ablauf startet nur die Server
+      # dieses Teils (zz-doku-screenshots liegt in „mit-daten“); alle Durchläufe zusammen sprengen
+      # max_connections=100 des Postgres-Dienstes („too many clients already“)
       postgres-db: haben_e2e
       command: >-
         bun run build &&
-        E2E_DATABASE_URL="$POSTGRES_URL" E2E_SERVER_COMMAND="bun .output/server/index.mjs" bun run docs:screenshots
+        E2E_TEIL=ablauf E2E_DATABASE_URL="$POSTGRES_URL" E2E_SERVER_COMMAND="bun .output/server/index.mjs" bun run docs:screenshots
       paths: |
         docs/screenshot-*.png
         docs/social-preview.png
