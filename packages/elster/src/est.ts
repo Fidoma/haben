@@ -98,9 +98,9 @@ export interface EstLohnsteuerbescheinigung {
   kirchensteuer?: Cents;
   /** Nr. 7 Kirchensteuer des Ehegatten (nur bei Konfessionsverschiedenheit) */
   kirchensteuerEhegatte?: Cents;
-  /** Nr. 22a Arbeitgeberanteil zur gesetzlichen Rentenversicherung */
+  /** Nr. 22a und b Arbeitgeberanteil zur gesetzlichen Rentenversicherung und zu berufsständischen Versorgungseinrichtungen (E2000801) */
   rvArbeitgeber?: Cents;
-  /** Nr. 23a Arbeitnehmeranteil zur gesetzlichen Rentenversicherung */
+  /** Nr. 23a und b Arbeitnehmeranteil zur gesetzlichen Rentenversicherung und zu berufsständischen Versorgungseinrichtungen (E2000401) */
   rvArbeitnehmer?: Cents;
   /** Nr. 25 Arbeitnehmerbeiträge zur gesetzlichen Krankenversicherung */
   kvArbeitnehmer?: Cents;

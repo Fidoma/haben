@@ -13,6 +13,7 @@ export * from "./nachricht.ts";
 export * from "./bankverbindung.ts";
 export * from "./postfach.ts";
 export * from "./vast.ts";
+export { VAST_JAHRE, type VastQuelle, type VastVorschlag, vastVorschlag } from "./vast-vorschlag.ts";
 export * from "./berechtigung.ts";
 export * from "./formatprobe.ts";
 export * from "./felder.ts";
