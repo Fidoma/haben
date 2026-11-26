@@ -37,11 +37,16 @@
 
 .report-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .report-table th, .report-table td { text-align: left; font-weight: 400; padding: 10px 8px; border-top: 1px solid var(--line-soft); vertical-align: baseline; }
+/* Meldungen der Felder einer Buchungszeile (#1277): direkt unter der Zeile, ohne eigene Trennlinie */
+.report-table tr.zeilen-meldungen td { border-top: 0; padding-top: 0; }
+.zeilen-meldungen .line-errors { display: flex; flex-direction: column; gap: 4px; }
 .report-table thead th { border-top: 0; font-size: 13px; color: var(--muted); font-weight: 400; padding-top: 0; }
 .report-table .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 /* Eingaben in Tabellen (Buchungszeilen, Restlaufzeiten) wie die Formularfelder, nur etwas niedriger */
 .report-table td input:not([type="checkbox"]):not([type="radio"]), .report-table td select { min-height: 36px; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: 8px; font: inherit; font-size: 14px; color: var(--ink); background-color: var(--surface); }
 .report-table td.num input { text-align: right; font-family: var(--mono); font-size: 13px; }
+/* Feld mit Fehler in einer Tabellenzeile, wie das Konto (.combobox) und die Positionen (.line-row) */
+.report-table td input:not([type="checkbox"]):not([type="radio"])[aria-invalid="true"], .report-table td select[aria-invalid="true"] { border-color: var(--danger-ink); }
 .report-table td input:focus-visible, .report-table td select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .report-table tfoot th, .report-table tfoot td { border-top: 2px solid var(--ink); font-weight: 600; }
 
@@ -109,6 +114,7 @@
   .stack-table td[data-label] { position: relative; padding-left: 108px !important; }
   .stack-table td[data-label]::before { content: attr(data-label); position: absolute; left: 0; width: 100px; color: var(--muted); font-family: var(--sans); font-weight: 400; font-size: 12px; line-height: 1.6; }
   .stack-table td:empty { display: none; }
+  .stack-table tr.zeilen-meldungen { border-top: 0; padding-top: 0; }
   .stack-table tr[aria-current] { background: var(--accent-soft); border-radius: 8px; margin-inline: -8px; padding-inline: 8px; width: calc(100% + 16px); }
   .stack-table .group-row, .stack-table .subtotal-row { padding: 6px 0; }
   /* Vorschau des CSV-Imports: Zeile, Kontakt und Status oben, Hinweis und Auswahl darunter über die ganze Breite */

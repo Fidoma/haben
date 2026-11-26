@@ -1,6 +1,6 @@
 import { euerZuordnung } from "./journal-euer.ts";
 import { kontoart } from "./ledger.ts";
-import { FREIE_STEUERSCHLUESSEL, isPrivateAccount, type ManualLine } from "./manual.ts";
+import { FREIE_STEUERSCHLUESSEL, isPrivateAccount, type ManualFinding, manualFindingTexts, type ManualLine } from "./manual.ts";
 import { roundHalfAwayFromZero, type Cents } from "./money.ts";
 import { resolveOwnAccount } from "./own-accounts.ts";
 import { ACCOUNTS, type ExpenseCategory, type Kontenrahmen, type PostingLine } from "./posting.ts";
@@ -24,39 +24,47 @@ export interface FreieBuchungKontext {
 }
 
 /**
- * Was einer manuellen Buchung als freie Buchung fehlt, zusätzlich zu manualPostingIssues; leer = buchbar. Im Einzelunternehmen
- * muss jedes Erfolgskonto eine Zeile der EÜR haben. Mit Steuerschlüssel ist das Gegenkonto ein Erfolgs- oder Privatkonto, in GmbH und UG ein
- * Erfolgskonto oder das Gesellschafter-Verrechnungskonto.
+ * Was einer manuellen Buchung als freie Buchung fehlt, zusätzlich zu manualPostingFindings, je Zeile und Feld oder für die
+ * ganze Buchung; leer = buchbar. Im Einzelunternehmen muss jedes Erfolgskonto eine Zeile der EÜR haben. Mit Steuerschlüssel
+ * ist das Gegenkonto ein Erfolgs- oder Privatkonto, in GmbH und UG ein Erfolgskonto oder das Gesellschafter-Verrechnungskonto.
  */
-export function freieBuchungIssues(lines: readonly ManualLine[], k: FreieBuchungKontext): string[] {
-  const issues: string[] = [];
+export function freieBuchungFindings(lines: readonly ManualLine[], k: FreieBuchungKontext): ManualFinding[] {
+  const findings: ManualFinding[] = [];
   const mitSchluessel = lines.some((l) => l.taxCode);
   const gmbh = isKapitalgesellschaft(k.rechtsform);
-  if (mitSchluessel && k.kleinunternehmer) issues.push("Als Kleinunternehmer bucht Haben keine Umsatzsteuer (§ 19 Abs. 1 UStG)");
+  if (mitSchluessel && k.kleinunternehmer) findings.push({ text: "Als Kleinunternehmer bucht Haben keine Umsatzsteuer (§ 19 Abs. 1 UStG)" });
   const erfolg = (account: string) => kontoart(k.kontenrahmen, account) !== "bestand";
-  for (const [index, line] of lines.entries()) {
-    const row = `Zeile ${index + 1}`;
-    if (line.taxCode && !(line.taxCode in FREIE_STEUERSCHLUESSEL)) issues.push(`${row}: Steuerschlüssel ${line.taxCode} ist hier nicht erlaubt`);
+  for (const [row, line] of lines.entries()) {
+    if (line.taxCode && !(line.taxCode in FREIE_STEUERSCHLUESSEL))
+      findings.push({ text: `Steuerschlüssel ${line.taxCode} ist hier nicht erlaubt`, row, field: "taxCode" });
     const konto = resolveOwnAccount(k.kontenrahmen, line.account, k.eigene ?? new Map());
     if (!gmbh && erfolg(line.account) && euerZuordnung(k.kontenrahmen, konto) === null) {
-      issues.push(`${row}: Konto ${line.account} hat keine Zeile in der EÜR`);
+      findings.push({ text: `Konto ${line.account} hat keine Zeile in der EÜR`, row, field: "account" });
     }
     if (mitSchluessel && !line.taxCode) {
       const gegenkonto =
         erfolg(line.account) || (gmbh ? line.account === ACCOUNTS[k.kontenrahmen].gesellschafter : isPrivateAccount(k.kontenrahmen, line.account));
       if (!gegenkonto) {
-        issues.push(
-          `${row}: Gegenkonto einer Zeile mit Steuerschlüssel ist ein Erfolgskonto oder ${gmbh ? "das Gesellschafter-Verrechnungskonto" : "ein Privatkonto"}`,
-        );
+        findings.push({
+          text: `Gegenkonto einer Zeile mit Steuerschlüssel ist ein Erfolgskonto oder ${gmbh ? "das Gesellschafter-Verrechnungskonto" : "ein Privatkonto"}`,
+          row,
+          field: "account",
+        });
       }
     }
   }
   // Im Einzelunternehmen wirkt in der EÜR nur, was Erfolgskonten und Privat berühren; eine Buchung zwischen anderen
   // Bestandskonten neben einem Erfolgskonto wäre eine Einnahme oder Ausgabe ohne Zahlung
   if (!gmbh && lines.some((l) => erfolg(l.account)) && lines.some((l) => !erfolg(l.account) && !isPrivateAccount(k.kontenrahmen, l.account))) {
-    issues.push("Im Einzelunternehmen steht neben einem Erfolgskonto nur ein Privatkonto; Zahlungen gehen über Bank oder Kasse");
+    // Ein leeres oder falsches Konto zählt hier als Bestandskonto; die Meldung kann also eine Folge des Fehlers am Konto sein
+    findings.push({ text: "Im Einzelunternehmen steht neben einem Erfolgskonto nur ein Privatkonto; Zahlungen gehen über Bank oder Kasse", folge: true });
   }
-  return issues;
+  return findings;
+}
+
+/** Was einer manuellen Buchung als freie Buchung fehlt, als Sätze; leer = buchbar */
+export function freieBuchungIssues(lines: readonly ManualLine[], k: FreieBuchungKontext): string[] {
+  return manualFindingTexts(freieBuchungFindings(lines, k));
 }
 
 /**

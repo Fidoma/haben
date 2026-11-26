@@ -1,12 +1,11 @@
 import {
   formatEuro,
-  freieBuchungIssues,
   SACHENTNAHME_KONTEN,
   freieBuchungPosting,
   type FreierSteuerschluessel,
   isKapitalgesellschaft,
   MANUAL_MAX_LINES,
-  manualPostingIssues,
+  manualFindingTexts,
   parseEuro,
   type ManualKind,
   type ManualLine,
@@ -22,7 +21,8 @@ import { createManualEntryFn, getManualEntryForm } from "../../../server/functio
 import styles from "../../../styles/auswertungen.css?url";
 import { Field } from "../../../components/Field.tsx";
 import { buchungsdatumFehler } from "./-buchungsdatum.ts";
-import { BuchungsZeile, emptyRow, kontoSuchfehler, type Row, SCHLUESSEL_NAME } from "./-buchungs-zeile.tsx";
+import { BuchungsZeile, emptyRow, type Row, SCHLUESSEL_NAME } from "./-buchungs-zeile.tsx";
+import { buchungsFehler, buchungsMeldungen, zellenSchluessel } from "./-buchungs-pruefung.ts";
 
 export const Route = createFileRoute("/_app/buchungen/neu")({
   loader: () => getManualEntryForm(),
@@ -30,7 +30,7 @@ export const Route = createFileRoute("/_app/buchungen/neu")({
   component: ManualEntryPage,
 });
 
-/** Betrag aus dem Feld; leer = 0, unlesbar = NaN, damit die Prüfung „Betrag ungültig“ meldet */
+/** Betrag aus dem Feld; leer = 0, unlesbar = NaN (am Feld meldet das buchungsFehler, der Server „Betrag ungültig“) */
 const amountOf = (text: string) => (text.trim() === "" ? 0 : (parseEuro(text) ?? Number.NaN));
 
 function ManualEntryPage() {
@@ -72,27 +72,28 @@ function ManualEntryForm({ data }: { data: Data }) {
     taxCode: mitSchluesseln && r.taxCode ? r.taxCode : null,
   }));
   const mitSchluessel = lines.some((l) => l.taxCode);
-  const issues = [
-    ...manualPostingIssues(lines, data.kontenrahmen, data.rechtsform, kind),
-    ...(kind === "umbuchung" && (!gmbh || mitSchluessel)
-      ? freieBuchungIssues(lines, { kontenrahmen: data.kontenrahmen, rechtsform: data.rechtsform, kleinunternehmer: data.kleinunternehmer })
-      : []),
-    ...kontoSuchfehler(rows),
-  ];
+  const findings = buchungsMeldungen(rows, lines, data, kind);
+  const { zellen, buchung } = buchungsFehler(rows, findings);
   const sum = (side: "debit" | "credit") => lines.reduce((s, l) => s + (Number.isFinite(l[side]) ? l[side] : 0), 0);
   const difference = sum("debit") - sum("credit");
   const touched = rows.some((r) => r.account || r.accountText || r.debit || r.credit);
   // Was gebucht wird, wenn eine Zeile einen Steuerschlüssel trägt: brutto geteilt in Netto und Steuer
-  const gebucht = mitSchluessel && issues.length === 0 ? freieBuchungPosting(lines, data.kontenrahmen) : null;
-  // Was an den Zeilen fehlt, steht als Liste unter der Tabelle; das Konto der ersten Zeile zeigt darauf und bekommt den Fokus
-  const zeilenFehlerId = useId();
-  const { form, error, check } = useSubmitCheck({
+  const gebucht = mitSchluessel && findings.length === 0 ? freieBuchungPosting(lines, data.kontenrahmen) : null;
+  // Was an einer Zeile fehlt, steht an deren Feld; was die ganze Buchung betrifft, als Liste unter der Tabelle. Auf die
+  // Liste zeigt das Konto der ersten Zeile und bekommt den Fokus
+  const buchungsFehlerId = useId();
+  // Schlüssel der Zellen je Zeile (`<key>.<feld>`), daher string
+  const { form, error, check } = useSubmitCheck<string>({
     date: buchungsdatumFehler(date, data.today, kind),
     description: description.trim().length < 3 ? "Trag einen Buchungstext mit mindestens 3 Zeichen ein." : null,
-    // Steht nicht am Feld, sondern als Liste unter der Tabelle (zeilenFehlerId)
-    zeilen: issues.length > 0 ? issues.join(" ") : null,
+    ...zellen,
+    buchung: buchung.length > 0 ? buchung.join(" ") : null,
   });
-  const zeilenFehler = Boolean(error("zeilen"));
+  const buchungFehlt = Boolean(error("buchung"));
+  // Vor dem ersten „Buchen“ sagt die Liste schon beim Tippen, was noch fehlt, auch an den Zeilen; danach stehen die Fehler
+  // der Zeilen an ihren Feldern, und die Liste nennt nur noch, was die ganze Buchung betrifft
+  const [versucht, setVersucht] = useState(false);
+  const liste = versucht ? buchung : manualFindingTexts(findings);
 
   const update = (key: number, patch: Partial<Row>) => setRows((current) => current.map((r) => (r.key === key ? { ...r, ...patch } : r)));
   function addRow() {
@@ -102,7 +103,11 @@ function ManualEntryForm({ data }: { data: Data }) {
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
+    // Vor check, damit die Liste schon beim Fokus nur noch die ganze Buchung nennt; geht die Prüfung durch, zeigt useSubmitCheck
+    // keine Fehler mehr an den Feldern, und die Liste nennt beim Tippen wieder alles (etwa nach einem Fehler des Servers)
+    setVersucht(true);
     if (!check()) return;
+    setVersucht(false);
     void run(async () => {
       await create({ data: { kind, date, description, lines: lines.map((l) => ({ ...l, taxCode: l.taxCode ?? null })) } });
       await navigate({ to: "/buchungen", search: { jahr: Number(date.slice(0, 4)), monat: Number(date.slice(5, 7)) } });
@@ -162,7 +167,8 @@ function ManualEntryForm({ data }: { data: Data }) {
                 accounts={data.accounts}
                 kontenrahmen={data.kontenrahmen}
                 mitSchluesseln={mitSchluesseln}
-                fehlerId={zeilenFehler && index === 0 ? zeilenFehlerId : null}
+                meldung={(field) => error(zellenSchluessel(r.key, field))}
+                fehlerId={buchungFehlt && index === 0 ? buchungsFehlerId : null}
                 entfernbar={rows.length > 2}
                 update={update}
                 entfernen={() => setRows((current) => current.filter((x) => x.key !== r.key))}
@@ -210,12 +216,12 @@ function ManualEntryForm({ data }: { data: Data }) {
             </ul>
           </div>
         )}
-        {(touched || zeilenFehler) && issues.length > 0 && (
+        {(touched || buchungFehlt) && liste.length > 0 && (
           // Die id an der Liste selbst: Ein aria-label daran ersetzte für aria-describedby ihren Text
           <div role="status" aria-label="Noch nicht buchbar">
-            <ul id={zeilenFehlerId} className={zeilenFehler ? "small field-error" : "small"} style={{ margin: 0 }}>
-              {issues.map((issue) => (
-                <li key={issue}>{issue}</li>
+            <ul id={buchungsFehlerId} className={buchungFehlt ? "small field-error" : "small"} style={{ margin: 0 }}>
+              {liste.map((text) => (
+                <li key={text}>{text}</li>
               ))}
             </ul>
           </div>

@@ -10,7 +10,7 @@ import { carriesForward, carryForward, type KontoSaldo } from "./vortrag.ts";
  * Eröffnungsbuchung vor, statt dass sie von Hand abgetippt wird. Die Zeilen sind die Vorträge der Schlussbilanz
  * (carryForward: Bestandskonten wie sie sind, das Ergebnis auf Gewinn- bzw. Verlustvortrag) gegen 9000 Saldenvorträge.
  *
- * Anders als die manuelle Eröffnung (manualPostingIssues) darf diese Buchung auch die Konten der Nebenbücher bebuchen:
+ * Anders als die manuelle Eröffnung (manualPostingFindings) darf diese Buchung auch die Konten der Nebenbücher bebuchen:
  * Bank, Kasse, Forderungen, Verbindlichkeiten, Umsatzsteuer und Anlagen. Das geht nur, weil die Beträge nicht eingetippt,
  * sondern aus dem archivierten Stapel gerechnet werden und die Nebenbücher den Eröffnungsbestand kennen (siehe
  * docs/lexoffice.md, „Eröffnung aus dem DATEV-Stapel“). Die manuelle Eröffnung bleibt so streng wie bisher.

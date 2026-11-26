@@ -134,7 +134,10 @@ export function isPrivateAccount(kontenrahmen: Kontenrahmen, account: string): b
   return kontenrahmen === "SKR03" ? n >= 1800 && n <= 1899 : n >= 2100 && n <= 2199;
 }
 
-const isCents = (value: number) => Number.isInteger(value) && value >= 0 && value <= 100_000_000_00;
+/** Größter Betrag einer Zeile der manuellen Buchung */
+export const MANUAL_MAX_AMOUNT: Cents = 100_000_000_00;
+
+const isCents = (value: number) => Number.isInteger(value) && value >= 0 && value <= MANUAL_MAX_AMOUNT;
 
 /**
  * Art der manuellen Buchung: eine Umbuchung im laufenden Jahr oder eine Eröffnungsbuchung, die Salden aus der bisherigen
@@ -162,54 +165,93 @@ function openingAccounts(kontenrahmen: Kontenrahmen): Set<string> {
   ]);
 }
 
-/** Was einer manuellen Buchung fehlt; leer = buchbar */
+/** Feld einer Zeile, an das eine Meldung gehört; ohne Zeile betrifft sie die ganze Buchung */
+export type ManualField = "account" | "debit" | "credit" | "taxCode";
+
+/**
+ * Eine Meldung zur manuellen Buchung (#1277): an einem Feld einer Zeile (Index ab 0) oder zur ganzen Buchung. `folge` heißt,
+ * sie folgt aus den Beträgen oder Konten der Zeilen (Summe, Seiten, dasselbe Konto); stimmt eine Zeile nicht, ist sie
+ * womöglich nur eine Folge davon (zwei leere Konten sind „dasselbe Konto“).
+ */
+export type ManualFinding =
+  | { text: string; row: number; field: ManualField; folge?: undefined }
+  | { text: string; row?: undefined; field?: undefined; folge?: true };
+
+/** Meldungen als Sätze, wie sie der Server zurückgibt: „Zeile 2: Konto hat vier Ziffern“ */
+export function manualFindingTexts(findings: readonly ManualFinding[]): string[] {
+  return findings.map((f) => (f.row === undefined ? f.text : `Zeile ${f.row + 1}: ${f.text}`));
+}
+
+/** Was am Konto einer Zeile nicht stimmt, sonst null */
+function accountFinding(
+  line: ManualLine,
+  kontenrahmen: Kontenrahmen,
+  rechtsform: Rechtsform,
+  kind: ManualKind,
+  managed: ReadonlyMap<string, string>,
+  opening: ReadonlySet<string>,
+): string | null {
+  const { account, taxCode } = line;
+  if (!/^\d{4}$/.test(account)) return "Konto hat vier Ziffern";
+  // In der Eröffnung erlaubt, siehe openingAccounts
+  if (opening.has(account)) return null;
+  if (kind === "eroeffnung" && !carriesForward(kontenrahmen, account)) return `Konto ${account} ist ein Erfolgskonto; die Eröffnung übernimmt nur Bestände`;
+  if (account.startsWith("9")) return `Konto ${account} ist ein Vortrags- oder statistisches Konto`;
+  // Freie Buchung mit Steuerschlüssel auf das Erlöskonto des Schlüssels oder die Sachentnahme (freieBuchungFindings prüft den Rest)
+  if (taxCode && freieBuchungKonten(kontenrahmen, taxCode).includes(account)) return null;
+  if (taxCode) return `Mit ${taxCode} bucht die Zeile auf ${freieBuchungKonten(kontenrahmen, taxCode).join(" oder ")}`;
+  if (isSachentnahmeKonto(kontenrahmen, account)) return `Konto ${account} ist eine Sachentnahme mit Umsatzsteuer und bucht nur mit Steuerschlüssel`;
+  if (managed.has(account)) return `Konto ${account} führt das Nebenbuch ${managed.get(account)}`;
+  if (isKapitalgesellschaft(rechtsform) && isPrivateAccount(kontenrahmen, account)) {
+    return `Konto ${account} ist ein Privatkonto; eine GmbH oder UG bucht auf das Gesellschafter-Verrechnungskonto`;
+  }
+  return null;
+}
+
+/** Was einer manuellen Buchung fehlt, je Zeile und Feld oder für die ganze Buchung; leer = buchbar */
+export function manualPostingFindings(
+  lines: readonly ManualLine[],
+  kontenrahmen: Kontenrahmen,
+  rechtsform: Rechtsform,
+  kind: ManualKind = "umbuchung",
+): ManualFinding[] {
+  const findings: ManualFinding[] = [];
+  if (lines.length < 2) findings.push({ text: "Mindestens zwei Zeilen, eine im Soll und eine im Haben" });
+  if (lines.length > MANUAL_MAX_LINES) findings.push({ text: `Höchstens ${MANUAL_MAX_LINES} Zeilen` });
+  const managed = ledgerManagedAccounts(kontenrahmen);
+  const opening = kind === "eroeffnung" ? openingAccounts(kontenrahmen) : new Set<string>();
+  for (const [row, line] of lines.entries()) {
+    const konto = accountFinding(line, kontenrahmen, rechtsform, kind, managed, opening);
+    if (konto) findings.push({ text: konto, row, field: "account" });
+    if (!isCents(line.debit) || !isCents(line.credit)) findings.push({ text: "Betrag ungültig", row, field: isCents(line.debit) ? "credit" : "debit" });
+    else if ((line.debit === 0) === (line.credit === 0)) findings.push({ text: "Betrag entweder im Soll oder im Haben", row, field: "debit" });
+  }
+  const debit = lines.reduce((sum, l) => sum + l.debit, 0);
+  const credit = lines.reduce((sum, l) => sum + l.credit, 0);
+  if (debit !== credit) findings.push({ text: "Soll und Haben sind nicht gleich", folge: true });
+  if (lines.length >= 2 && (!lines.some((l) => l.debit > 0) || !lines.some((l) => l.credit > 0))) findings.push({ text: "Es fehlt eine Seite", folge: true });
+  const accounts = new Set(lines.map((l) => l.account));
+  if (lines.length >= 2 && accounts.size === 1) findings.push({ text: "Soll und Haben auf demselben Konto ändern nichts", folge: true });
+  if (
+    rechtsform === "einzelunternehmen" &&
+    kind === "umbuchung" &&
+    lines.some(({ account }) => account === ACCOUNTS[kontenrahmen].bank || /^900\d$/.test(account))
+  ) {
+    findings.push({
+      text: "Im Einzelunternehmen braucht der Bank-Anfangsbestand keine Buchung. Die EÜR erfasst Betriebseinnahmen und Betriebsausgaben. Enthält der letzte Import oder Abruf einen Endsaldo, siehst du ihn unter Bank",
+    });
+  }
+  return findings;
+}
+
+/** Was einer manuellen Buchung fehlt, als Sätze; leer = buchbar */
 export function manualPostingIssues(
   lines: readonly ManualLine[],
   kontenrahmen: Kontenrahmen,
   rechtsform: Rechtsform,
   kind: ManualKind = "umbuchung",
 ): string[] {
-  const issues: string[] = [];
-  if (lines.length < 2) issues.push("Mindestens zwei Zeilen, eine im Soll und eine im Haben");
-  if (lines.length > MANUAL_MAX_LINES) issues.push(`Höchstens ${MANUAL_MAX_LINES} Zeilen`);
-  const managed = ledgerManagedAccounts(kontenrahmen);
-  const opening = kind === "eroeffnung" ? openingAccounts(kontenrahmen) : new Set<string>();
-  for (const [index, line] of lines.entries()) {
-    const row = `Zeile ${index + 1}`;
-    if (!/^\d{4}$/.test(line.account)) issues.push(`${row}: Konto hat vier Ziffern`);
-    else if (opening.has(line.account)) {
-      // In der Eröffnung erlaubt, siehe openingAccounts
-    } else if (kind === "eroeffnung" && !carriesForward(kontenrahmen, line.account)) {
-      issues.push(`${row}: Konto ${line.account} ist ein Erfolgskonto; die Eröffnung übernimmt nur Bestände`);
-    } else if (line.account.startsWith("9")) issues.push(`${row}: Konto ${line.account} ist ein Vortrags- oder statistisches Konto`);
-    else if (line.taxCode && freieBuchungKonten(kontenrahmen, line.taxCode).includes(line.account)) {
-      // Freie Buchung mit Steuerschlüssel auf das Erlöskonto des Schlüssels oder die Sachentnahme (freieBuchungIssues prüft den Rest)
-    } else if (line.taxCode) issues.push(`${row}: Mit ${line.taxCode} bucht die Zeile auf ${freieBuchungKonten(kontenrahmen, line.taxCode).join(" oder ")}`);
-    else if (isSachentnahmeKonto(kontenrahmen, line.account)) {
-      issues.push(`${row}: Konto ${line.account} ist eine Sachentnahme mit Umsatzsteuer und bucht nur mit Steuerschlüssel`);
-    } else if (managed.has(line.account)) issues.push(`${row}: Konto ${line.account} führt das Nebenbuch ${managed.get(line.account)}`);
-    else if (isKapitalgesellschaft(rechtsform) && isPrivateAccount(kontenrahmen, line.account)) {
-      issues.push(`${row}: Konto ${line.account} ist ein Privatkonto; eine GmbH oder UG bucht auf das Gesellschafter-Verrechnungskonto`);
-    }
-    if (!isCents(line.debit) || !isCents(line.credit)) issues.push(`${row}: Betrag ungültig`);
-    else if ((line.debit === 0) === (line.credit === 0)) issues.push(`${row}: Betrag entweder im Soll oder im Haben`);
-  }
-  const debit = lines.reduce((sum, l) => sum + l.debit, 0);
-  const credit = lines.reduce((sum, l) => sum + l.credit, 0);
-  if (debit !== credit) issues.push("Soll und Haben sind nicht gleich");
-  if (lines.length >= 2 && (!lines.some((l) => l.debit > 0) || !lines.some((l) => l.credit > 0))) issues.push("Es fehlt eine Seite");
-  const accounts = new Set(lines.map((l) => l.account));
-  if (lines.length >= 2 && accounts.size === 1) issues.push("Soll und Haben auf demselben Konto ändern nichts");
-  if (
-    rechtsform === "einzelunternehmen" &&
-    kind === "umbuchung" &&
-    lines.some(({ account }) => account === ACCOUNTS[kontenrahmen].bank || /^900\d$/.test(account))
-  ) {
-    issues.push(
-      "Im Einzelunternehmen braucht der Bank-Anfangsbestand keine Buchung. Die EÜR erfasst Betriebseinnahmen und Betriebsausgaben. Enthält der letzte Import oder Abruf einen Endsaldo, siehst du ihn unter Bank",
-    );
-  }
-  return issues;
+  return manualFindingTexts(manualPostingFindings(lines, kontenrahmen, rechtsform, kind));
 }
 
 /** Buchungszeilen einer geprüften manuellen Buchung ohne Steuerschlüssel; mit Steuerschlüssel siehe freieBuchungPosting */

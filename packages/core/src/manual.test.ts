@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ledgerManagedAccounts, manualPosting, manualPostingIssues, reverseManualPosting } from "./manual.ts";
+import { ledgerManagedAccounts, manualFindingTexts, manualPosting, manualPostingFindings, manualPostingIssues, reverseManualPosting } from "./manual.ts";
 
 const line = (account: string, debit: number, credit: number) => ({ account, debit, credit });
 
@@ -130,4 +130,26 @@ describe("Eröffnungsbuchung", () => {
       expect(manualPostingIssues([line("9000", 100, 0), line(ust, 0, 100)], kr, "gmbh", "eroeffnung")[0]).toContain("Nebenbuch Umsatzsteuer");
     },
   );
+});
+
+// #1277: dieselben Meldungen mit Zeile und Feld, damit das Formular sie ans Feld setzt
+describe("Meldungen der manuellen Buchung je Zeile und Feld", () => {
+  it("ordnet Konto und Betrag ihrer Zeile und ihrem Feld zu, Summe und Seiten der ganzen Buchung", () => {
+    expect(manualPostingFindings([line("12", 300, 0), line("0730", 0, Number.NaN)], "SKR03", "gmbh")).toEqual([
+      { text: "Konto hat vier Ziffern", row: 0, field: "account" },
+      { text: "Betrag ungültig", row: 1, field: "credit" },
+      { text: "Soll und Haben sind nicht gleich", folge: true },
+      { text: "Es fehlt eine Seite", folge: true },
+    ]);
+    expect(manualPostingFindings([line("4900", -100, 0), line("0730", 0, 0)], "SKR03", "gmbh").slice(0, 2)).toEqual([
+      { text: "Betrag ungültig", row: 0, field: "debit" },
+      { text: "Betrag entweder im Soll oder im Haben", row: 1, field: "debit" },
+    ]);
+  });
+
+  it("ergibt als Sätze genau die Meldungen von manualPostingIssues", () => {
+    const lines = [line("1200", 100, 0), line("12", 0, 0), line("0730", 0, 50)];
+    expect(manualFindingTexts(manualPostingFindings(lines, "SKR03", "gmbh"))).toEqual(manualPostingIssues(lines, "SKR03", "gmbh"));
+    expect(manualPostingIssues(lines, "SKR03", "gmbh")[0]).toBe("Zeile 1: Konto 1200 führt das Nebenbuch Bank");
+  });
 });

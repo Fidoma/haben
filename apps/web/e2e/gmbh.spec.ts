@@ -94,6 +94,55 @@ test("Manuelle Buchung: Konten nach Namen suchen, auswählen und leeren", async 
   await kontensuchePruefen(page);
 });
 
+test("Manuelle Buchung: Fehler einer Zeile am Feld, was die ganze Buchung betrifft erst danach unter der Tabelle (#1277)", async () => {
+  await go("/buchungen/neu");
+  const form = page.getByRole("form", { name: "Manuelle Buchung" });
+  await form.getByLabel("Buchungstext").fill("Einlage des Gesellschafters");
+  await form.getByLabel("Konto Zeile 1").fill("12");
+  await form.getByLabel("Soll Zeile 1").fill("100,00");
+  await form.getByLabel("Konto Zeile 2").fill("2900");
+  await form.getByLabel("Haben Zeile 2").fill("zehn");
+  // Vor dem ersten „Buchen“ sagt die Liste schon, was fehlt
+  const liste = form.getByRole("status", { name: "Noch nicht buchbar" });
+  await expect(liste).toContainText("Zeile 1: Konto hat vier Ziffern");
+  await form.getByRole("button", { name: "Buchen" }).click();
+  await expect(form.getByLabel("Konto Zeile 1")).toBeFocused();
+  await expect(form.getByLabel("Konto Zeile 1")).toHaveAccessibleDescription("Konto hat vier Ziffern.");
+  await expect(form.getByLabel("Haben Zeile 2")).toHaveAccessibleDescription("Trag den Betrag im Haben ein, etwa 100,00, oder lass das Feld leer.");
+  await expect(form.getByLabel("Soll Zeile 1")).not.toHaveAttribute("aria-invalid");
+  // „Soll und Haben sind nicht gleich“ wäre hier nur eine Folge des Betrags
+  await expect(liste).toHaveCount(0);
+
+  await form.getByLabel("Konto Zeile 1").fill("3510");
+  await form.getByLabel("Haben Zeile 2").fill("50,00");
+  await expect(form.getByLabel("Haben Zeile 2")).not.toHaveAttribute("aria-invalid");
+  await form.getByRole("button", { name: "Buchen" }).click();
+  await expect(form.getByLabel("Konto Zeile 1")).toBeFocused();
+  await expect(form.getByLabel("Konto Zeile 1")).toHaveAccessibleDescription("Soll und Haben sind nicht gleich.");
+  await expect(liste).toHaveText("Soll und Haben sind nicht gleich.");
+  await expect(page).toHaveURL(/\/buchungen\/neu$/);
+});
+
+test("Manuelle Buchung: Nach einem gescheiterten Buchen nennt das Formular einen neuen Fehler einer Zeile (Review #1950)", async () => {
+  await go("/buchungen/neu");
+  const form = page.getByRole("form", { name: "Manuelle Buchung" });
+  await form.getByLabel("Buchungstext").fill("Einlage, Verbindung bricht ab");
+  await form.getByLabel("Konto Zeile 1").fill("3510");
+  await form.getByLabel("Soll Zeile 1").fill("100,00");
+  await form.getByLabel("Konto Zeile 2").fill("2900");
+  await form.getByLabel("Haben Zeile 2").fill("100,00");
+  // Die Prüfung im Formular geht durch, der Server antwortet nicht
+  const abbrechen = (route: Route) => (route.request().method() === "POST" ? route.abort() : route.continue());
+  await page.route(/_serverFn/, abbrechen);
+  await form.getByRole("button", { name: "Buchen" }).click();
+  await expect(form.locator(".banner-danger")).toBeVisible();
+  await page.unroute(/_serverFn/, abbrechen);
+  await expect(page).toHaveURL(/\/buchungen\/neu$/);
+  // Ein Tippfehler danach: Vor dem ersten „Buchen“ stand er in der Liste; jetzt muss er irgendwo stehen
+  await form.getByLabel("Konto Zeile 1").fill("12");
+  await expect(form.getByText(/Konto hat vier Ziffern/)).toBeVisible();
+});
+
 test("Eröffnung nicht am 1. Januar: der Fehler steht am Datum und der Fokus dort (Review #971)", async () => {
   await go("/buchungen/neu");
   const form = page.getByRole("form", { name: "Manuelle Buchung" });

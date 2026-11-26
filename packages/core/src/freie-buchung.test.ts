@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { freieBuchungIssues, freieBuchungPosting } from "./freie-buchung.ts";
+import { freieBuchungFindings, freieBuchungIssues, freieBuchungPosting } from "./freie-buchung.ts";
 import { kennzahlenAusJournal } from "./journal-kennzahlen.ts";
 import { datevFormelKonto, euerAusZeilen, euerZuordnung } from "./journal-euer.ts";
 import { kontoImKontenrahmen } from "./kontenrahmen-wechsel.ts";
@@ -184,5 +184,26 @@ describe.each(["SKR03", "SKR04"] as const)("Eigene Sachkonten (#270) in manuelle
   it("ein eigenes Konto hat die Zeile seiner Elternkategorie in der EÜR; ohne bekanntes eigenes Konto bleibt es abgelehnt", () => {
     expect(freieBuchungIssues(lines, mit)).toEqual([]);
     expect(freieBuchungIssues(lines, kontext(kr)).join(" ")).toContain(`Konto ${eigenes} hat keine Zeile in der EÜR`);
+  });
+});
+
+// #1277: Steuerschlüssel und Gegenkonto an ihrer Zeile, das Einzelunternehmen an der ganzen Buchung
+describe("Meldungen der freien Buchung je Zeile und Feld", () => {
+  it("SKR04: Gegenkonto und Schlüssel an der Zeile, Kleinunternehmer an der ganzen Buchung", () => {
+    const k = K.SKR04;
+    const lines: ManualLine[] = [
+      { account: k.bank, debit: 11_900, credit: 0 },
+      { account: k.erloese19, debit: 0, credit: 11_900, taxCode: "USt19" },
+    ];
+    expect(freieBuchungFindings(lines, { kontenrahmen: "SKR04", rechtsform: "gmbh", kleinunternehmer: true })).toEqual([
+      { text: "Als Kleinunternehmer bucht Haben keine Umsatzsteuer (§ 19 Abs. 1 UStG)" },
+      { text: "Gegenkonto einer Zeile mit Steuerschlüssel ist ein Erfolgskonto oder das Gesellschafter-Verrechnungskonto", row: 0, field: "account" },
+    ]);
+    const fremd = [lines[0]!, { ...lines[1]!, taxCode: "VSt19" as unknown as ManualLine["taxCode"] }];
+    expect(freieBuchungFindings(fremd, { kontenrahmen: "SKR04", rechtsform: "gmbh", kleinunternehmer: false })).toContainEqual({
+      text: "Steuerschlüssel VSt19 ist hier nicht erlaubt",
+      row: 1,
+      field: "taxCode",
+    });
   });
 });

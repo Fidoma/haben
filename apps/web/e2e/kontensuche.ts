@@ -31,7 +31,8 @@ export async function kontensuchePruefen(page: Page) {
   await konto.press("Escape");
   await form.getByRole("button", { name: "Buchen", exact: true }).click();
   await expect(konto).not.toHaveAccessibleDescription(/Konto nicht gefunden/);
-  await expect(konto).toHaveAccessibleDescription(/Zeile 1: Konto hat vier Ziffern/);
+  // Der Fehler steht am Feld der Zeile, ohne „Zeile 1:“ davor (#1277)
+  await expect(konto).toHaveAccessibleDescription("Konto hat vier Ziffern.");
   await konto.fill("2900");
   await expect(form.getByRole("option").filter({ hasText: "Gezeichnetes Kapital" })).toHaveCount(1);
   await konto.press("Escape");
