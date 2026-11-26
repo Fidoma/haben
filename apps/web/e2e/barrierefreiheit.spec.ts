@@ -222,7 +222,7 @@ for (const theme of THEMES.filter((t) => t !== "wald")) {
 /** Seiten mit mehrzeiligen Feldern, Auswahlen und Eingaben; in dunklen Themes malt der Browser Felder ohne eigene Farbe grau */
 const FIELD_PAGES = ["/rechnungen/neu", "/dauerbelege/neu", "/anlagen/neu", "/finanzamt", "/einstellungen", "/einstellungen?bereich=email"];
 
-/** Sichtbare Felder, deren Hintergrund nicht die Theme-Fläche ist; berechnete Kennzahlen sind absichtlich transparent */
+/** Sichtbare Felder, deren Hintergrund nicht die Theme-Fläche ist */
 function fieldsOffSurface(p: Page) {
   return p.evaluate(() => {
     const probe = document.createElement("div");
@@ -232,7 +232,7 @@ function fieldsOffSurface(p: Page) {
     probe.remove();
     return [...document.querySelectorAll<HTMLElement>("main input, main select, main textarea")]
       .filter((el) => !["checkbox", "radio", "hidden", "file", "range", "color"].includes((el as HTMLInputElement).type))
-      .filter((el) => el.getClientRects().length > 0 && !el.closest(".search-box") && !el.matches(".kz-row input:read-only"))
+      .filter((el) => el.getClientRects().length > 0 && !el.closest(".search-box"))
       .filter((el) => getComputedStyle(el).backgroundColor !== surface)
       .map(
         (el) =>

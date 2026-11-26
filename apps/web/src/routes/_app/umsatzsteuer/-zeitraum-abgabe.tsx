@@ -58,7 +58,7 @@ export function useVoranmeldungAktionen(
     event.preventDefault();
     void run(async () => {
       await persist();
-      await router.invalidate();
+      await router.invalidate({ sync: true });
       setNotice({ tone: "ok", text: "Entwurf gespeichert." });
     });
   };
@@ -67,14 +67,14 @@ export function useVoranmeldungAktionen(
     run(async () => {
       const id = dirty || !current ? await persist() : current.id;
       const result = await submit({ data: { id, kind, pin } });
-      await router.invalidate();
+      await router.invalidate({ sync: true });
       setNotice(elsterNotice(kind, result, "Voranmeldung übermittelt und festgeschrieben."));
     });
 
   const onCorrect = () =>
     run(async () => {
       await correct({ data: data.period });
-      await router.invalidate();
+      await router.invalidate({ sync: true });
       setNotice({ tone: "info", text: "Berichtigte Anmeldung angelegt. Werte prüfen und erneut senden." });
     });
 

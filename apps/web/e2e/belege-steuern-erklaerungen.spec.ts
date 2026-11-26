@@ -22,6 +22,7 @@ import { abzugEinspielen } from "./abzug.ts";
 import { receiptJpeg } from "./belegbild.ts";
 import { ustIdBestaetigungPruefen, zmBestaetigungPruefen } from "./ustid-bestaetigung.ts";
 import { abgearbeitet } from "./warten.ts";
+import { eingabeNachAktion, fokusNachFehlschlag, gesperrtBisNeuGeladen, kurzNacheinanderSpeichern } from "./felder-sperre.ts";
 
 /**
  * Abschnitt von belege-steuern (#1742) mit eigenem Server und eigener Datenbank, parallel zu den anderen Abschnitten:
@@ -233,9 +234,9 @@ test("Voranmeldung vierteljährlich: Zeitraum einstellen, Quartal prüfen und te
   await expect(page.getByText("Fällig am", { exact: false })).toContainText(`April ${next}`);
   // axe prüft das Quartal und den Bereich Voranmeldungszeitraum in barrierefreiheit.spec.ts
 
-  // Die Voranmeldung, nicht der Antrag auf Dauerfristverlängerung daneben. Nach Prüfen und Senden zeigt die Seite die
-  // Meldung, bevor React die neu geladenen Daten einsetzt; mit ihnen baut sich das Formular neu auf (Schlüssel aus dem
-  // Stand des Entwurfs) und verliert PIN und Auswahl. Erst weiter, wenn der Verlauf den neuen Eintrag zeigt
+  // Die Voranmeldung, nicht der Antrag auf Dauerfristverlängerung daneben. Nach Prüfen und Senden lädt die Seite neu und
+  // baut das Formular auf (Schlüssel aus dem Stand des Entwurfs), PIN und Auswahl sind danach leer; die Meldung kommt
+  // erst mit den neuen Daten (#1824). Erst weiter, wenn der Verlauf den neuen Eintrag zeigt
   const elster = page.getByRole("form", { name: "An ELSTER übermitteln" });
   const history = page.getByRole("region", { name: `Verlauf 1. Quartal ${next}` });
   await elster.getByRole("button", { name: "Nur prüfen" }).click();
@@ -737,6 +738,55 @@ test("Voranmeldung von Hand: alle angebotenen Kennzahlen eintragen, ein ungülti
     });
     await sql.end();
   }
+});
+
+// Die vier Tests zu #1824 teilen sich einen Entwurf von Hand im April vor dem Vorjahr, ohne Buchungen. Er bleibt stehen:
+// „Nur prüfen“ legt einen Eintrag im Verlauf an, der auf ihn verweist
+const sperreMonat = `${YEAR - 2}-04`;
+const kennzahlen = () => page.getByRole("form", { name: "Kennzahlen" });
+const begruendung = () => kennzahlen().getByLabel("Begründung der Abweichung (Pflicht)");
+
+test("Voranmeldung von Hand: Eingaben direkt nach dem Speichern bleiben erhalten (#1824)", async () => {
+  await go(`/umsatzsteuer/${sperreMonat}`);
+  await kennzahlen()
+    .getByRole("button", { name: /^Werte von Hand ändern/ })
+    .click();
+  await kennzahlen().getByLabel("Steuerpflichtige Umsätze 19 %", { exact: true }).fill("1.000,00");
+  await begruendung().fill("Rechnung aus der alten Buchhaltung");
+  await eingabeNachAktion(page, {
+    aktion: kennzahlen().getByRole("button", { name: "Entwurf speichern" }),
+    feld: begruendung(),
+    text: "Gleich nach dem Speichern getippt",
+    // Die Meldung setzt die Seite erst, wenn die neuen Daten geladen sind
+    neuGeladen: page.getByText("Entwurf gespeichert."),
+  });
+});
+
+test("Voranmeldung von Hand: Kurz nacheinander gespeichert, baut sich das Formular jedes Mal neu auf (#1824)", async () => {
+  // Der Entwurf aus dem Test davor
+  await kurzNacheinanderSpeichern({
+    feld: begruendung(),
+    speichern: kennzahlen().getByRole("button", { name: "Entwurf speichern" }),
+    texte: ["Erste Begründung von Hand", "Zweite Begründung von Hand", "Dritte Begründung von Hand"],
+  });
+});
+
+test("Voranmeldung von Hand: Speichern schlägt fehl, der Fokus steht danach wieder im Feld (#1824)", async () => {
+  // Der Entwurf aus den Tests davor; Enter speichert nur mit Änderungen, sonst ist „Entwurf speichern“ gesperrt
+  const kz81 = kennzahlen().getByLabel("Steuerpflichtige Umsätze 19 %", { exact: true });
+  await kz81.fill("1.100,00");
+  await fokusNachFehlschlag(page, kz81);
+});
+
+test("Voranmeldung von Hand: Nach „Nur prüfen“ werden die Felder bis zum Neuaufbau nicht frei (#1824)", async () => {
+  // Der Entwurf aus den Tests davor, noch mit der Änderung aus dem Test davor: „Nur prüfen“ speichert sie zuerst, danach
+  // baut sich das Formular mit dem neuen Stand neu auf
+  await gesperrtBisNeuGeladen(page, {
+    aktion: page.getByRole("form", { name: "An ELSTER übermitteln" }).getByRole("button", { name: "Nur prüfen" }),
+    feld: begruendung(),
+    neuGeladen: page.getByText("ERiC hat die Daten geprüft, keine Fehler."),
+  });
+  await expect(kennzahlen().getByLabel("Steuerpflichtige Umsätze 19 %", { exact: true })).toHaveValue("1.100,00");
 });
 
 test("Seiten mit den Daten dieses Abschnitts ohne axe-Verstöße", async () => {

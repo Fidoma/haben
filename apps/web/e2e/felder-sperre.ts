@@ -3,7 +3,7 @@ import { expect, type Locator, type Page } from "@playwright/test";
 /*
  * Formulare, die sich nach einer Aktion mit dem gespeicherten Stand neu aufbauen, sperren ihre Felder, bis das Neuladen
  * fertig ist (DESIGN.md, Gesperrte Knöpfe; #1148, #1793, #1824). Geprüft für wiederkehrende Rechnung, Anlage, Dauerbeleg,
- * Beleg prüfen und Kontakt. Der `key` dieser Formulare und des Rechnungseditors ist `updatedAt` in Millisekunden, beim
+ * Beleg prüfen, Kontakt und Voranmeldung. Der `key` dieser Formulare und des Rechnungseditors ist `updatedAt` in Millisekunden, beim
  * Kontakt die Version; so bauen sie sich auch nach zwei Speichervorgängen in derselben Sekunde neu auf (#1804).
  */
 
