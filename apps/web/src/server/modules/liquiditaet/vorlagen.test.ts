@@ -32,11 +32,11 @@ describe.skipIf(!testDatabaseUrl)("Liquiditätsvorschau: Dauerbelege und wiederk
 
   async function dauerbeleg(
     name: string,
-    felder: { status?: string; payment?: string; taxShown?: boolean; privateShare?: number; amounts: object[] } & Record<string, unknown>,
+    felder: { status?: string; payment?: string; taxShown?: boolean; privateShare?: number; category?: string; amounts: object[] } & Record<string, unknown>,
   ) {
     const [row] = await sql<{ id: string }[]>`insert into recurring_documents (name, status, supplier_name, category, payment, private_share,
         amounts, tax_shown, recurrence, anchor_day, start_date, next_date, end_date, due_days, sha256, filename, mime_type, size)
-      values (${name}, ${felder.status ?? "aktiv"}, 'Vermieter', 'miete', ${felder.payment ?? "bank"}, ${felder.privateShare ?? 0},
+      values (${name}, ${felder.status ?? "aktiv"}, 'Vermieter', ${felder.category ?? "miete"}, ${felder.payment ?? "bank"}, ${felder.privateShare ?? 0},
               ${JSON.stringify(felder.amounts)}::jsonb, ${felder.taxShown ?? false}, ${String(felder.recurrence ?? "P1M")}, ${Number(felder.anchor ?? 1)},
               '2026-01-01', ${String(felder.next ?? "2026-12-01")}, ${(felder.end as string | undefined) ?? null}, ${Number(felder.dueDays ?? 0)},
               ${"b".repeat(64)}, 'vertrag.pdf', 'application/pdf', 1)
@@ -69,6 +69,52 @@ describe.skipIf(!testDatabaseUrl)("Liquiditätsvorschau: Dauerbelege und wiederk
       { ...miet, datum: "2026-12-04", steuer: { betrag: -15_200, datum: "2026-12-01" } },
       { ...miet, datum: "2027-01-04", steuer: { betrag: -15_200, datum: "2027-01-01" } },
     ]);
+  });
+
+  it.each([
+    ["SKR03", "ist"],
+    ["SKR04", "soll"],
+  ] as const)("erwartet die Vorsteuer eines Dauerbelegs so, wie die Buchung sie abzieht (%s, %s)", async (kontenrahmen, versteuerung) => {
+    await firma(sql, { kontenrahmen, versteuerung });
+    const einmal = { taxShown: true, next: "2026-12-01", end: "2026-12-31" };
+    // Gebucht wird je Satz der private Teil gerundet, der betriebliche ist der Rest (splitPrivateShare in documentRatePosting):
+    // 10 ct zu 25 % privat sind 3 ct privat und 7 ct abziehbar, nicht 7,5 ct auf 8 gerundet
+    const halb = await dauerbeleg("Halber Cent", { ...einmal, privateShare: 25, amounts: [{ taxRate: 1900, net: 53, tax: 10 }] });
+    // Zwei Sätze zu je 10 ct: je Satz 7 ct, zusammen 14 ct, nicht 75 % der Summe von 20 ct
+    const zwei = await dauerbeleg("Zwei Sätze", {
+      ...einmal,
+      privateShare: 25,
+      amounts: [
+        { taxRate: 1900, net: 53, tax: 10 },
+        { taxRate: 700, net: 143, tax: 10 },
+      ],
+    });
+    // Zollbescheid: der ganze Betrag ist Vorsteuer (Kz 62), auch ohne Steuerausweis (einfuhrumsatzsteuerPosting)
+    const zoll = await dauerbeleg("Zoll", {
+      next: "2026-12-01",
+      end: "2026-12-31",
+      category: "einfuhrumsatzsteuer",
+      amounts: [{ taxRate: 0, net: 38_000, tax: 0 }],
+    });
+    const vorsteuer = async () =>
+      new Map((await dauerbelege.dauerbelegPosten(await kontext.ladeKontext("2026-11-20", "13w"))).map((p) => [p.quelle.id, p.steuer?.betrag ?? 0]));
+    expect(await vorsteuer()).toEqual(
+      new Map([
+        [halb, -7],
+        [zwei, -14],
+        [zoll, -38_000],
+      ]),
+    );
+
+    // Nur steuerfreie Umsätze ohne Vorsteuerabzug (Firmendaten): die Buchung zieht nichts ab, die Vorschau erwartet nichts
+    await sql`update company set ohne_vorsteuerabzug = true`;
+    expect(await vorsteuer()).toEqual(
+      new Map([
+        [halb, 0],
+        [zwei, 0],
+        [zoll, 0],
+      ]),
+    );
   });
 
   it.each([

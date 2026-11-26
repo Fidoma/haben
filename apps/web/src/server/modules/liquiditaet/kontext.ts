@@ -16,6 +16,8 @@ export interface Kontext {
   versteuerung: (datum: string) => Versteuerung;
   /** Kleinunternehmer am Tag: keine Umsatzsteuer, keine Vorsteuer */
   kleinunternehmer: (datum: string) => boolean;
+  /** Nur steuerfreie Umsätze ohne Vorsteuerabzug (Firmendaten): Belege ohne eigene Angabe ziehen keine Vorsteuer ab */
+  ohneVorsteuerabzug: boolean;
   /** Erster Bankumsatz der Konten im Bestand: Steuertermine vor heute zählen nur danach als überfällig; null ohne Umsätze */
   bankdatenAb: string | null;
 }
@@ -35,6 +37,7 @@ export async function ladeKontext(heute: string, horizont: Horizont): Promise<Ko
     // Ein Jahr außerhalb des Horizonts kommt nur bei Posten vor heute vor; dort gilt das Jahr von heute
     versteuerung: (datum) => versteuerung.get(Number(datum.slice(0, 4))) ?? versteuerung.get(Number(heute.slice(0, 4)))!,
     kleinunternehmer: ku,
+    ohneVorsteuerabzug: company.ohneVorsteuerabzug,
     bankdatenAb,
   };
 }
