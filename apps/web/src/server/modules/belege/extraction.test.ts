@@ -46,6 +46,23 @@ describe("KI-Auslesung umwandeln", () => {
     expect(felder.warnings).toContain("Betrag zu 19 % nicht lesbar");
   });
 
+  it("meldet einen angegebenen, aber nicht lesbaren Gesamtbetrag (#1922)", () => {
+    // Bisher fiel die Summenprüfung still weg, ohne dass jemand erfuhr, dass der Gesamtbetrag verloren ging
+    const felder = toFields({ ...base, brutto: "1.234" });
+    expect(felder.amounts).toEqual([{ taxRate: 1900, net: 3240, tax: 616 }]);
+    expect(felder.warnings).toContain("Gesamtbetrag nicht lesbar");
+    // Auch ein zu grosser Betrag ist nicht lesbar und wird gemeldet, nicht geraten
+    expect(toFields({ ...base, brutto: "3000000.01" }).warnings).toContain("Gesamtbetrag nicht lesbar");
+    // Nur Leerzeichen zaehlt nicht als Angabe
+    expect(toFields({ ...base, brutto: " " }).warnings).not.toContain("Gesamtbetrag nicht lesbar");
+    // Fehlt er ganz, gibt es nichts zu melden
+    expect(toFields({ ...base, brutto: null }).warnings).not.toContain("Gesamtbetrag nicht lesbar");
+    // Ein lesbarer Gesamtbetrag bleibt wie bisher und passt zur Summe
+    const lesbar = toFields({ ...base, brutto: "38.56" });
+    expect(lesbar.warnings).not.toContain("Gesamtbetrag nicht lesbar");
+    expect(lesbar.warnings).not.toContain("Summe aus Netto und Steuer weicht vom Gesamtbetrag ab");
+  });
+
   it("meldet die Abweichung weiter, wenn die gerundeten Werte nicht zum gedruckten Gesamtbetrag passen", () => {
     // Der Schutz gegen falsch grün: gerundet wird nur der Betrag, die Summenprüfung bleibt streng
     const felder = toFields({
