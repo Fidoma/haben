@@ -100,6 +100,7 @@ export { abschlagFromPlan, PlanError, quotePlanOverview, type PlanRowOverview } 
 export {
   copyQuote,
   createQuoteDraft,
+  findQuoteIdByReference,
   deleteQuoteDraft,
   finalizeQuote,
   getQuote,

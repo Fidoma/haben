@@ -1,6 +1,6 @@
 import { inCents, QUOTE_LINE_KINDS, QUOTE_VALID_DAYS, type QuoteListStatus } from "@haben/core";
 import { z } from "zod";
-import { quoteDraftSchema } from "../rechnungen/index.ts";
+import { externalReferenceSchema, quoteDraftSchema } from "../rechnungen/index.ts";
 import { CENTS, invoiceSchema, isoDate, lineInputSchema, optional, page, pageQuery, requestSchemas, responseSchemas, timestamp } from "./schemas.ts";
 
 /*
@@ -56,8 +56,17 @@ const quoteDraftApiFields = {
 };
 
 export const quoteDraftCreateSchema = z
-  .object({ ...optional(quoteDraftApiFields), lines: quoteDraftApiFields.lines })
+  .object({
+    ...optional(quoteDraftApiFields),
+    lines: quoteDraftApiFields.lines,
+    externalSource: externalReferenceSchema.shape.externalSource.optional().describe("Quellsystem, z. B. desk; nur zusammen mit externalId"),
+    externalId: externalReferenceSchema.shape.externalId.optional().describe("Vorgangs-ID im Quellsystem; mit externalSource eindeutig"),
+  })
   .strict()
+  .refine(({ externalSource, externalId }) => (externalSource === undefined) === (externalId === undefined), {
+    path: ["externalId"],
+    message: "externalSource und externalId müssen gemeinsam angegeben werden.",
+  })
   .register(requestSchemas, { id: "QuoteDraftCreate" });
 
 /** Änderung eines Entwurfs: nur die genannten Felder; lines ersetzt alle Positionen */
@@ -102,6 +111,8 @@ const quoteLineSchema = invoiceFields.lines.element.extend({
 export const quoteSchema = z
   .object({
     ...quoteSummaryShape,
+    externalSource: z.string().nullable().describe("Quellsystem der externen Referenz"),
+    externalId: z.string().nullable().describe("Vorgangs-ID im Quellsystem"),
     serviceFrom: isoDate.nullable(),
     serviceTo: isoDate.nullable(),
     intro: z.string().describe("Kopftext über den Positionen"),

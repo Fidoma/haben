@@ -2297,6 +2297,13 @@
       "when": 1795642566276,
       "tag": "0327_kleinunternehmer_zuordnung",
       "breakpoints": true
+    },
+    {
+      "idx": 328,
+      "version": "7",
+      "when": 1795692060163,
+      "tag": "0328_angebotsreferenz",
+      "breakpoints": true
     }
   ]
 }

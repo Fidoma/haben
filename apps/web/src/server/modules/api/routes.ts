@@ -166,9 +166,12 @@ export const API_ROUTES: ApiRoute[] = [
     description:
       "Legt einen Entwurf an; festgeschrieben und versendet wird in Haben. Nicht angegebene Felder nehmen die Vorgaben eines neuen Angebots in Haben: " +
       "Gültigkeit ab dem Angebotsdatum, Kopf- und Fußtext aus den Standard-Textbausteinen, Steuer aus den Firmendaten, die Sprache die des Kontakts; " +
-      "dazu die Standardanhänge. Jeder Aufruf legt einen Entwurf an.",
+      "dazu die Standardanhänge. Mit externalSource und externalId liefert eine Wiederholung das vorhandene Angebot.",
     requestBody: "QuoteDraftCreate",
-    responses: { 201: { schema: "Quote", description: "Entwurf angelegt; Location zeigt auf ihn" } },
+    responses: {
+      200: { schema: "Quote", description: "Angebot zur externen Referenz vorhanden; Location zeigt auf das Angebot" },
+      201: { schema: "Quote", description: "Entwurf angelegt; Location zeigt auf ihn" },
+    },
     errors: { 422: "Den Kontakt gibt es nicht, oder er ist kein Kunde" },
     handler: createQuoteHandler,
   },

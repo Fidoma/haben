@@ -84,6 +84,44 @@ describe.skipIf(!testDatabaseUrl)("REST-API: Angebotsentwürfe anlegen, ändern 
     };
   }
 
+  it("legt dieselbe externe Referenz auch parallel nur einmal an und liefert danach den festgeschriebenen Stand", async () => {
+    const t = await token(["angebote:entwuerfe"]);
+    const reference = { externalSource: "desk", externalId: "projekt-42-angebot-1" };
+    const input = { contactId, ...reference, lines: [line()] };
+    const results = await Promise.all([call(t, "POST", "/angebote", input), call(t, "POST", "/angebote", input)]);
+    expect(results.map(({ status }) => status).sort()).toEqual([200, 201]);
+    const id = String(results[0]!.json!.id);
+    expect(results[1]!.json).toMatchObject({ id, ...reference });
+    expect(await sql`select id from quotes`).toEqual([{ id }]);
+    // PATCH lehnt Änderungen an der Referenz ab, andere Änderungen behalten sie
+    expect((await call(t, "PATCH", `/angebote/${id}`, { externalId: "anders" })).status).toBe(400);
+    expect((await call(t, "PATCH", `/angebote/${id}`, { externalSource: "anders" })).status).toBe(400);
+    const patched = await call(t, "PATCH", `/angebote/${id}`, { note: "Bleibt unverändert" });
+    expect(patched.status).toBe(200);
+    expect(patched.json).toMatchObject({ id, ...reference, note: "Bleibt unverändert" });
+    // Nur beide Felder zusammen sind gültig
+    expect((await call(t, "POST", "/angebote", { ...input, externalId: undefined })).status).toBe(400);
+    expect((await call(t, "POST", "/angebote", { ...input, externalSource: undefined })).status).toBe(400);
+    // Dieselbe externalId unter anderer Quelle legt ein eigenes Angebot an
+    const otherSource = await call(t, "POST", "/angebote", { ...input, externalSource: "other" });
+    expect(otherSource.status).toBe(201);
+    expect(otherSource.json!.id).not.toBe(id);
+    // Kopieren übernimmt die externe Referenz nicht
+    const copy = await rechnungen.copyQuote(actor, id, today);
+    expect(copy).toMatchObject({ externalSource: null, externalId: null });
+    // Löschen eines Entwurfs gibt die externe Referenz wieder frei
+    expect((await call(t, "DELETE", `/angebote/${otherSource.json!.id}`)).status).toBe(204);
+    const recreated = await call(t, "POST", "/angebote", { ...input, externalSource: "other" });
+    expect(recreated.status).toBe(201);
+    expect(recreated.json!.id).not.toBe(otherSource.json!.id);
+    // Nach dem Festschreiben liefert eine Wiederholung weiter den festgeschriebenen Stand
+    await rechnungen.finalizeQuote(actor, id);
+    const retry = await call(t, "POST", "/angebote", { ...input, lines: [line({ unitPrice: 1_000 })] });
+    expect(retry.status).toBe(200);
+    expect(retry.headers.get("location")).toBe(`/api/v1/angebote/${id}`);
+    expect(retry.json).toMatchObject({ id, ...reference, status: "final", net: 76_000 });
+  });
+
   it("legt einen Entwurf mit den Vorgaben eines neuen Angebots an: gültig 30 Tage ab Angebotsdatum, Standardtexte, Sprache des Kunden", async () => {
     await stammdaten.createTextBlock(actor, {
       name: "Angebot Kopf",

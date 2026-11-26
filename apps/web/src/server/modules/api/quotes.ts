@@ -2,6 +2,7 @@ import type { z } from "zod";
 import {
   createQuoteDraft,
   deleteQuoteDraft,
+  findQuoteIdByReference,
   getQuote,
   listQuotes,
   newQuoteDefaults,
@@ -10,6 +11,7 @@ import {
   updateQuoteDraft,
 } from "../rechnungen/index.ts";
 import { getContact } from "../stammdaten/index.ts";
+import { isUniqueViolation } from "../../errors.ts";
 import { fail, noContent, notFound, ok, validate, type ApiRequest, type ApiResult, type Issue } from "./http.ts";
 import { contactProblem } from "./invoices.ts";
 import { quoteDraftCreateSchema, quoteDraftPatchSchema, quoteQuerySchema, type quoteSchema, type quoteSummarySchema } from "./quotes-schemas.ts";
@@ -47,6 +49,8 @@ function summaryOut(row: ListRow, baseUrl: string): z.output<typeof quoteSummary
 function quoteOut(row: ListRow, { quote, lines, choices }: Detail, baseUrl: string): z.output<typeof quoteSchema> {
   return {
     ...summaryOut(row, baseUrl),
+    externalSource: quote.externalSource,
+    externalId: quote.externalId,
     serviceFrom: quote.serviceFrom,
     serviceTo: quote.serviceTo,
     intro: quote.intro,
@@ -106,11 +110,15 @@ export async function getQuoteHandler(request: ApiRequest): Promise<ApiResult> {
 /**
  * Neuer Entwurf mit den Vorgaben der Oberfläche: gültig ab dem Angebotsdatum so lange wie ein neues Angebot in Haben,
  * Standard-Textbausteine, Steuer aus den Firmendaten, Sprache des Kunden; die Standardanhänge hängt createQuoteDraft an.
- * Jeder Aufruf legt einen Entwurf an.
+ * Eine optionale externe Referenz macht Wiederholungen nach einem Verbindungsabbruch sicher.
  */
 export async function createQuoteHandler(request: ApiRequest): Promise<ApiResult> {
   const shape = validate(quoteDraftCreateSchema, request.body);
   if ("failure" in shape) return shape.failure;
+  const { externalSource, externalId } = shape.data;
+  const reference = externalSource !== undefined && externalId !== undefined ? { externalSource, externalId } : undefined;
+  const existing = reference && (await findQuoteIdByReference(reference));
+  if (existing) return respondWith(existing, request, 200, { Location: `/api/v1/angebote/${existing}` });
   const problem = await contactProblem(shape.data.contactId);
   if (problem) return problem;
   const contact = shape.data.contactId ? (await getContact(shape.data.contactId))?.contact : undefined;
@@ -118,8 +126,16 @@ export async function createQuoteHandler(request: ApiRequest): Promise<ApiResult
   const merged = { ...defaults, ...(contact ? { language: contact.language } : {}), ...(request.body as Record<string, unknown>) };
   const input = validate(quoteDraftSchema, merged);
   if ("failure" in input) return input.failure;
-  const quote = await createQuoteDraft(request.actor, input.data);
-  return respondWith(quote.id, request, 201, { Location: `/api/v1/angebote/${quote.id}` });
+  try {
+    const quote = await createQuoteDraft(request.actor, input.data, reference);
+    return respondWith(quote.id, request, 201, { Location: `/api/v1/angebote/${quote.id}` });
+  } catch (error) {
+    // Der eindeutige Index entscheidet bei gleichzeitigen Anforderungen für dieselbe Referenz.
+    if (!reference || !isUniqueViolation(error, "quotes_external_ref")) throw error;
+    const winner = await findQuoteIdByReference(reference);
+    if (!winner) throw error;
+    return respondWith(winner, request, 200, { Location: `/api/v1/angebote/${winner}` });
+  }
 }
 
 /** Setzt nur Haben; die API nimmt sie nicht an */

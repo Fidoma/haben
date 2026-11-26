@@ -47,6 +47,7 @@ import { assertNumberingCurrent, circleContact, circleFor, customerNumberConflic
 import { quoteDraftLineSchema } from "./draft-line.ts";
 import { openAbschlaege } from "./advance-deductions.ts";
 import { effectivePriceMode } from "./draft-schema.ts";
+import type { ExternalReference } from "./external-reference.ts";
 import { buyerFrom, buyerIssues, invoiceDiscountOf, lineDiscountOf, sellerFrom } from "./invoice-document.ts";
 import { insertDraft } from "./invoice-drafts.ts";
 import type { Invoice } from "./invoices.ts";
@@ -202,10 +203,13 @@ function draftValues(input: QuoteDraftInput) {
 }
 
 /** Legt den Entwurf an; parsed ist schon durch quoteDraftSchema gelaufen */
-async function insertQuoteDraft(tx: Tx, parsed: z.output<typeof quoteDraftSchema>): Promise<Quote> {
+async function insertQuoteDraft(tx: Tx, parsed: z.output<typeof quoteDraftSchema>, reference?: ExternalReference): Promise<Quote> {
   const personProblem = await contactPersonProblem(tx, parsed.contactId, parsed.contactPersonId);
   if (personProblem) throw new QuoteError(personProblem);
-  const [quote] = await tx.insert(schema.quotes).values(draftValues(parsed)).returning();
+  const [quote] = await tx
+    .insert(schema.quotes)
+    .values({ ...draftValues(parsed), ...reference })
+    .returning();
   if (parsed.lines.length > 0) await tx.insert(schema.quoteLines).values(lineRows(quote!.id, parsed));
   return quote!;
 }
@@ -217,12 +221,21 @@ async function checkCustomer(tx: Tx, contactId: string | null) {
   if (problem) throw new QuoteError(problem);
 }
 
+export async function findQuoteIdByReference(reference: ExternalReference): Promise<string | undefined> {
+  const { quotes } = schema;
+  const [quote] = await db
+    .select({ id: quotes.id })
+    .from(quotes)
+    .where(and(eq(quotes.externalSource, reference.externalSource), eq(quotes.externalId, reference.externalId)));
+  return quote?.id;
+}
+
 /** Neuer Entwurf; er bekommt die Standardanhänge aus den Einstellungen (#415) als eigene Anhänge */
-export async function createQuoteDraft(actor: string, input: QuoteDraftInput): Promise<Quote> {
+export async function createQuoteDraft(actor: string, input: QuoteDraftInput, reference?: ExternalReference): Promise<Quote> {
   const parsed = quoteDraftSchema.parse(input);
   return withActor(actor, async (tx) => {
     await checkCustomer(tx, parsed.contactId);
-    const quote = await insertQuoteDraft(tx, parsed);
+    const quote = await insertQuoteDraft(tx, parsed, reference);
     // Mit ihrem Zeitpunkt aus den Einstellungen, wie beim Kopieren: so bleibt deren Reihenfolge
     await attachStoredToQuote(tx, quote.id, await listQuoteDefaultAttachments(tx));
     return quote;

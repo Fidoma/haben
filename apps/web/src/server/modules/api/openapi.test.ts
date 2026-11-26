@@ -128,7 +128,10 @@ describe("OpenAPI-Beschreibung der REST-API", () => {
       post: {
         security: [{ token: ["angebote:entwuerfe"] }],
         requestBody: { content: { "application/json": { schema: { $ref: "#/components/schemas/QuoteDraftCreate" } } } },
-        responses: { 201: { content: { "application/json": { schema: { $ref: "#/components/schemas/Quote" } } } } },
+        responses: {
+          200: { content: { "application/json": { schema: { $ref: "#/components/schemas/Quote" } } } },
+          201: { content: { "application/json": { schema: { $ref: "#/components/schemas/Quote" } } } },
+        },
       },
     });
     expect(doc.paths["/angebote/{id}"]).toMatchObject({
@@ -146,6 +149,10 @@ describe("OpenAPI-Beschreibung der REST-API", () => {
     const create = doc.components.schemas.QuoteDraftCreate as { additionalProperties: boolean; required: string[]; properties: Record<string, unknown> };
     expect(create).toMatchObject({ additionalProperties: false, required: ["lines"] });
     expect(create.properties).toHaveProperty("validUntil");
+    for (const field of ["externalSource", "externalId"]) {
+      expect(create.properties).toHaveProperty(field);
+      expect((doc.components.schemas.QuoteDraftPatch as { properties: object }).properties).not.toHaveProperty(field);
+    }
     for (const field of ["discount", "paymentPlan", "contactPersonId"]) expect(create.properties).not.toHaveProperty(field);
     expect(doc.components.schemas.QuoteDraftPatch).not.toHaveProperty("required");
     const line = doc.components.schemas.QuoteLineInput as { additionalProperties: boolean; properties: Record<string, unknown> };
