@@ -1,7 +1,7 @@
 ---
 title: "Umzug aus FastBill mit Abgleich je Jahr"
 description: >-
-  Von FastBill zu Haben wechseln: Rechnungen, Gutschriften, Ausgaben, Einnahmen, Angebote, Kunden, Artikel und offene Zeiten über die API übernehmen,
+  Von FastBill zu Haben wechseln: Rechnungen, Gutschriften, Ausgaben, Einnahmen, Angebote, Kunden samt Ansprechpartnern, Artikel und offene Zeiten über die API übernehmen,
   unveränderlich archivieren und kündigen.
 ---
 
@@ -34,7 +34,7 @@ Trag Login-E-Mail, Tarif und API-Schlüssel ein und klicke „Prüfen und speich
 
 „Alles abrufen“ startet den Abruf im Hintergrund, mit Fortschritt, Abbrechen und Fortsetzen wie bei Lexoffice. Es läuft immer nur ein Abruf, gleich aus welcher Quelle.
 
-1. **Kunden:** Name (Firma oder Person), Adresse, Land, E-Mail, USt-IdNr. und Kundennummer, als Kontakte mit der Rolle Kunde. Gibt es in Haben schon einen Kontakt mit demselben Namen und ohne FastBill-Herkunft, verknüpft Haben ihn. FastBill führt Lieferanten nicht als Kontakte; sie stehen in den Ausgaben nur als Name.
+1. **Kunden:** Name (Firma oder Person), Adresse, Land, E-Mail, USt-IdNr. und Kundennummer, als Kontakte mit der Rolle Kunde. Gibt es in Haben schon einen Kontakt mit demselben Namen und ohne FastBill-Herkunft, verknüpft Haben ihn. FastBill führt Lieferanten nicht als Kontakte; sie stehen in den Ausgaben nur als Name. Dazu kommen Telefon (sonst Mobiltelefon), Leitweg-ID und DATEV-Debitor an den [Kontakt](kontakte.md) und die [Ansprechpartner](kontakte.md#ansprechpartner) aus FastBill mit Name, E-Mail, Telefon und Position als Funktion. Diese Angaben füllen nur leere Felder, und ein Ansprechpartner mit demselben Namen kommt nicht doppelt. Ein Telefon oder eine Leitweg-ID des Kunden, die das Kontaktformular ablehnen würde, und ein Debitor außerhalb von 10000 bis 69999 oder an einem anderen Kontakt übernimmt Haben nicht; solange das Feld in Haben leer ist, nennt der Abruf den Kunden dann in der Liste der fehlgeschlagenen Belege, angelegt ist er trotzdem. Bei Ansprechpartnern bleiben eine ungültige E-Mail oder ein ungültiges Telefon ohne Meldung leer; eine Person ohne Vor- und Nachnamen oder ohne bekannten Kunden bleibt weg. Nicht übernommen werden das Zahlungsziel je Kunde, für das ein Kontakt kein Feld hat, die Bankverbindung des Kunden, die wie bei den Belegen draußen bleibt, und die Mandatsreferenz: FastBill nennt kein Datum der Unterschrift, ohne das kein gültiges SEPA-Mandat entsteht.
 2. **Belegliste:** Ausgangsrechnungen, Gutschriften und stornierte Rechnungen, je Art ein eigener Abruf, dazu die Ausgaben und die Einnahmen, die du in FastBill unter „Einnahmen“ erfasst hast, etwa die Gutschrift einer Plattform. Entwürfe bleiben draußen. Antwortet FastBill beim Abruf der Einnahmen mit einem Fehler, etwa weil der Tarif sie nicht freigibt, läuft der Abruf mit den übrigen Belegen weiter und nennt den Fehler in der Liste der fehlgeschlagenen Belege.
 3. **Dateien:** je Rechnung und Gutschrift das PDF, je Ausgabe und Einnahme der hochgeladene Beleg. Gibt FastBill den Beleg einer Ausgabe oder Einnahme nur im angemeldeten Browser heraus, wartet der Eintrag, siehe [Belege, die FastBill nur im Browser herausgibt](#belege-die-fastbill-nur-im-browser-herausgibt).
 4. **Wiederkehrende Rechnungen:** als pausierte Vorlagen, siehe [Wiederkehrende Rechnungen](#wiederkehrende-rechnungen).

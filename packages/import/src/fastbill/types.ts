@@ -47,7 +47,12 @@ export const fbCustomerSchema = z.looseObject({
   COUNTRY_CODE: str,
   EMAIL: str,
   PHONE: str,
+  MOBILE: str,
   VAT_ID: str,
+  /** Leitweg-ID für E-Rechnungen an öffentliche Auftraggeber (#1939) */
+  BUYER_REFERENCE: str,
+  /** DATEV-Debitorenkonto (#1939) */
+  CUSTOMER_ACCOUNT: numeric,
   CURRENCY_CODE: str,
   CREATED: str,
   LASTUPDATE: str,
@@ -63,6 +68,9 @@ export const fbContactSchema = z.looseObject({
   LAST_NAME: str,
   EMAIL: str,
   PHONE: str,
+  MOBILE: str,
+  /** Funktion beim Kunden, etwa „Buchhaltung“ (#1939) */
+  POSITION: str,
 });
 export type FbContact = z.infer<typeof fbContactSchema>;
 

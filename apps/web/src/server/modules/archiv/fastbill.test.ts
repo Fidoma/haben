@@ -179,6 +179,8 @@ function fakeFastbill(server: Server): typeof fetch {
       return json({ REQUEST: body, RESPONSE: { ERRORS: ["Login Error: Wrong API KEY or user credentials."] } }, 401);
     const page = (key: string, items: unknown[]) => json({ REQUEST: body, RESPONSE: { [key]: body.OFFSET === 0 ? items : [] } });
     if (body.SERVICE === "customer.get") return page("CUSTOMERS", CUSTOMERS);
+    // Ansprechpartner prüft fastbill-kunden.test.ts; hier gibt es keine
+    if (body.SERVICE === "contact.get") return page("CONTACTS", []);
     if (body.SERVICE === "expense.get") return page("EXPENSES", EXPENSES);
     // Vorlagen wiederkehrender Rechnungen prüft fastbill-vorlagen.test.ts; hier gibt es keine
     if (body.SERVICE === "recurring.get") return page("INVOICES", []);
@@ -239,8 +241,8 @@ describe.skipIf(!testDatabaseUrl)("Umzug aus FastBill (Postgres)", () => {
     expect(run).toMatchObject({ status: "fertig", source: "fastbill" });
     // Die Ausgabe 8002 wartet auf ihren Beleg, statt ohne Datei ins Archiv zu kommen
     expect(run!.progress).toMatchObject({ contacts: 2, listed: 6, imported: 5, skipped: 0, files: 5, failed: [], fastbillWaiting: 1 });
-    // Kunden, drei Durchläufe Rechnungen, Ausgaben, Einnahmen, Vorlagen, Angebote; die Prüfung beim Speichern hat einen eigenen Client, PDFs zählen nicht
-    expect(run!.progress.fastbillCalls).toHaveLength(8);
+    // Kunden, Ansprechpartner, drei Durchläufe Rechnungen, Ausgaben, Einnahmen, Vorlagen, Angebote; die Prüfung beim Speichern hat einen eigenen Client, PDFs zählen nicht
+    expect(run!.progress.fastbillCalls).toHaveLength(9);
     // Entwürfe werden gar nicht abgefragt
     expect(server.calls.filter((c) => c.service === "invoice.get").map((c) => c.filter)).toEqual([
       { TYPE: "outgoing" },
@@ -372,7 +374,7 @@ describe.skipIf(!testDatabaseUrl)("Umzug aus FastBill (Postgres)", () => {
     await fastbill.startFastbillImport(actor, { wait: true });
     const run = await fastbill.latestFastbillImport();
     expect(run!.progress).toMatchObject({ contacts: 0, imported: 0, skipped: 6, failed: [], fastbillWaiting: 0 });
-    expect(run!.progress.fastbillCalls!.length).toBe(before.length + 8);
+    expect(run!.progress.fastbillCalls!.length).toBe(before.length + 9);
     const [count] = await sql`select count(*)::int as n from lexoffice_vouchers where source = 'fastbill'`;
     expect(count!.n).toBe(7);
   });

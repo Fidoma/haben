@@ -8,18 +8,18 @@ import {
   type FbInvoice,
   type FbMappedVoucher,
   isFbInvoiceImportable,
-  mapFbCustomer,
   mapFbExpense,
   mapFbInvoice,
   mapFbRevenue,
 } from "@haben/import";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { withActor } from "../../db/actor.ts";
 import { db, schema } from "../../db/index.ts";
 import type { LexofficeImportProgress } from "../../db/schema.ts";
 import { isUniqueViolation } from "../../errors.ts";
 import { fastbillReceiptKey, waitingReceipt } from "./fastbill-belege.ts";
 import { listRevenues } from "./fastbill-einnahmen.ts";
+import { importFastbillCustomers } from "./fastbill-kunden.ts";
 import { importAfterVouchers } from "./fastbill-nachlauf.ts";
 import { FastbillError, fastbillCredentials, forgetOtherFastbillCalls, newFastbillClient, otherFastbillCalls } from "./fastbill-zugang.ts";
 import { storeLegacyVoucher } from "./legacy-store.ts";
@@ -169,7 +169,7 @@ async function runImport(actor: string, importId: string, client: FastbillClient
     await db.update(schema.lexofficeImports).set({ progress, updatedAt: new Date() }).where(eq(schema.lexofficeImports.id, importId));
   };
 
-  await importCustomers(actor, client, progress, save);
+  await importFastbillCustomers(actor, client, progress, save);
   checkAborted(signal);
   progress.phase = "liste";
   await save(true);
@@ -180,37 +180,6 @@ async function runImport(actor: string, importId: string, client: FastbillClient
   await importListed(actor, importId, client, listed, { invoicesById, creditsByInvoice }, progress, save, signal);
   await save(true);
   await importAfterVouchers(actor, importId, client, progress, signal, save);
-}
-
-/** 1. Kunden; FastBill führt keine Lieferanten als Kontakte */
-async function importCustomers(actor: string, client: FastbillClient, progress: LexofficeImportProgress, save: Save) {
-  for await (const raw of client.customers()) {
-    const contact = mapFbCustomer(raw);
-    await withActor(actor, async (tx) => {
-      const [known] = await tx.select({ id: schema.contacts.id }).from(schema.contacts).where(eq(schema.contacts.fastbillId, contact.fastbillId));
-      if (known) {
-        await tx
-          .update(schema.contacts)
-          .set({ isCustomer: true })
-          .where(and(eq(schema.contacts.id, known.id), eq(schema.contacts.isCustomer, false)));
-        return;
-      }
-      const [sameName] = await tx
-        .select({ id: schema.contacts.id })
-        .from(schema.contacts)
-        .where(and(isNull(schema.contacts.fastbillId), sql`lower(${schema.contacts.name}) = lower(${contact.name})`))
-        .limit(1);
-      if (sameName) {
-        await tx.update(schema.contacts).set({ fastbillId: contact.fastbillId, isCustomer: true }).where(eq(schema.contacts.id, sameName.id));
-        progress.contactsLinked += 1;
-        return;
-      }
-      const { fastbillId, kundennummer, name, strasse, plz, ort, land, email, ustId } = contact;
-      await tx.insert(schema.contacts).values({ fastbillId, isCustomer: true, isSupplier: false, kundennummer, name, strasse, plz, ort, land, email, ustId });
-      progress.contacts += 1;
-    });
-    await save();
-  }
 }
 
 /** 2. Rechnungen, Gutschriften und Stornos ohne Entwürfe, dazu Ausgaben und Einnahmen; alle Rechnungen je ID für die Stornos */
