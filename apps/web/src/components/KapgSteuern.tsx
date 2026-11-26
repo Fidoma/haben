@@ -1,13 +1,15 @@
-import { formatEuro, parseEuro, parseWholePercent, type KapgSteuerAngaben, type KapgSteuern as Steuern, type Prozent } from "@haben/core";
+import { formatEuro, mindestHebesatz, parseEuro, parseWholePercent, type KapgSteuerAngaben, type KapgSteuern as Steuern, type Prozent } from "@haben/core";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useId, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useAction } from "../lib/use-action.ts";
+import { useSubmitCheck } from "../lib/use-submit-check.ts";
 import { bookSteuerrueckstellungenFn, saveKapgAngabenFn } from "../server/functions/abschluss.ts";
 import { ConfirmDialog } from "./ConfirmDialog.tsx";
 import { NoticeBanner } from "./NoticeBanner.tsx";
 import { Field } from "./Field.tsx";
 import { vorschlagHinweis } from "./kapg-vorschlag.ts";
+import { kapgSteuernFehler } from "./kapg-steuern-pruefung.ts";
 
 export interface KapgSteuernData {
   angaben: KapgSteuerAngaben | null;
@@ -19,32 +21,35 @@ export interface KapgSteuernData {
 
 const euroInput = (cents: number | undefined) => (cents === undefined ? "" : formatEuro(cents).replace(/\s*€$/, ""));
 
+/** Betrag aus einem geprüften Feld (kapgSteuernFehler); leer ist 0 */
+const betrag = (text: string) => (text.trim() === "" ? 0 : (parseEuro(text) ?? 0));
+
 /** Körperschaft- und Gewerbesteuer des Jahres: Angaben, Rechnung, Rückstellungen buchen */
 export function KapgSteuern({ year, data, closed }: { year: number; data: KapgSteuernData; closed: boolean }) {
   const router = useRouter();
   const save = useServerFn(saveKapgAngabenFn);
   const book = useServerFn(bookSteuerrueckstellungenFn);
-  const { busy, notice, setNotice, run } = useAction();
+  const { busy, notice, run } = useAction();
   const [confirming, setConfirming] = useState(false);
-  const formId = useId();
   const [hebesatz, setHebesatz] = useState(data.angaben ? String(data.angaben.hebesatz) : "");
   const [vortragKst, setVortragKst] = useState(euroInput(data.angaben?.verlustvortragKst));
   const [vortragGewst, setVortragGewst] = useState(euroInput(data.angaben?.verlustvortragGewst));
   const [ruecktrag, setRuecktrag] = useState(euroInput(data.angaben?.verlustruecktrag || undefined));
   const s = data.steuern;
+  // Prüfung beim Absenden, Fehler am Feld (DESIGN.md, Gesperrte Knöpfe; #1277)
+  const { form, error, check } = useSubmitCheck(kapgSteuernFehler({ year, hebesatz, vortragKst, vortragGewst, ruecktrag }));
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    const kst = vortragKst.trim() === "" ? 0 : parseEuro(vortragKst);
-    const gewst = vortragGewst.trim() === "" ? 0 : parseEuro(vortragGewst);
-    const rueck = ruecktrag.trim() === "" ? 0 : parseEuro(ruecktrag);
-    const satz = parseWholePercent(hebesatz);
-    if (kst === null || gewst === null || rueck === null || satz === null) {
-      setNotice({ tone: "danger", text: "Hebesatz in ganzen Prozent und Verlustvorträge als Betrag eingeben." });
-      return;
-    }
+    if (!check()) return;
+    const angaben = {
+      hebesatz: parseWholePercent(hebesatz) ?? 0,
+      verlustvortragKst: betrag(vortragKst),
+      verlustvortragGewst: betrag(vortragGewst),
+      verlustruecktrag: betrag(ruecktrag),
+    };
     void run(async () => {
-      await save({ data: { year, angaben: { hebesatz: satz, verlustvortragKst: kst, verlustvortragGewst: gewst, verlustruecktrag: rueck } } });
+      await save({ data: { year, angaben } });
       await router.invalidate();
     }, "Angaben gespeichert.");
   }
@@ -70,17 +75,24 @@ export function KapgSteuern({ year, data, closed }: { year: number; data: KapgSt
         Mindestbesteuerung, Hinzurechnung nach § 8 Nr. 1 GewStG. Steuerfreie Erträge, Spenden, verdeckte Gewinnausschüttungen und Kürzungen rechnet Haben nicht;
         die klärt die Steuerberatung.
       </p>
-      <form id={formId} onSubmit={submit} aria-label="Angaben zur Körperschaft- und Gewerbesteuer" className="stack" style={{ gap: 12, maxWidth: 520 }}>
-        <Field label="Hebesatz der Gemeinde (%)">
+      <form
+        ref={form}
+        noValidate
+        onSubmit={submit}
+        aria-label="Angaben zur Körperschaft- und Gewerbesteuer"
+        className="stack"
+        style={{ gap: 12, maxWidth: 520 }}
+      >
+        <Field label="Hebesatz der Gemeinde (%)" hint={`In ganzen Prozent, ${year} mindestens ${mindestHebesatz(year)} %.`} error={error("hebesatz")}>
           {(control) => <input {...control} inputMode="numeric" value={hebesatz} onChange={(e) => setHebesatz(e.target.value)} required />}
         </Field>
-        <Field label={<>Verlustvortrag Körperschaftsteuer zum 31.12.{year - 1}</>}>
+        <Field label={<>Verlustvortrag Körperschaftsteuer zum 31.12.{year - 1}</>} error={error("vortragKst")}>
           {(control) => <input {...control} inputMode="decimal" value={vortragKst} onChange={(e) => setVortragKst(e.target.value)} placeholder="0,00" />}
         </Field>
-        <Field label={<>Gewerbeverlust zum 31.12.{year - 1}</>}>
+        <Field label={<>Gewerbeverlust zum 31.12.{year - 1}</>} error={error("vortragGewst")}>
           {(control) => <input {...control} inputMode="decimal" value={vortragGewst} onChange={(e) => setVortragGewst(e.target.value)} placeholder="0,00" />}
         </Field>
-        <Field label="Verlustrücktrag in die Vorjahre (nur bei Verlust; leer = Verzicht)">
+        <Field label="Verlustrücktrag in die Vorjahre (nur bei Verlust; leer = Verzicht)" error={error("ruecktrag")}>
           {(control) => <input {...control} inputMode="decimal" value={ruecktrag} onChange={(e) => setRuecktrag(e.target.value)} placeholder="0,00" />}
         </Field>
         {data.angaben && !data.gespeichert && (

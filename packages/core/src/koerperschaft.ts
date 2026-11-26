@@ -30,6 +30,9 @@ export const VERLUST_SOCKEL: Cents = 100_000_000;
  */
 export const mindestHebesatz = (year: number): Prozent => (year >= 2027 ? 280 : 200);
 
+/** Größter Hebesatz, den Haben annimmt: kein gesetzlicher Höchstsatz, sondern eine Grenze gegen Tippfehler */
+export const HOECHSTER_HEBESATZ: Prozent = 1500;
+
 /** Über dem Sockel abziehbarer Anteil in Basispunkten: KSt 70 % für 2024 bis 2027 (Wachstumschancengesetz), sonst 60 % */
 const verlustQuoteKst = (year: number): BasisPoints => (year >= 2024 && year <= 2027 ? 7000 : 6000);
 const VERLUST_QUOTE_GEWST: BasisPoints = 6000;

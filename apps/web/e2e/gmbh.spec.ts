@@ -229,7 +229,18 @@ test("Jahresabschluss: Bilanz und GuV der Kleinst-GmbH, Vorjahr abschließen", a
 
   // Körperschaft- und Gewerbesteuer: Hebesatz speichern, dann rechnet die Seite
   const steuern = page.getByRole("form", { name: "Angaben zur Körperschaft- und Gewerbesteuer" });
-  await steuern.getByLabel("Hebesatz der Gemeinde (%)").fill("400");
+  // Ungültiges meldet sich am eigenen Feld, der Fokus geht aufs erste, gespeichert wird nichts (#1277)
+  const hebesatz = steuern.getByLabel("Hebesatz der Gemeinde (%)");
+  const vortragKst = steuern.getByLabel(/^Verlustvortrag Körperschaftsteuer/);
+  await hebesatz.fill("400,5");
+  await vortragKst.fill("zehntausend");
+  await steuern.getByRole("button", { name: "Angaben speichern" }).click();
+  await expect(hebesatz).toBeFocused();
+  await expect(hebesatz).toHaveAccessibleDescription(/In ganzen Prozent, \d{4} mindestens \d+ %\..*Trag den Hebesatz der Gemeinde in ganzen Prozent ein/);
+  await expect(vortragKst).toHaveAccessibleDescription("Trag den Betrag ein, etwa 10.000,00, oder lass das Feld leer.");
+  await expect(page.getByText("Angaben gespeichert.")).toHaveCount(0);
+  await hebesatz.fill("400");
+  await vortragKst.fill("");
   await steuern.getByRole("button", { name: "Angaben speichern" }).click();
   await expect(page.getByText("Angaben gespeichert.")).toBeVisible();
   const rechnung = page.getByRole("region", { name: `Körperschaft- und Gewerbesteuer ${year}` });

@@ -1,5 +1,6 @@
 import {
   abschluss,
+  HOECHSTER_HEBESATZ,
   isKapitalgesellschaft,
   kapgSteuern,
   mindestHebesatz,
@@ -30,7 +31,7 @@ const cents = inCents(z.number().int().min(0).max(100_000_000_000_00));
 
 /** Den Mindesthebesatz prüft saveKapgAngaben, denn er hängt vom Jahr ab */
 export const kapgAngabenSchema = z.object({
-  hebesatz: inProzent(z.number().int("Hebesatz in ganzen Prozent").max(1500, "Hebesatz bitte prüfen")),
+  hebesatz: inProzent(z.number().int("Hebesatz in ganzen Prozent").max(HOECHSTER_HEBESATZ, "Hebesatz bitte prüfen")),
   verlustvortragKst: cents,
   verlustvortragGewst: cents,
   verlustruecktrag: cents.default(0),

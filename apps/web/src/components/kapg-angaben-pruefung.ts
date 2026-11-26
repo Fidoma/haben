@@ -20,7 +20,7 @@ export const HOECHSTZAHL = 20;
 const HOECHSTBETRAG: Cents = 100_000_000_000_00;
 
 /** Fehler eines Betragsfelds: Mit `subject` ist es Pflicht, und die Meldung nennt es; ohne ist leer 0 */
-function betragFehler(text: string, beispiel: Cents, { subject, min = 0 }: { subject?: string; min?: Cents } = {}): string | null {
+export function betragFehler(text: string, beispiel: Cents, { subject, min = 0 }: { subject?: string; min?: Cents } = {}): string | null {
   const optional = subject === undefined;
   if (text.trim() === "") return optional ? null : amountError(subject, beispiel);
   const cents = parseEuro(text);
