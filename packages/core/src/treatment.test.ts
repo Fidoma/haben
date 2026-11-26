@@ -4,7 +4,36 @@ import { inEuVatArea, TAX_TREATMENTS, treatmentIssues, treatmentNote } from "./t
 describe("treatmentIssues", () => {
   it("Reverse Charge braucht beide USt-IdNrn. und einen Kunden im Ausland", () => {
     expect(treatmentIssues("reverse_charge", { rates: [0], sellerUstId: "DE123456789", buyerUstId: "ATU12345678", buyerCountry: "AT" })).toEqual([]);
-    expect(treatmentIssues("reverse_charge", { rates: [1900], buyerCountry: "DE" })).toHaveLength(4);
+    expect(treatmentIssues("reverse_charge", { rates: [1900], buyerCountry: "DE" })).toEqual([
+      "Bei der gewählten Umsatzsteuer müssen alle Positionen 0 % haben",
+      "Reverse Charge braucht deine USt-IdNr. in den Firmendaten",
+      "Reverse Charge braucht die USt-IdNr. des Kunden",
+      "Reverse Charge gilt nur für Kunden im EU-Ausland",
+    ]);
+  });
+
+  // #1433: Die Leistung geht mit Art S in die ZM; was ERiC dort abweist oder der Aufbau des Landes nicht hergibt, sperrt schon
+  // das Festschreiben, solange sich die Nummer noch berichtigen lässt
+  it("Reverse Charge nur mit einer USt-IdNr. im Aufbau des Landes und nach den Regeln der ZM (#1433)", () => {
+    const rechnung = { rates: [0], sellerUstId: "DE123456789" };
+    expect(treatmentIssues("reverse_charge", { ...rechnung, buyerUstId: "ATU1234", buyerCountry: "AT" })).toEqual([
+      "ATU1234: eine USt-IdNr. aus Österreich hat nach AT ein U und acht Ziffern",
+    ]);
+    expect(treatmentIssues("reverse_charge", { ...rechnung, buyerUstId: "atu 1234 5678", buyerCountry: "AT" })).toEqual([]);
+    expect(treatmentIssues("reverse_charge", { ...rechnung, buyerUstId: "CHE-123.456.789 MWST", buyerCountry: "CH" })).toEqual([
+      "CHE123456789MWST: kein Länderkennzeichen eines anderen EU-Mitgliedstaats",
+    ]);
+    expect(treatmentIssues("reverse_charge", { ...rechnung, buyerUstId: "XI123456789", buyerCountry: "GB" })).toEqual([
+      "XI123456789: nordirische USt-IdNr. nur bei Lieferungen, nicht bei sonstigen Leistungen",
+    ]);
+  });
+
+  it("Storno und Korrektur einer Rechnung mit Reverse Charge auch mit einer solchen USt-IdNr. (#1433)", () => {
+    // Vor #1433 ließ sich jede Nummer festschreiben; die Rechnung muss sich zurücknehmen lassen
+    const gutschrift = { rates: [0], sellerUstId: "DE123456789", correctsInvoice: true };
+    expect(treatmentIssues("reverse_charge", { ...gutschrift, buyerUstId: "ATU1234", buyerCountry: "AT" })).toEqual([]);
+    expect(treatmentIssues("reverse_charge", { ...gutschrift, buyerUstId: "CHE123456789MWST", buyerCountry: "CH" })).toEqual([]);
+    expect(treatmentIssues("reverse_charge", { ...gutschrift, buyerUstId: "XI123456789", buyerCountry: "GB" })).toEqual([]);
   });
 
   // § 1 Abs. 2a UStG: Monaco gilt als Gebiet Frankreichs; Unternehmen dort haben eine französische USt-IdNr.

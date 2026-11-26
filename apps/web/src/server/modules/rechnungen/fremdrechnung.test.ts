@@ -150,6 +150,16 @@ describe.skipIf(!testDatabaseUrl)("Fremde Ausgangsrechnung übernehmen (Postgres
     await expect(
       foreign.adoptForeignInvoice(actor, input(eu, { taxTreatment: "reverse_charge", taxes: [{ rate: 0, net: 100_000, tax: 0 }] }), pdf, kleinunternehmerStand),
     ).rejects.toThrow(/USt-IdNr/);
+    // Schon ausgestellt, trotzdem wie beim Festschreiben: eine USt-IdNr. im falschen Aufbau sperrt (#1433, wie die Lieferung seit #1422)
+    const kurz = await customer("FR", "FR123456");
+    await expect(
+      foreign.adoptForeignInvoice(
+        actor,
+        input(kurz, { taxTreatment: "reverse_charge", taxes: [{ rate: 0, net: 100_000, tax: 0 }] }),
+        pdf,
+        kleinunternehmerStand,
+      ),
+    ).rejects.toThrow("FR123456: eine USt-IdNr. aus Frankreich hat nach FR");
     expect(await sql`select 1 from invoices`).toHaveLength(0);
   }, 30_000);
 

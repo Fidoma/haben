@@ -109,9 +109,9 @@ export function ustIdProblem(ustId: string, art: ZmArt): string | null {
 
 /**
  * Aufbau der Stellen nach dem Länderkennzeichen (#1413), damit ein Tippfehler nicht erst beim BZSt auffällt; ein fehlendes
- * oder fremdes Kennzeichen meldet ustIdProblem. Sperrt das Buchen eines Erwerbs und das Festschreiben einer Lieferung, wo
- * sich die Nummer noch berichtigen lässt. In der ZM nur ein Hinweis: Dort stehen festgeschriebene Rechnungen, und eine
- * schon gemeldete Nummer muss sich zurücknehmen lassen.
+ * oder fremdes Kennzeichen meldet ustIdProblem. Sperrt das Buchen eines Erwerbs und das Festschreiben einer Lieferung oder
+ * einer Leistung mit Reverse Charge (#1433), wo sich die Nummer noch berichtigen lässt. In der ZM nur ein Hinweis: Dort
+ * stehen festgeschriebene Rechnungen, und eine schon gemeldete Nummer muss sich zurücknehmen lassen.
  */
 export function ustIdAufbauProblem(ustId: string): string | null {
   const land = ustId.slice(0, 2);

@@ -271,7 +271,7 @@ export async function ustIdVorFestschreiben(
         jetzt,
       ));
   if (bestaetigt || evatrAbgeschaltet()) return { hinweis: null };
-  // Ohne Nummer meldet das Festschreiben selbst, was fehlt (treatmentIssues); den Aufbau prüft es nur bei der Lieferung
+  // Ohne Nummer meldet das Festschreiben selbst, was fehlt (treatmentIssues)
   if (!nummer) return { hinweis: null };
   if (!evatrPruefbar(nummer)) return { hinweis: `${nummer}: ${ZUSTAND_TEXT["nicht-pruefbar"]}` };
   let ergebnis: UstIdBestaetigungsErgebnis;
