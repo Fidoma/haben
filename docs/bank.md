@@ -319,6 +319,8 @@ Die Rechnung ist wieder offen und steht unter **Lastschriften** zum erneuten Ein
 
 Tastatur: **Enter** ordnet zu, solange der Fokus nicht in einem Eingabefeld, auf einem Knopf oder Link liegt. **J** springt zum nächsten, **K** zum vorigen Umsatz.
 
+Unter **Zugeordnet** führt „Buchung vom …“ bei jeder Zuordnung auf ihre Buchung im [Journal](buchhaltung.md#die-seite-buchungen). Umgekehrt öffnet die Herkunft „Bank“ in Journal und Kontenblatt diesen Umsatz.
+
 ### Teilzahlungen und mehrere Zuordnungen
 
 Ein Umsatz kann auf mehrere Posten verteilt werden: Betrag verringern, zuordnen, dann für den Rest den nächsten Posten wählen. Rechts steht dann „Noch offen: …“, in der Liste „Teilweise“. Umgekehrt kann eine Rechnung über mehrere Zahlungen bezahlt werden; sie steht bis zum vollen Betrag als „Teilbezahlt“ bzw. „Überfällig“ in der [Rechnungsliste](rechnungen.md#rechnungsliste-und-status).
@@ -569,7 +571,7 @@ Bei Eingängen (Privateinlage, Geldtransit, Erstattung vom Finanzamt) steht die 
 
 ## Zuordnung aufheben
 
-Unter **Zugeordnet** steht neben jeder Zuordnung **Aufheben**, bei einer Aufteilung einmal **Aufteilung aufheben** für alle Teile. Haben fragt vorher in einem Dialog nach und nennt Zuordnung, Betrag und den **Tag der Aufhebung**. Vorbelegt ist der Buchungstag der Zahlung, solange deren Zeitraum nicht gemeldet ist, sonst heute. Es löscht dabei nichts: Es legt eine Gegenzeile mit umgekehrtem Betrag an und bucht die ursprüngliche Buchung mit vertauschten Seiten zurück („Storno: …“), und zwar an diesem Tag. Die aufgehobene Zuordnung bleibt durchgestrichen sichtbar, der Betrag ist wieder offen.
+Unter **Zugeordnet** steht neben jeder Zuordnung **Aufheben**, bei einer Aufteilung einmal **Aufteilung aufheben** für alle Teile. Haben fragt vorher in einem Dialog nach und nennt Zuordnung, Betrag und den **Tag der Aufhebung**. Vorbelegt ist der Buchungstag der Zahlung, solange deren Zeitraum nicht gemeldet ist, sonst heute. Es löscht dabei nichts: Es legt eine Gegenzeile mit umgekehrtem Betrag an und bucht die ursprüngliche Buchung mit vertauschten Seiten zurück („Storno: …“), und zwar an diesem Tag. Die aufgehobene Zuordnung bleibt durchgestrichen sichtbar, der Betrag ist wieder offen. Unter der aufgehobenen Zuordnung steht dann neben „Buchung vom …“ auch „Gegenbuchung vom …“.
 
 Eine Zuordnung lässt sich nur einmal aufheben.
 

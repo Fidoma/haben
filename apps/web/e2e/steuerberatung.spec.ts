@@ -101,6 +101,9 @@ test("Einladung, lesen ja, ändern nein, sperren", async ({ page: owner, browser
     .click();
   await expect(stb).toHaveURL(/\/konten\/\d{4}\?.*#buchung-[0-9a-f-]{36}$/);
   await expect(stb.locator("tr[aria-current]")).toHaveCount(1);
+  // Die Herkunft „Bank“ dieser Zahlung ist für die Steuerberatung nur Text: Die Bank sieht sie nicht (#1855)
+  await expect(stb.locator('tr[aria-current] td[data-label="Herkunft"]')).toHaveText("Bank");
+  await expect(stb.locator("tr[aria-current]").getByRole("link", { name: "Bank", exact: true })).toHaveCount(0);
   const beleg = await firstLink(stb, "/belege", /^\/belege\/[0-9a-f-]{36}$/);
   expect(beleg, "app.spec.ts hat einen Beleg gebucht").not.toBeNull();
   await stb.goto(beleg!);

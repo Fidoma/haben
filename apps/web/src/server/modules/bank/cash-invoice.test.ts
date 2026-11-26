@@ -154,9 +154,10 @@ describe.skipIf(!testDatabaseUrl)("Bareinnahme auf eine Rechnung (Postgres)", ()
         ]);
         // Netto je Monat: 1.000,00 € brutto im September, 3.760,00 € im Oktober
         expect(euer.monthly.einnahmen.slice(8, 10)).toEqual([84_034, 315_966]);
-        expect((await cash.invoicePaymentList(invoice.id)).map((p) => [p.via, p.date, p.amount, p.cashNumber, p.reversed])).toEqual([
-          ["bar", "2026-09-28", 100_000, 1, false],
-          ["bar", "2026-10-02", 376_000, 2, false],
+        // Eine Barzahlung hat keinen Umsatz und bekommt an der Rechnung keinen Link auf die Bank (#1855)
+        expect((await cash.invoicePaymentList(invoice.id)).map((p) => [p.via, p.date, p.amount, p.cashNumber, p.reversed, p.transactionId])).toEqual([
+          ["bar", "2026-09-28", 100_000, 1, false, null],
+          ["bar", "2026-10-02", 376_000, 2, false, null],
         ]);
 
         // Storno der Restzahlung: Gegenzeile mit neuer Nummer und heutigem Datum, Rechnung wieder offen

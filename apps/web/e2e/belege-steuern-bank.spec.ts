@@ -648,6 +648,23 @@ test("Direkt buchen auf eine Kategorie: Zahlung eines Privatkunden mit 19 %, Aus
   await expect(panel.getByText("Direkt: Erlöse 19 %")).toBeVisible();
 });
 
+test("Von der Zuordnung zur Buchung im Journal und über die Herkunft „Bank“ zurück zum Umsatz (#1855)", async () => {
+  // Gewählt ist noch die Zahlung von Erika Beispiel aus dem Test davor
+  const panel = page.getByRole("complementary", { name: "Zuordnung" });
+  await expect(panel.getByText("Direkt: Erlöse 19 %")).toBeVisible();
+  await panel.getByRole("link", { name: /^Buchung vom / }).click();
+  await page.waitForURL(/\/buchungen\?.*#buchung-/);
+  const zeile = page.locator('tr[aria-current="true"]');
+  await expect(zeile).toContainText("Erika Beispiel");
+  await expect(zeile).toBeFocused();
+  // Bisher führte die Herkunft nur auf die Seite Bank; jetzt öffnet sie genau diesen Umsatz
+  await zeile.getByRole("link", { name: "Bank", exact: true }).click();
+  await page.waitForURL(/\/bank\?.*umsatz=/);
+  await page.waitForLoadState("networkidle");
+  await expect(panel.getByRole("heading", { name: "Erika Beispiel" })).toBeVisible();
+  await expect(panel.getByText("Direkt: Erlöse 19 %")).toBeVisible();
+});
+
 test("Direkt buchen als nicht steuerbare Einnahme: ohne Steuersatz, auch nach Wechsel von Erlöse 19 % (#1131)", async () => {
   const zeile = (name: string, zweck: string, betrag: string) =>
     [dkb(day(0)), dkb(day(0)), "Gebucht", betrag.startsWith("-") ? "Max Mustermann" : name, betrag.startsWith("-") ? name : "Max Mustermann", zweck]

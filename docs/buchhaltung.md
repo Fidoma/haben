@@ -306,7 +306,7 @@ Regulär besteuerte Umsätze zu 0 % (Schlüssel `frei`) meldet Haben nicht; die 
 
 Unter **Buchungen** steht das Journal je Monat, neueste zuerst, mit Pfeilen zum Vor- und Folgemonat. Jede Buchung ist eine Zeile:
 
-- Datum und Herkunft („Rechnung“, „Beleg“, „Verrechnung“, „Bank“, „Anlage“, „Pauschale“, „Kasse“, „Ausbuchung“, „Vorsteuerfreigabe“ (Vorsteuer eines Belegs mit Leistungsdatum nach dem Belegdatum, [Vorsteuer (Kz 66)](umsatzsteuer.md#vorsteuer-kz-66)), „Lohn“, „Manuell“, „Import“ (aus dem [Datenimport](belegimport.md)), in GmbH und UG „Eröffnung“ und „Ausschüttung“, oder „Gegenbuchung“). Ein Klick auf die Herkunft öffnet den Vorgang.
+- Datum und Herkunft („Rechnung“, „Beleg“, „Verrechnung“, „Bank“, „Anlage“, „Pauschale“, „Kasse“, „Ausbuchung“, „Vorsteuerfreigabe“ (Vorsteuer eines Belegs mit Leistungsdatum nach dem Belegdatum, [Vorsteuer (Kz 66)](umsatzsteuer.md#vorsteuer-kz-66)), „Lohn“, „Manuell“, „Import“ (aus dem [Datenimport](belegimport.md)), in GmbH und UG „Eröffnung“ und „Ausschüttung“, oder „Gegenbuchung“). Ein Klick auf die Herkunft öffnet den Vorgang, bei „Bank“ den Umsatz im [Bankabgleich](bank.md). Bei der Steuerberatung stehen „Bank“ und „Anlage“ nur als Text, weil sie diese Seiten nicht öffnen kann.
 - Buchungstext.
 - Soll- und Habenkonto, jeweils das größte. Weitere Konten stehen als „+n“ daneben.
 - Betrag und Steuerschlüssel.
@@ -314,6 +314,8 @@ Unter **Buchungen** steht das Journal je Monat, neueste zuerst, mit Pfeilen zum 
 Der Pfeil links klappt alle Buchungszeilen mit Soll, Haben und Steuerschlüssel auf.
 
 Darüber lässt sich nach Herkunft, Kontonummer und Text filtern. Unten stehen die Zahl der Buchungen und ihre Summe.
+
+Der Weg zurück geht auch: Eine festgeschriebene Rechnung nennt unter **Angaben** bei **Im Journal** ihre Buchungen, ein gebuchter Beleg hinter „Im Journal:“ seine Buchung und die der [Vorsteuerfreigabe](umsatzsteuer.md#vorsteuer-kz-66), eine Zuordnung im Bankabgleich ihre Buchung unter **Zugeordnet**. Ein Klick auf „Buchung vom …“ öffnet das Journal des Monats, hebt die Zeile hervor und rollt zu ihr. Gegenbuchungen, etwa nach der Aufhebung einer Zuordnung oder dem Storno eines Belegs, stehen daneben als „Gegenbuchung vom …“. Eine Bankzahlung führt von der Rechnung unter **Zahlungen** auf ihren Umsatz, dort steht ihre Buchung.
 
 Gebucht wird über Rechnungen, Belege, Bank, Kasse, Anlagen, Pauschalen, Ausbuchungen und Lohnabrechnungen; mit [manuellen Buchungen](#manuelle-und-freie-buchungen); in einer GmbH oder UG zusätzlich mit der [Eröffnung](gmbh-abschluss.md#saldenvortrag-und-eröffnung-gmbh-und-ug) und [Ausschüttungen](gmbh-abschluss.md#gewinnausschüttung-gmbh-und-ug). Ein Klick auf eine Kontonummer öffnet das Kontenblatt des Monats.
 
@@ -394,7 +396,7 @@ Ein Klick auf ein Konto öffnet das **Kontenblatt**. Es zeigt:
 - Den Saldoverlauf als Diagramm. Beim Darüberfahren erscheinen Datum, Saldo und Buchung.
 - Jede Buchung mit Datum, Text, Gegenkonten, Herkunft, Soll, Haben und laufendem Saldo.
 
-Über ein Quartal oder Jahr kommt eine Zwischensumme je Monat dazu. Gegenkonten und Herkunft sind verlinkt. Aus der [BWA](bwa.md#bwa-für-gmbh-und-ug) öffnet das Kontenblatt einen Zeitraum von–bis innerhalb eines Jahres; die Eröffnung reicht dann bis zum Tag vor „von“.
+Über ein Quartal oder Jahr kommt eine Zwischensumme je Monat dazu. Gegenkonten und Herkunft sind verlinkt, die Herkunft wie im Journal. Aus der [BWA](bwa.md#bwa-für-gmbh-und-ug) öffnet das Kontenblatt einen Zeitraum von–bis innerhalb eines Jahres; die Eröffnung reicht dann bis zum Tag vor „von“.
 
 Am Handy werden die Tabellen zu Karten. Das Diagramm lässt sich dort waagrecht verschieben.
 

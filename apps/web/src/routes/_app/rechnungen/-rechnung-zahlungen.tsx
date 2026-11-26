@@ -1,5 +1,5 @@
 import { formatEuro, parseEuro, formatDecimal, WRITE_OFF_KINDS } from "@haben/core";
-import { Link, useRouter } from "@tanstack/react-router";
+import { getRouteApi, Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent } from "react";
 import { reverseWriteOffFn, writeOffRest } from "../../../server/functions/bank.ts";
@@ -11,11 +11,16 @@ import { ausbuchenFehler } from "./-ausbuchen-pruefung.ts";
 import type { getInvoiceDetail } from "../../../server/functions/invoices.ts";
 import { ConfirmDialog } from "../../../components/ConfirmDialog.tsx";
 import { Field } from "../../../components/Field.tsx";
+import { VorgangLink } from "../../../components/Ledger.tsx";
+
+const appRoute = getRouteApi("/_app");
 
 export type PaymentRow = Awaited<ReturnType<typeof getInvoiceDetail>>["payments"][number];
 
 /** Zahlungen auf die Rechnung: über die Bank zugeordnet oder bar im Kassenbuch, dazu der Weg zur Bareinnahme */
 export function Payments({ invoiceId, payments, open, cashable }: { invoiceId: string; payments: PaymentRow[]; open: number; cashable: boolean }) {
+  // Die Steuerberatung sieht die Rechnung, aber nicht die Bank
+  const rolle = appRoute.useRouteContext().user.role;
   return (
     <section className="card" aria-labelledby="payments-heading">
       <h2 id="payments-heading">Zahlungen</h2>
@@ -27,7 +32,17 @@ export function Payments({ invoiceId, payments, open, cashable }: { invoiceId: s
       {payments.map((p) => (
         <div key={p.id} className="history-row">
           <span style={{ textDecoration: p.reversed ? "line-through" : undefined }}>
-            {p.via === "bar" ? "bar" : "Bank"} am {formatDate(p.date)}
+            {/* Bankzahlung: auf ihren Umsatz, dort steht ihre Buchung (#1855) */}
+            {p.transactionId ? (
+              <VorgangLink vorgang={{ to: "/bank", umsatz: p.transactionId }} rolle={rolle}>
+                Bank
+              </VorgangLink>
+            ) : p.via === "bar" ? (
+              "bar"
+            ) : (
+              "Bank"
+            )}{" "}
+            am {formatDate(p.date)}
             {p.via === "bar" && (
               <span className="small muted">
                 {" "}

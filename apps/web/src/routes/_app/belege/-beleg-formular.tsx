@@ -6,6 +6,7 @@ import { ConfirmDialog } from "../../../components/ConfirmDialog.tsx";
 import { DocumentSplits } from "../../../components/DocumentSplits.tsx";
 import { SOURCE_LABEL } from "../../../components/DocumentStatus.tsx";
 import { Icon } from "../../../components/Icon.tsx";
+import { BuchungLinks } from "../../../components/Ledger.tsx";
 import { UstIdVorBuchen } from "../../../components/UstIdVorFestschreiben.tsx";
 import { steuerSpalte } from "../../../components/VorsteuerAnteil.tsx";
 import { formatDate, formatDateTime } from "../../../lib/format.ts";
@@ -118,8 +119,22 @@ function BelegHinweise({ data, locked, running }: { data: Detail; locked: boolea
       {locked && !data.cancellation && (
         <div className="banner banner-ok" role="status">
           <Icon name="check" />
-          <span>Gebucht {doc.lockedAt ? formatDateTime(doc.lockedAt) : ""}. Der Beleg ist festgeschrieben.</span>
+          <span>
+            Gebucht {doc.lockedAt ? formatDateTime(doc.lockedAt) : ""}. Der Beleg ist festgeschrieben.
+            {data.buchungen.length > 0 && (
+              <>
+                {" "}
+                Im Journal: <BuchungLinks buchungen={data.buchungen} />.
+              </>
+            )}
+          </span>
         </div>
+      )}
+      {/* Nach dem Storno steht der Hinweis „Gebucht“ nicht mehr; der Weg ins Journal bleibt, auch für die Steuerberatung */}
+      {locked && data.cancellation && data.buchungen.length > 0 && (
+        <p className="small" style={{ margin: 0 }}>
+          Im Journal: <BuchungLinks buchungen={data.buchungen} />.
+        </p>
       )}
     </>
   );

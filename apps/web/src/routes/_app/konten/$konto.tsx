@@ -1,10 +1,11 @@
 import { currentYear, MONTHS, formatEuro, kontoart, type Kontenrahmen } from "@haben/core";
-import { Link, createFileRoute, notFound, useLocation, useNavigate } from "@tanstack/react-router";
-import { Fragment, useEffect, useState } from "react";
+import { Link, createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
+import { Fragment } from "react";
 import { z } from "zod/mini";
 import { BalanceChart } from "../../../components/BalanceChart.tsx";
-import { JOURNAL_SOURCE, SaldoBetrag, ZEITRAEUME, lastDayBefore, shortDate, vorgangZurHerkunft } from "../../../components/Ledger.tsx";
+import { JOURNAL_SOURCE, SaldoBetrag, VorgangLink, ZEITRAEUME, lastDayBefore, shortDate, vorgangZurHerkunft } from "../../../components/Ledger.tsx";
 import { formatDate } from "../../../lib/format.ts";
+import { useZielzeile, zielzeile } from "../../../lib/use-zielzeile.ts";
 import { getKontenblatt } from "../../../server/functions/ledger.ts";
 import styles from "../../../styles/auswertungen.css?url";
 import { Field } from "../../../components/Field.tsx";
@@ -40,20 +41,24 @@ function SourceLink({
   reversal,
   invoiceId,
   documentId,
+  transactionId,
+  rolle,
 }: {
   type: string;
   id: string;
   reversal: boolean;
   invoiceId: string | null;
   documentId: string | null;
+  transactionId: string | null;
+  rolle: string;
 }) {
   const label = reversal ? "Gegenbuchung" : (JOURNAL_SOURCE[type as keyof typeof JOURNAL_SOURCE] ?? type);
-  const vorgang = vorgangZurHerkunft({ sourceType: type, sourceId: id, invoiceId, documentId });
+  const vorgang = vorgangZurHerkunft({ sourceType: type, sourceId: id, invoiceId, documentId, transactionId });
   if (vorgang)
     return (
-      <Link to={vorgang.to} params={{ id: vorgang.id }}>
+      <VorgangLink vorgang={vorgang} rolle={rolle}>
         {label}
-      </Link>
+      </VorgangLink>
     );
   if (type === "allocation") return <Link to="/bank">{label}</Link>;
   if (type === "pauschale") return <Link to="/pauschalen">{label}</Link>;
@@ -62,26 +67,8 @@ function SourceLink({
   return <>{label}</>;
 }
 
-/**
- * Die Buchung, auf die ein Link zeigt (`#buchung-<id>`, aus der BWA, #1635): Die Seite markiert ihre Zeile, rollt sie in
- * die Mitte und setzt den Fokus darauf. Erst nach dem Laden, denn der Server kennt den Anker nicht; `:target` griffe bei einem Link innerhalb der App
- * nicht, weil der Router die Adresse ohne Seitenwechsel setzt.
- */
-function useZiel(): string {
-  const hash = useLocation({ select: (l) => l.hash });
-  const [ziel, setZiel] = useState("");
-  useEffect(() => setZiel(hash), [hash]);
-  // Erst nach dem Zeichnen mit `ziel`: Vorher hat die Zeile kein tabIndex und nimmt den Fokus nicht an
-  useEffect(() => {
-    if (!ziel.startsWith("buchung-")) return;
-    const zeile = document.getElementById(ziel);
-    zeile?.scrollIntoView({ block: "center" });
-    zeile?.focus({ preventScroll: true });
-  }, [ziel]);
-  return ziel;
-}
-
 function KontenblattPage() {
+  const rolle = Route.useRouteContext().user.role;
   const data = Route.useLoaderData();
   const { konto } = Route.useParams();
   const deps = Route.useSearch();
@@ -95,7 +82,7 @@ function KontenblattPage() {
   // Ertragskonten aus Sicht des Kontos positiv zeigen, wie in der Saldenliste
   const sign = kontoart(kr, konto, data.saldo) === "ertrag" ? -1 : 1;
   const multiMonth = vonBis ? vonBis.von.slice(0, 7) !== vonBis.bis.slice(0, 7) : !zeitraum.startsWith("m");
-  const ziel = useZiel();
+  const ziel = useZielzeile();
   // Anker nur an der ersten Zeile einer Buchung, falls sie das Konto mehrmals bebucht
   const verankert = new Set<string>();
   const anker = (entryId: string) => {
@@ -224,7 +211,7 @@ function KontenblattPage() {
                 {rows.map((z, i) => {
                   const id = anker(z.entryId);
                   return (
-                    <tr key={`${z.entryId}-${i}`} id={id} aria-current={id && id === ziel ? "true" : undefined} tabIndex={id && id === ziel ? -1 : undefined}>
+                    <tr key={`${z.entryId}-${i}`} {...zielzeile(id, ziel)}>
                       <td data-label="Datum">{shortDate(z.date)}</td>
                       <td data-label="Text">{z.description}</td>
                       <td className="mono small" data-label="Gegenkonto">
@@ -238,7 +225,15 @@ function KontenblattPage() {
                         ))}
                       </td>
                       <td className="small" data-label="Herkunft">
-                        <SourceLink type={z.sourceType} id={z.sourceId} reversal={z.reversal} invoiceId={z.invoiceId} documentId={z.documentId} />
+                        <SourceLink
+                          type={z.sourceType}
+                          id={z.sourceId}
+                          reversal={z.reversal}
+                          invoiceId={z.invoiceId}
+                          documentId={z.documentId}
+                          transactionId={z.transactionId}
+                          rolle={rolle}
+                        />
                       </td>
                       <td className="num" data-label="Soll">
                         {z.soll ? formatEuro(z.soll) : ""}

@@ -7,6 +7,7 @@ import { useAction } from "../lib/use-action.ts";
 import type { getDocumentDetail } from "../server/functions/documents.ts";
 import { cancelDocumentFn, reenterDocumentFn } from "../server/functions/documents.ts";
 import { Icon } from "./Icon.tsx";
+import { BuchungLink } from "./Ledger.tsx";
 import { NoticeBanner } from "./NoticeBanner.tsx";
 import { ConfirmDialog } from "./ConfirmDialog.tsx";
 import { Field } from "./Field.tsx";
@@ -53,7 +54,6 @@ function Cancelled({
   const navigate = useNavigate();
   const reenter = useServerFn(reenterDocumentFn);
   const { busy, notice, run } = useAction();
-  const [year, month] = cancellation.date.split("-").map(Number);
   const onReenter = () =>
     void run(async () => {
       const { id } = await reenter({ data: documentId });
@@ -64,10 +64,11 @@ function Cancelled({
       <div className="banner banner-danger" role="status">
         <Icon name="alert" />
         <span>
+          {/* Auf die Zeile der Gegenbuchung (#1855), nicht auf die Umkehr einer Vorsteuerfreigabe, die später liegen kann */}
           Storniert mit einer{" "}
-          <Link to="/buchungen" search={{ jahr: year, monat: month }}>
+          <BuchungLink id={cancellation.journalEntryId} date={cancellation.date}>
             Gegenbuchung
-          </Link>{" "}
+          </BuchungLink>{" "}
           zum {formatDate(cancellation.date)}.{cancellation.reason ? ` Grund: ${cancellation.reason}` : ""}
         </span>
       </div>

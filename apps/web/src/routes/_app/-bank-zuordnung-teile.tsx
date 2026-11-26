@@ -2,6 +2,7 @@ import { formatEuro } from "@haben/core";
 import { getRouteApi } from "@tanstack/react-router";
 import { vorschlagTitel } from "../../components/DirektVorschlag.ts";
 import { Icon } from "../../components/Icon.tsx";
+import { BuchungLinks } from "../../components/Ledger.tsx";
 import { formatDate } from "../../lib/format.ts";
 import { type Allocation, type Data, type Detail, itemLabel, zuordnungText } from "./-bank-daten.ts";
 
@@ -71,6 +72,11 @@ export function ZuordnungenListe({
               {a.splitId ? " · Teil einer Aufteilung" : ""}
               {a.reassignsId && a.date && ` · neu zugeordnet zum ${formatDate(a.date)}`}
             </span>
+            {a.buchungen.length > 0 && (
+              <span className="small">
+                <BuchungLinks buchungen={a.buchungen} />
+              </span>
+            )}
           </div>
           {!a.reversed && (!a.splitId || firstOfSplit.has(a.id)) && (
             <button type="button" className="btn btn-sm btn-danger" onClick={() => onAufheben(a)} disabled={busy}>

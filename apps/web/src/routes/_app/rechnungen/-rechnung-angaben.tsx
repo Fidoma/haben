@@ -1,6 +1,7 @@
 import { describeExchangeRate, formatEuro, TAX_TREATMENTS } from "@haben/core";
 import { Link } from "@tanstack/react-router";
 import { LockedAndArchived } from "../../../components/ArchiveStatus.tsx";
+import { BuchungLinks } from "../../../components/Ledger.tsx";
 import { formatDate } from "../../../lib/format.ts";
 import { FORMAT_LABEL } from "../../../lib/invoice.ts";
 import { legacySource } from "../../../lib/altbestand.ts";
@@ -70,6 +71,14 @@ export function RechnungAngaben({ data, cancelled }: { data: Detail; cancelled: 
           </>
         )}
         <LockedAndArchived lockedAt={invoice.lockedAt} ablage={data.ablage} />
+        {data.buchungen.length > 0 && (
+          <>
+            <dt>Im Journal</dt>
+            <dd>
+              <BuchungLinks buchungen={data.buchungen} />
+            </dd>
+          </>
+        )}
         {data.deducts.length > 0 && (
           <>
             <dt>Abgezogen</dt>

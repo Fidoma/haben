@@ -1,6 +1,7 @@
 import { darlehenText, kategorieAnzeige, steuerzahlungText } from "@haben/core";
 import { asc, desc, eq } from "drizzle-orm";
 import { db, schema } from "../../db/index.ts";
+import { buchungenZu } from "../buchhaltung/index.ts";
 import { loadCompany } from "../stammdaten/index.ts";
 import { ustvaLabels } from "../umsatzsteuer/index.ts";
 
@@ -39,11 +40,17 @@ export async function transactionAllocations(id: string) {
   const { kontenrahmen } = await loadCompany();
   const reversed = new Set(allocationRows.filter((a) => a.reversesId).map((a) => a.reversesId));
   const vatLabels = await ustvaLabels(allocationRows.flatMap((a) => (a.vatReturnId ? [a.vatReturnId] : [])));
+  // Buchung jeder Zuordnung und die Gegenbuchung ihrer Aufhebung: der Weg vom Umsatz ins Journal (#1855)
+  const buchungen = await buchungenZu(
+    ["allocation"],
+    allocationRows.map((a) => a.id),
+  );
   return allocationRows
     .filter((a) => !a.reversesId)
     .map((a) => ({
       ...a,
       reversed: reversed.has(a.id),
+      buchungen: [a, ...allocationRows.filter((r) => r.reversesId === a.id)].flatMap((r) => buchungen.get(r.id) ?? []),
       vatReturnLabel: a.vatReturnId ? (vatLabels.get(a.vatReturnId) ?? null) : null,
       steuerLabel: a.taxType && a.taxYear !== null && a.taxItem ? steuerzahlungText({ art: a.taxType, jahr: a.taxYear, posten: a.taxItem }, a.amount) : null,
       darlehenLabel: a.loanName && a.loanPart ? darlehenText(a.loanName, a.loanPart) : null,

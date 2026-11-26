@@ -12,6 +12,8 @@ export interface InvoicePayment {
   text: string;
   /** Nur bar: Nummer der Zeile im Kassenbuch */
   cashNumber: number | null;
+  /** Nur Bank: der Umsatz, auf den die Rechnung verlinkt (#1855) */
+  transactionId: string | null;
   reversed: boolean;
 }
 
@@ -21,6 +23,7 @@ export async function invoicePaymentList(invoiceId: string, q: Db | Tx = db): Pr
   const allocations = await q
     .select({
       id: schema.allocations.id,
+      transactionId: schema.allocations.transactionId,
       date: schema.bankTransactions.bookingDate,
       amount: schema.allocations.amount,
       text: schema.bankTransactions.counterpartyName,
@@ -35,10 +38,28 @@ export async function invoicePaymentList(invoiceId: string, q: Db | Tx = db): Pr
   const payments: InvoicePayment[] = [
     ...allocations
       .filter((a) => !a.reversesId)
-      .map((a) => ({ id: a.id, date: a.date, amount: a.amount, via: "bank" as const, text: a.text, cashNumber: null, reversed: reversed.has(a.id) })),
+      .map((a) => ({
+        id: a.id,
+        date: a.date,
+        amount: a.amount,
+        via: "bank" as const,
+        text: a.text,
+        cashNumber: null,
+        transactionId: a.transactionId,
+        reversed: reversed.has(a.id),
+      })),
     ...cash
       .filter((c) => !c.reversesId)
-      .map((c) => ({ id: c.id, date: c.date, amount: c.amount, via: "bar" as const, text: c.text, cashNumber: c.number, reversed: reversed.has(c.id) })),
+      .map((c) => ({
+        id: c.id,
+        date: c.date,
+        amount: c.amount,
+        via: "bar" as const,
+        text: c.text,
+        cashNumber: c.number,
+        transactionId: null,
+        reversed: reversed.has(c.id),
+      })),
   ];
   return payments.sort((a, b) => a.date.localeCompare(b.date));
 }

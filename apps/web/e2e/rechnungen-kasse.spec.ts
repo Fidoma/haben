@@ -667,6 +667,15 @@ test("Rechnungsdatum vor der letzten festgeschriebenen Rechnung: Warnung beim Fe
   await expect(dialog.getByRole("status")).toContainText("01.10.2026");
   await bestaetigen(page, "Festschreiben");
   await expect(page.getByText("Festgeschrieben", { exact: true })).toBeVisible();
+
+  // Rückweg zur Buchung (#1855): unter Angaben „Im Journal“, die Zeile im Journal hervorgehoben
+  await page
+    .locator("section[aria-labelledby=facts-heading]")
+    .getByRole("link", { name: /^Buchung vom / })
+    .click();
+  await page.waitForURL(/\/buchungen\?.*#buchung-/);
+  await expect(page.locator('tr[aria-current="true"]')).toContainText("Rechnung");
+  await expect(page.locator('tr[aria-current="true"]')).toBeFocused();
 });
 
 test("Seiten mit den Daten dieses Abschnitts ohne axe-Verstöße", async () => {

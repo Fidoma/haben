@@ -11,6 +11,7 @@ test.describe.configure({ mode: "serial" });
 
 let page: Page;
 let pageErrors: string[] = [];
+let rechnungPfad = "";
 
 test.beforeAll(async ({ browser }) => {
   ({ page, pageErrors } = await durchlaufSeite(browser));
@@ -29,6 +30,7 @@ test("Einrichtung mit einer festgeschriebenen Rechnung und einem Stripe-Konto mi
   await einrichten(page);
   await kontaktAnlegen(page, CUSTOMERS[2]!);
   await rechnungFestschreiben(page, RECHNUNG);
+  rechnungPfad = new URL(page.url()).pathname;
 
   await gehe(page, "/bank");
   await page.getByRole("button", { name: "Konto hinzufügen" }).click();
@@ -107,5 +109,20 @@ test("Zuordnen und Gebühr buchen: beide Umsätze sind erledigt, danach stehen s
   await gehe(page, "/bank?filter=offen");
   await expect(zeilen().filter({ hasText: "Gebühr · txn_e2e_a" })).toContainText("Beleg fehlt");
   await expect(zeilen().filter({ hasText: "Rheinpixel GmbH" })).toHaveCount(0);
+  expect(pageErrors).toEqual([]);
+});
+
+test("Von der Rechnung über „Bank“ unter Zahlungen zum Umsatz, dort steht die Buchung (#1855)", async () => {
+  await gehe(page, rechnungPfad);
+  const zahlungen = page.locator("section[aria-labelledby=payments-heading]");
+  await zahlungen.getByRole("link", { name: "Bank", exact: true }).click();
+  await page.waitForURL(/\/bank\?.*umsatz=/);
+  await page.waitForLoadState("networkidle");
+  await expect(panel()).toContainText("Rheinpixel GmbH");
+  await expect(
+    panel()
+      .getByRole("link", { name: /^Buchung vom / })
+      .first(),
+  ).toBeVisible();
   expect(pageErrors).toEqual([]);
 });

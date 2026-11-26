@@ -41,6 +41,7 @@ import { authMiddleware, readMiddleware } from "../middleware.ts";
 import { ownAccountsOverview } from "../modules/eigene-konten/index.ts";
 import { listContactChoices, loadCompany } from "../modules/stammdaten/index.ts";
 import { documentBankAllocations, documentIbanCheck, documentSepaTransfers } from "../modules/bank/index.ts";
+import { buchungenZu } from "../modules/buchhaltung/index.ts";
 import { db, schema } from "../db/index.ts";
 import { eq } from "drizzle-orm";
 import { UserError } from "../errors.ts";
@@ -81,6 +82,8 @@ export const getDocumentDetail = createServerFn({ method: "GET" })
       document,
       cancellation,
       reentryId,
+      // Buchung des Belegs, Freigabe der Vorsteuer (#693) und Storno im Journal (#1855)
+      buchungen: result.document.lockedAt ? ((await buchungenZu(["document", "freigabe"], [data])).get(data) ?? []) : [],
       // Vermerk: für diesen Beleg erzeugte SEPA-Überweisungen
       sepaTransfers: await documentSepaTransfers(data),
       // IBAN der E-Rechnung gegen die des Kontakts (#410)

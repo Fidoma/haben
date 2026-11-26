@@ -70,7 +70,7 @@ export function knownAccounts(kontenrahmen: Kontenrahmen): Record<string, string
  * (Rechnung mit Kundenkorrektur, #877) der Vorgang, auf den die Oberfläche verlinkt. Beide Tabellen tragen unter ihrer
  * id die Quelle der Buchung; ein Beleg und eine Rechnung schließen sich aus.
  */
-export async function verrechnungQuellen(ids: string[]): Promise<{
+async function verrechnungQuellen(ids: string[]): Promise<{
   belege: Map<string, string>;
   rechnungen: Map<string, string>;
 }> {
@@ -89,6 +89,52 @@ export async function verrechnungQuellen(ids: string[]): Promise<{
   for (const row of rechnungszeilen) rechnungen.set(row.id, row.invoiceId);
   return { belege, rechnungen };
 }
+
+/** Umsatz je Bankzuordnung: Quelle einer Buchung mit Herkunft „Bank“ ist ihre Zeile in allocations (#1855) */
+async function zuordnungsUmsaetze(ids: string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db
+    .select({ id: schema.allocations.id, transactionId: schema.allocations.transactionId })
+    .from(schema.allocations)
+    .where(inArray(schema.allocations.id, ids));
+  return new Map(rows.map((r) => [r.id, r.transactionId]));
+}
+
+/**
+ * Vorgänge hinter Buchungen, auf die Journal und Kontenblatt verlinken (vorgangZurHerkunft): bei einer Verrechnung
+ * Beleg bzw. Rechnung (#786, #877) statt der Bank, bei einer Bankzuordnung ihr Umsatz (#1855).
+ */
+export async function herkunftVerweise(entries: { sourceType: string; sourceId: string }[]) {
+  const ids = (type: string) => [...new Set(entries.flatMap((e) => (e.sourceType === type ? [e.sourceId] : [])))];
+  const [{ belege, rechnungen }, umsaetze] = await Promise.all([verrechnungQuellen(ids("verrechnung")), zuordnungsUmsaetze(ids("allocation"))]);
+  return (e: { sourceType: string; sourceId: string }) => ({
+    documentId: (e.sourceType === "verrechnung" && belege.get(e.sourceId)) || null,
+    invoiceId: (e.sourceType === "verrechnung" && rechnungen.get(e.sourceId)) || null,
+    transactionId: (e.sourceType === "allocation" && umsaetze.get(e.sourceId)) || null,
+  });
+}
+
+/** Verweis auf eine Buchung im Journal: Rückweg von Rechnung, Beleg und Bankumsatz zur Buchung (#1855) */
+export type BuchungVerweis = { id: string; date: string; reversal: boolean };
+
+/**
+ * Buchungen zu Quellen, je sourceId in der Reihenfolge des Journals (Tag, dann Anlage). Gegenbuchungen, etwa der Storno
+ * eines Belegs oder die Aufhebung einer Zuordnung, sind gekennzeichnet.
+ */
+export async function buchungenZu(sourceTypes: JournalSourceType[], sourceIds: string[]): Promise<Map<string, BuchungVerweis[]>> {
+  const result = new Map<string, BuchungVerweis[]>();
+  if (sourceIds.length === 0) return result;
+  const e = schema.journalEntries;
+  const rows = await db
+    .select({ id: e.id, date: e.date, sourceId: e.sourceId, reversesId: e.reversesId })
+    .from(e)
+    .where(and(inArray(e.sourceType, sourceTypes), inArray(e.sourceId, sourceIds)))
+    .orderBy(asc(e.date), asc(e.createdAt));
+  for (const r of rows) result.set(r.sourceId, [...(result.get(r.sourceId) ?? []), { id: r.id, date: r.date, reversal: r.reversesId !== null }]);
+  return result;
+}
+
+type JournalSourceType = (typeof schema.journalEntries.$inferSelect)["sourceType"];
 
 /** Buchungen eines Monats mit ihren Zeilen, nur lesend */
 export async function loadJournal(year: number, month: number) {
@@ -128,21 +174,15 @@ export async function loadJournal(year: number, month: number) {
         ).map((r) => r.id),
       )
     : new Set<string | null>();
-  // Verrechnungsbuchungen (#786 Belege, #877 Rechnung mit Kundenkorrektur): Die Buchung je Seite hängt an ihrer Zeile
-  // in document_settlements bzw. invoice_settlements, die Zeile am Vorgang. Journal und Kontenblatt verlinken damit auf
-  // den Beleg oder die Rechnung statt auf die Bank.
-  const verrechnungIds = [...new Set(entries.flatMap((e) => (e.sourceType === "verrechnung" ? [e.sourceId] : [])))];
-  const { belege: verrechnungBelege, rechnungen: verrechnungRechnungen } = await verrechnungQuellen(verrechnungIds);
+  const herkunft = await herkunftVerweise(entries);
   return entries.map((entry) => ({
     id: entry.id,
     date: entry.date,
     description: entry.description,
     sourceType: entry.sourceType,
     sourceId: entry.sourceId,
-    // Beleg einer Verrechnungsbuchung (#786): ihre Quelle ist die Zeile in document_settlements, die am Beleg hängt
-    documentId: verrechnungBelege.get(entry.sourceId) ?? null,
-    // Rechnung einer Verrechnung mit ihrer Kundenkorrektur (#877)
-    invoiceId: verrechnungRechnungen.get(entry.sourceId) ?? null,
+    // Beleg oder Rechnung einer Verrechnung, Umsatz einer Bankzuordnung
+    ...herkunft(entry),
     reversal: entry.reversesId !== null,
     reversed: reversedIds.has(entry.id),
     lines: lines.filter((l) => l.entryId === entry.id).map((l) => ({ ...l, name: accountName(entry.kontenrahmen, l.account) })),

@@ -113,6 +113,13 @@ test("Beleg speichern, dann „Bestätigen und buchen“: der Dialog bleibt nach
 test("Bankzuordnung im Stornodialog bestätigen und zusammen mit dem Beleg zurücknehmen", async () => {
   await page.goto(`/belege/${documentId}`);
   await expect(page.locator(".page-head").getByText("Gebucht", { exact: true })).toBeVisible();
+  // Rückweg zur Buchung (#1855): ins Journal des Monats, die Zeile hervorgehoben und mit dem Fokus
+  await page.getByRole("link", { name: /^Buchung vom / }).click();
+  await page.waitForURL(/\/buchungen\?.*#buchung-/);
+  const zielzeile = page.locator('tr[aria-current="true"]');
+  await expect(zielzeile).toContainText("L-4711");
+  await expect(zielzeile).toBeFocused();
+  await page.goto(`/belege/${documentId}`);
   await page.getByRole("button", { name: "Beleg stornieren", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Beleg stornieren?" });
   await expect(dialog).toBeVisible();
@@ -155,8 +162,12 @@ test("Bankzuordnung im Stornodialog bestätigen und zusammen mit dem Beleg zurü
   await page.reload();
   await expect(page.locator(".page-head").getByText("Storniert", { exact: true })).toBeVisible();
   expect((await sql`select id from document_cancellations where document_id = ${documentId}`).length).toBe(1);
+  // Nach dem Storno bleibt der Weg ins Journal, mit der Gegenbuchung (#1855)
+  await expect(page.getByRole("link", { name: /^Gegenbuchung vom / })).toBeVisible();
   await page.getByRole("link", { name: "Gegenbuchung", exact: true }).click();
   await expect(page.getByText(/Storno: Beleg L-4711/)).toBeVisible();
+  // Der Link zeigt auf die Zeile der Gegenbuchung, nicht nur auf den Monat (#1855)
+  await expect(zielzeile).toContainText("Storno: Beleg L-4711");
 });
 
 test("gebuchter Beleg erklärt die Aufteilung über Storno, ein stornierter nicht mehr (#1112)", async () => {

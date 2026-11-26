@@ -5,6 +5,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { and, asc, eq, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { invoicePaymentList, listAccounts, listWriteOffs } from "../modules/bank/index.ts";
+import { buchungenZu } from "../modules/buchhaltung/index.ts";
 import { kleinunternehmerStand, openPositions, umsatzImMonat } from "../modules/auswertungen/index.ts";
 import { deliverSoon, deliveryForInvoice } from "../modules/ablage/index.ts";
 import { serviceEntriesOfInvoice } from "../modules/leistungen/index.ts";
@@ -175,6 +176,8 @@ export const getInvoiceDetail = createServerFn({ method: "GET" })
       /** Weitergabe an das Dokumentenarchiv (Einstellungen › Export) */
       ablage: result.invoice.status === "final" ? await deliveryForInvoice(result.invoice) : null,
       overdue: listed?.listStatus === "ueberfaellig",
+      // Buchung der Rechnung im Journal (#1855); Zahlungen führen über ihren Umsatz dorthin
+      buchungen: (await buchungenZu(["invoice"], [data])).get(data) ?? [],
       // Angebot der Rechnung: über invoices.quote_id oder (ältere Rechnungen aus dem Angebot) über quotes.invoice_id
       fromQuote:
         (
