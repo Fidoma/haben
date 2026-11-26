@@ -184,6 +184,8 @@ function fakeFastbill(server: Server): typeof fetch {
     if (body.SERVICE === "recurring.get") return page("INVOICES", []);
     // Angebote prüft fastbill-angebote.test.ts; hier gibt es keine
     if (body.SERVICE === "estimate.get") return page("ESTIMATES", []);
+    // Einnahmen prüft fastbill-einnahmen.test.ts; hier gibt es keine
+    if (body.SERVICE === "revenue.get") return page("REVENUES", []);
     if (body.SERVICE === "invoice.get") {
       if (body.FILTER.TYPE === "outgoing") return page("INVOICES", OUTGOING);
       if (body.FILTER.TYPE === "credit") return page("INVOICES", CREDITS);
@@ -237,8 +239,8 @@ describe.skipIf(!testDatabaseUrl)("Umzug aus FastBill (Postgres)", () => {
     expect(run).toMatchObject({ status: "fertig", source: "fastbill" });
     // Die Ausgabe 8002 wartet auf ihren Beleg, statt ohne Datei ins Archiv zu kommen
     expect(run!.progress).toMatchObject({ contacts: 2, listed: 6, imported: 5, skipped: 0, files: 5, failed: [], fastbillWaiting: 1 });
-    // Kunden, drei Durchläufe Rechnungen, Ausgaben, Vorlagen, Angebote; die Prüfung beim Speichern hat einen eigenen Client, PDFs zählen nicht
-    expect(run!.progress.fastbillCalls).toHaveLength(7);
+    // Kunden, drei Durchläufe Rechnungen, Ausgaben, Einnahmen, Vorlagen, Angebote; die Prüfung beim Speichern hat einen eigenen Client, PDFs zählen nicht
+    expect(run!.progress.fastbillCalls).toHaveLength(8);
     // Entwürfe werden gar nicht abgefragt
     expect(server.calls.filter((c) => c.service === "invoice.get").map((c) => c.filter)).toEqual([
       { TYPE: "outgoing" },
@@ -370,7 +372,7 @@ describe.skipIf(!testDatabaseUrl)("Umzug aus FastBill (Postgres)", () => {
     await fastbill.startFastbillImport(actor, { wait: true });
     const run = await fastbill.latestFastbillImport();
     expect(run!.progress).toMatchObject({ contacts: 0, imported: 0, skipped: 6, failed: [], fastbillWaiting: 0 });
-    expect(run!.progress.fastbillCalls!.length).toBe(before.length + 7);
+    expect(run!.progress.fastbillCalls!.length).toBe(before.length + 8);
     const [count] = await sql`select count(*)::int as n from lexoffice_vouchers where source = 'fastbill'`;
     expect(count!.n).toBe(7);
   });

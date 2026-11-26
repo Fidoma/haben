@@ -55,7 +55,7 @@ export const SOURCES = {
       "Den API-Schlüssel findest du in FastBill in den Einstellungen deines Kontos. Dazu die E-Mail, mit der du dich bei FastBill anmeldest, und dein Tarif: Er bestimmt, wie viele Anfragen FastBill je Stunde erlaubt. Haben liest nur, es ändert nichts in FastBill.",
     removeLabel: "Zugang entfernen",
     importHelp:
-      "Holt alle Kunden, Ausgangsrechnungen, Gutschriften, Stornos und Ausgaben mit ihren PDFs. FastBill erlaubt je nach Tarif nur 50 bis 1000 Anfragen pro Stunde; an der Grenze wartet der Abruf und macht danach weiter, bei vielen Belegen dauert das Stunden. Du kannst die Seite währenddessen verlassen. Ein neuer Abruf überspringt alles, was schon da ist.",
+      "Holt alle Kunden, Ausgangsrechnungen, Gutschriften, Stornos, Ausgaben und Einnahmen mit ihren PDFs. FastBill erlaubt je nach Tarif nur 50 bis 1000 Anfragen pro Stunde; an der Grenze wartet der Abruf und macht danach weiter, bei vielen Belegen dauert das Stunden. Du kannst die Seite währenddessen verlassen. Ein neuer Abruf überspringt alles, was schon da ist.",
     exportsHelp:
       "Die API liefert keine Buchungen und keine Bankumsätze. Lade deshalb je Geschäftsjahr den DATEV-Export (Buchungsstapel, CSV) aus FastBill hoch, dazu die ELSTER-Übertragungsprotokolle und die Kontoauszüge der Bank als PDF.",
     save: saveFastbillLogin,

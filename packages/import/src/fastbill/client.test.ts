@@ -71,6 +71,12 @@ describe("FastbillClient", () => {
     expect(calls[0]!.body).toEqual({ SERVICE: "article.get", FILTER: {}, LIMIT: 100, OFFSET: 0 });
   });
 
+  it("holt Einnahmen über revenue.get aus der Liste REVENUES (#1938)", async () => {
+    const { client, calls } = setup(() => envelope({ REVENUES: [{ ...invoice(7), TYPE: "incoming_credit" }] }));
+    expect(await collect(client.revenues())).toMatchObject([{ INVOICE_ID: "7", TYPE: "incoming_credit" }]);
+    expect(calls[0]!.body).toEqual({ SERVICE: "revenue.get", FILTER: {}, LIMIT: 100, OFFSET: 0 });
+  });
+
   it("blättert in Seiten zu 100, bis eine Seite kürzer ist, und überspringt doppelte IDs", async () => {
     const { client, calls } = setup(({ body }) => {
       const offset = body!.OFFSET as number;

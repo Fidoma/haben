@@ -6,7 +6,7 @@ import { databaseUrlFuer } from "./durchlaeufe.ts";
 import { bestaetigen, durchlaufSeite, einrichten, gehe } from "./einrichtung.ts";
 
 /**
- * Umzug aus FastBill: verbundener Zugang, Ausgaben, deren Beleg FastBill nur im Browser herausgibt, Skript kopieren, ZIP
+ * Umzug aus FastBill: verbundener Zugang, Ausgaben und Einnahmen, deren Beleg FastBill nur im Browser herausgibt, Skript kopieren, ZIP
  * hochladen und den Rest ohne Beleg freigeben, dazu der Weg zu den Artikeln, in eigener, leerer Datenbank (Projekt „fastbill-import“, e2e/durchlaeufe.ts).
  * Den Abruf über die API prüfen die Postgres-Tests in modules/archiv; hier stellt die Datenbank seinen Stand nach, damit kein
  * Test eine Adresse von FastBill aufruft.
@@ -35,14 +35,14 @@ async function abrufNachstellen() {
         '{"phase":"fertig","contacts":0,"contactsLinked":0,"listed":2,"imported":0,"skipped":0,"files":0,"failed":[],"fastbillWaiting":2}', now())`;
       await tx`insert into fastbill_receipts (expense_id, status, number, date, supplier, gross, document_url) values
         ('8101', 'wartet', 'L-881', '2024-02-15', 'Software Beispiel', 595, ${URL_8101}),
-        ('8102', 'wartet', 'L-882', '2024-03-01', 'Hosting Beispiel', 1190, ${URL_8102})`;
+        ('einnahme-8102', 'wartet', 'GS-2024-4', '2024-03-01', 'Plattform Beispiel GmbH', 1190, ${URL_8102})`;
     });
   } finally {
     await sql.end();
   }
 }
 
-test("FastBill: wartende Ausgabenbelege per Skript nachreichen oder ohne Beleg freigeben", async ({ browser }) => {
+test("FastBill: wartende Belege von Ausgaben und Einnahmen per Skript nachreichen oder ohne Beleg freigeben (#1938)", async ({ browser }) => {
   const { page, pageErrors } = await durchlaufSeite(browser);
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   await einrichten(page);
@@ -52,39 +52,43 @@ test("FastBill: wartende Ausgabenbelege per Skript nachreichen oder ohne Beleg f
   await expect(page.getByRole("button", { name: "Umzug aus FastBill", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByText("Verbunden mit inhaber@example.de")).toBeVisible();
   await expect(page.getByText(/Tarif Pro, 500 Anfragen pro Stunde/)).toBeVisible();
-  // Solange Ausgaben auf ihren Beleg warten, ist das Jahr nicht vollständig
+  // Solange Ausgaben oder Einnahmen auf ihren Beleg warten, ist das Jahr nicht vollständig
   const jahr = page.getByRole("region", { name: "Geschäftsjahr 2024" });
-  await expect(jahr).toContainText("Keine Ausgabe wartet auf ihren Beleg");
-  await expect(jahr).toContainText("2 Ausgaben aus FastBill warten");
+  await expect(jahr).toContainText("Kein Beleg aus FastBill wartet auf seine Datei");
+  await expect(jahr).toContainText("2 Belege aus FastBill warten");
 
   const kasten = page.getByRole("region", { name: "Belege, die FastBill nur im Browser herausgibt" });
   await expect(kasten.locator(".progress-facts")).toContainText("warten auf Beleg2");
-  // Das Skript bekommt die Download-Adressen der wartenden Ausgaben eingesetzt
+  // Die Liste nennt, ob ein Eintrag Ausgabe oder Einnahme ist
+  await kasten.getByText("2 Einträge ohne Beleg").click();
+  await expect(kasten.getByRole("listitem").filter({ hasText: "L-881" })).toContainText("Ausgabe · 15.02.2024 · L-881 · Software Beispiel");
+  await expect(kasten.getByRole("listitem").filter({ hasText: "GS-2024-4" })).toContainText("Einnahme · 01.03.2024 · GS-2024-4 · Plattform Beispiel GmbH");
+  // Das Skript bekommt die Download-Adressen der wartenden Einträge eingesetzt; die Einnahme mit eigener Kennung
   await kasten.getByRole("button", { name: "Skript kopieren" }).click();
   await expect(kasten.getByRole("button", { name: "Kopiert" })).toBeVisible();
   const skript = await page.evaluate(() => navigator.clipboard.readText());
   expect(skript).toContain(
     JSON.stringify([
       { id: "8101", url: URL_8101 },
-      { id: "8102", url: URL_8102 },
+      { id: "einnahme-8102", url: URL_8102 },
     ]),
   );
   expect(skript).toContain('location.hostname !== "my.fastbill.com"');
 
-  // ZIP aus dem Skript: der Beleg zu 8101, dazu einer zu einer Ausgabe, die nicht wartet
+  // ZIP aus dem Skript: der Beleg zu 8101, dazu einer zu einem Eintrag, der nicht wartet
   const manifest = Buffer.from(JSON.stringify({ format: "haben-fastbill-belege", version: 1 }));
   const zip = Buffer.from(zipSync({ "manifest.json": manifest, "belege/8101.pdf": PDF, "belege/9999.pdf": PDF }));
   await kasten.getByLabel("Belege aus dem Skript (ZIP)").setInputFiles({ name: "haben-fastbill-belege-1.zip", mimeType: "application/zip", buffer: zip });
   await kasten.getByRole("button", { name: "Hochladen" }).click();
-  await expect(kasten.getByText(/1 Belege zugeordnet\..*1 gehörten zu keiner wartenden Ausgabe\./)).toBeVisible();
+  await expect(kasten.getByText(/1 Belege zugeordnet\..*1 gehörten zu keinem wartenden Eintrag\./)).toBeVisible();
   await expect(kasten.locator(".progress-facts")).toContainText("Beleg bereit1");
 
   await kasten.getByRole("button", { name: "Rest ohne Beleg übernehmen" }).click();
   await bestaetigen(page, "Ohne Beleg übernehmen");
   await expect(kasten.locator(".progress-facts")).toContainText("ohne Beleg1");
   await expect(kasten.getByRole("button", { name: "Skript kopieren" })).toHaveCount(0);
-  // Wartet keine Ausgabe mehr, muss der Kasten weiter sagen, dass erst „Erneut abrufen“ die Ausgaben ins Archiv bringt
-  await expect(kasten.getByRole("status")).toContainText("2 Ausgaben kommen beim nächsten Abruf ins Archiv: Starte in Schritt 2 „Erneut abrufen“.");
+  // Wartet kein Eintrag mehr, muss der Kasten weiter sagen, dass erst „Erneut abrufen“ sie ins Archiv bringt
+  await expect(kasten.getByRole("status")).toContainText("2 Einträge kommen beim nächsten Abruf ins Archiv: Starte in Schritt 2 „Erneut abrufen“.");
 
   // Artikel kommen über den CSV-Import; „Aus FastBill holen“ ruft FastBill auf und bleibt deshalb ungeklickt
   await page.getByRole("region", { name: "Artikel", exact: true }).getByRole("link", { name: "Artikel aus FastBill übernehmen" }).click();

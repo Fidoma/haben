@@ -15,7 +15,7 @@ import { FASTBILL_LIST_MARKER as LIST_MARKER, FASTBILL_SCRIPT_URL as SCRIPT_URL 
 type Receipt = Awaited<ReturnType<typeof getMigration>>["fastbillReceipts"][number];
 
 /**
- * Ausgaben, deren Beleg FastBill nur im angemeldeten Browser herausgibt. Der Abruf archiviert sie erst, wenn der Beleg
+ * Ausgaben und Einnahmen (#1938), deren Beleg FastBill nur im angemeldeten Browser herausgibt. Der Abruf archiviert sie erst, wenn der Beleg
  * aus dem Browser-Skript da ist oder jemand „ohne Beleg übernehmen“ wählt; danach holt „Erneut abrufen“ sie nach.
  */
 export function FastbillReceipts({ receipts, running }: { receipts: Receipt[]; running: boolean }) {
@@ -28,8 +28,8 @@ export function FastbillReceipts({ receipts, running }: { receipts: Receipt[]; r
         Belege, die FastBill nur im Browser herausgibt
       </h2>
       <p className="small muted" style={{ margin: 0 }}>
-        Bei manchen Ausgaben gibt FastBill den Beleg nur heraus, wenn du im Browser angemeldet bist. Haben archiviert diese Ausgaben deshalb noch nicht, damit
-        sie nicht ohne Beleg im unveränderlichen Archiv landen. Ein Skript lädt genau diese Belege mit deiner Anmeldung in FastBill.
+        Bei manchen Ausgaben und Einnahmen gibt FastBill den Beleg nur heraus, wenn du im Browser angemeldet bist. Haben archiviert sie deshalb noch nicht,
+        damit sie nicht ohne Beleg im unveränderlichen Archiv landen. Ein Skript lädt genau diese Belege mit deiner Anmeldung in FastBill.
       </p>
       <div className="progress-facts">
         <div>
@@ -46,9 +46,9 @@ export function FastbillReceipts({ receipts, running }: { receipts: Receipt[]; r
         </div>
       </div>
       {waiting.length === 0 && (
-        // Anleitung und Upload sind dann weg; ins Archiv kommen die Ausgaben erst mit dem nächsten Abruf
+        // Anleitung und Upload sind dann weg; ins Archiv kommen die Einträge erst mit dem nächsten Abruf
         <p className="small" role="status" style={{ margin: 0 }}>
-          {receipts.length === 1 ? "1 Ausgabe kommt" : `${receipts.length} Ausgaben kommen`} beim nächsten Abruf ins Archiv: Starte in Schritt 2 „Erneut
+          {receipts.length === 1 ? "1 Eintrag kommt" : `${receipts.length} Einträge kommen`} beim nächsten Abruf ins Archiv: Starte in Schritt 2 „Erneut
           abrufen“.
         </p>
       )}
@@ -71,7 +71,7 @@ export function FastbillReceipts({ receipts, running }: { receipts: Receipt[]; r
   );
 }
 
-/** Skript mit eingesetzter Liste der wartenden Ausgaben; ohne Zwischenablage zum Markieren von Hand */
+/** Skript mit eingesetzter Liste der wartenden Ausgaben und Einnahmen; ohne Zwischenablage zum Markieren von Hand */
 function ScriptCopy() {
   const scriptList = useServerFn(getFastbillReceiptScriptList);
   const action = useAction();
@@ -141,8 +141,8 @@ function ReceiptUpload({ waitingCount, running }: { waitingCount: number; runnin
       const result = await upload({ data: form });
       if (fileInput.current) fileInput.current.value = "";
       await router.invalidate();
-      const parts = [`${result.accepted} Belege zugeordnet. Starte in Schritt 2 „Erneut abrufen“, dann übernimmt Haben die Ausgaben mit ihrem Beleg.`];
-      if (result.unknown) parts.push(`${result.unknown} gehörten zu keiner wartenden Ausgabe.`);
+      const parts = [`${result.accepted} Belege zugeordnet. Starte in Schritt 2 „Erneut abrufen“, dann übernimmt Haben die Einträge mit ihrem Beleg.`];
+      if (result.unknown) parts.push(`${result.unknown} gehörten zu keinem wartenden Eintrag.`);
       if (result.invalid.length) parts.push(`${result.invalid.length} waren weder PDF noch Bild: ${result.invalid.slice(0, 5).join(", ")}.`);
       action.setNotice({ tone: result.invalid.length ? "danger" : "ok", text: parts.join(" ") });
     });
@@ -152,7 +152,7 @@ function ReceiptUpload({ waitingCount, running }: { waitingCount: number; runnin
     action.run(async () => {
       const { count } = await markMissing({ data: {} });
       await router.invalidate();
-      action.setNotice({ tone: "ok", text: `${count} Ausgaben werden beim nächsten Abruf ohne Beleg übernommen.` });
+      action.setNotice({ tone: "ok", text: `${count} ${count === 1 ? "Eintrag kommt" : "Einträge kommen"} beim nächsten Abruf ohne Beleg ins Archiv.` });
     });
 
   return (
@@ -180,8 +180,8 @@ function ReceiptUpload({ waitingCount, running }: { waitingCount: number; runnin
         onClose={() => setConfirming(false)}
       >
         <p>
-          Die {waitingCount} wartenden Ausgaben kommen beim nächsten Abruf ohne Datei ins Archiv; dort lässt sich später keine Datei mehr anhängen. Wähle das
-          nur, wenn es in FastBill zu diesen Ausgaben wirklich keinen Beleg gibt.
+          Die {waitingCount} wartenden Einträge kommen beim nächsten Abruf ohne Datei ins Archiv; dort lässt sich später keine Datei mehr anhängen. Wähle das
+          nur, wenn es in FastBill zu diesen Ausgaben und Einnahmen wirklich keinen Beleg gibt.
         </p>
       </ConfirmDialog>
     </>
@@ -191,11 +191,14 @@ function ReceiptUpload({ waitingCount, running }: { waitingCount: number; runnin
 function WaitingList({ waiting }: { waiting: Receipt[] }) {
   return (
     <details>
-      <summary className="small">{waiting.length} Ausgaben ohne Beleg</summary>
+      <summary className="small">
+        {waiting.length} {waiting.length === 1 ? "Eintrag" : "Einträge"} ohne Beleg
+      </summary>
       <ul className="small" style={{ margin: "8px 0 0", paddingLeft: 20 }}>
         {waiting.slice(0, 200).map((r) => (
           <li key={r.expenseId}>
-            {r.date ? formatDate(r.date) : "ohne Datum"} · {r.number || `ID ${r.expenseId}`} · {r.supplier || "ohne Lieferant"} · {formatEuro(r.gross)}
+            {r.kind === "einnahme" ? "Einnahme" : "Ausgabe"} · {r.date ? formatDate(r.date) : "ohne Datum"} · {r.number || `ID ${r.expenseId}`} ·{" "}
+            {r.supplier || "ohne Name"} · {formatEuro(r.gross)}
           </li>
         ))}
       </ul>

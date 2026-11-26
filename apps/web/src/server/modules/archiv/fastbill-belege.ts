@@ -7,17 +7,30 @@ import { loadFile, sniff, storeFile } from "../../storage.ts";
 import { FastbillError } from "./fastbill-zugang.ts";
 
 /*
- * Ausgabenbelege, die FastBill nur im angemeldeten Browser herausgibt (DOCUMENT_URL liefert der API eine leere Seite).
- * Der Abruf merkt solche Ausgaben in fastbill_receipts vor, das Browser-Skript public/fastbill-belege.js lädt die Dateien,
- * der Upload legt sie bereit, und der nächste Abruf archiviert die Ausgabe mit ihrer Datei.
+ * Belege von Ausgaben und Einnahmen, die FastBill nur im angemeldeten Browser herausgibt (DOCUMENT_URL liefert der API
+ * eine leere Seite). Der Abruf merkt solche Belege in fastbill_receipts vor, das Browser-Skript public/fastbill-belege.js
+ * lädt die Dateien, der Upload legt sie bereit, und der nächste Abruf archiviert den Beleg mit seiner Datei.
+ *
+ * Kennung ist die INVOICE_ID aus FastBill, bei Einnahmen (#1938) mit dem Präfix „einnahme-“: Ausgaben und Einnahmen
+ * kommen aus verschiedenen Diensten, ihre IDs könnten sich decken.
  */
 
+const REVENUE_PREFIX = "einnahme-";
+
+/** Kennung im Zwischenlager: die ID der Ausgabe, bei einer Einnahme mit Präfix */
+export function fastbillReceiptKey(kind: "expense" | "revenue", id: string): string {
+  return kind === "revenue" ? `${REVENUE_PREFIX}${id}` : id;
+}
+
+const receiptKind = (key: string): "einnahme" | "ausgabe" => (key.startsWith(REVENUE_PREFIX) ? "einnahme" : "ausgabe");
+
 /**
- * Was mit einer Ausgabe ohne Datei aus der API geschieht: die bereitliegende Datei aus dem Browser-Skript, „ohne_beleg“
+ * Was mit einer Ausgabe oder Einnahme ohne Datei aus der API geschieht: die bereitliegende Datei aus dem Browser-Skript, „ohne_beleg“
  * nach ausdrücklicher Entscheidung, sonst „wartet“ (vorgemerkt, nicht archivieren).
  */
 export async function waitingReceipt(
   actor: string,
+  /** fastbillReceiptKey */
   expenseId: string,
   voucher: Pick<LegacyVoucher, "number" | "date" | "contactName" | "gross">,
   documentUrl: string,
@@ -68,9 +81,9 @@ function accepted(bytes: Uint8Array): boolean {
   return kind !== null && RECEIPT_KINDS.has(kind.kind);
 }
 
-/** Ausgaben, die auf ihren Beleg warten oder deren Beleg schon bereitliegt; ohne die Download-Adressen */
+/** Ausgaben und Einnahmen, die auf ihren Beleg warten oder deren Beleg schon bereitliegt; ohne die Download-Adressen */
 export async function fastbillReceiptsOverview() {
-  return db
+  const rows = await db
     .select({
       expenseId: schema.fastbillReceipts.expenseId,
       status: schema.fastbillReceipts.status,
@@ -82,9 +95,10 @@ export async function fastbillReceiptsOverview() {
     })
     .from(schema.fastbillReceipts)
     .orderBy(asc(schema.fastbillReceipts.date), asc(schema.fastbillReceipts.expenseId));
+  return rows.map((r) => ({ ...r, kind: receiptKind(r.expenseId) }));
 }
 
-/** Je Jahr, wie viele Ausgaben noch nicht im Archiv sind, weil sie auf ihren Beleg warten (auch bereit oder „ohne Beleg“) */
+/** Je Jahr, wie viele Ausgaben und Einnahmen noch nicht im Archiv sind, weil sie auf ihren Beleg warten (auch bereit oder „ohne Beleg“) */
 export async function fastbillWaitingByYear(): Promise<Map<number, number>> {
   const rows = await db
     .select({ year: sql<number>`extract(year from ${schema.fastbillReceipts.date})::int`, count: sql<number>`count(*)::int` })
@@ -93,7 +107,7 @@ export async function fastbillWaitingByYear(): Promise<Map<number, number>> {
   return new Map(rows.filter((r) => r.year).map((r) => [r.year, r.count]));
 }
 
-/** Liste für das Browser-Skript: ID und Download-Adresse jeder wartenden Ausgabe */
+/** Liste für das Browser-Skript: Kennung und Download-Adresse jedes wartenden Belegs */
 export async function fastbillReceiptScriptList(): Promise<{ id: string; url: string }[]> {
   const rows = await db
     .select({ id: schema.fastbillReceipts.expenseId, url: schema.fastbillReceipts.documentUrl })
@@ -144,7 +158,7 @@ export async function uploadFastbillReceipts(actor: string, zip: Uint8Array): Pr
   );
   const result: FastbillReceiptUpload = { accepted: 0, unknown: 0, invalid: [] };
   for (const [path, bytes] of Object.entries(entries)) {
-    const match = /^belege\/(\d+)\.[a-z0-9]{2,5}$/i.exec(path);
+    const match = /^belege\/((?:einnahme-)?\d+)\.[a-z0-9]{2,5}$/i.exec(path);
     if (!match) continue;
     const id = match[1]!;
     if (!waiting.has(id)) {

@@ -118,7 +118,7 @@ siehst, dass alles da ist.
 |---|---|---|
 | Lexware Office (früher lexoffice) | Buchhaltung und Rechnungen als Cloud-Dienst im Abo | Über die Public API, eine Sicherung aus der Web-Oberfläche oder den DATEV-Export ([Umzug](https://haben.app/lexoffice.html)) |
 | sevDesk | Buchhaltung und Rechnungen als Cloud-Dienst im Abo | Mit API-Token oder über die Exporte, samt Anlagen ([Umzug](https://haben.app/sevdesk.html)) |
-| FastBill | Rechnungen und Buchhaltung online im Abo | Rechnungen, Gutschriften, Ausgaben, Kunden und Artikel über die API ([Umzug](https://haben.app/fastbill.html)) |
+| FastBill | Rechnungen und Buchhaltung online im Abo | Rechnungen, Gutschriften, Ausgaben, Einnahmen, Angebote, Kunden und Artikel über die API ([Umzug](https://haben.app/fastbill.html)) |
 | BuchhaltungsButler · Accountable | Online-Buchhaltung im Abo | Aus den Exportdateien (DATEV-Buchungsstapel und Belege) ([BuchhaltungsButler](https://haben.app/buchhaltungsbutler.html), [Accountable](https://haben.app/accountable.html)) |
 | DATEV | Software und Datenformat der Steuerberatung | Kein Umzug nötig: Du buchst in Haben, die Steuerberatung bekommt einen [Lesezugang](https://haben.app/steuerberatung.html) oder den DATEV-Buchungsstapel |
 

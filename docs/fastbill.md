@@ -1,7 +1,7 @@
 ---
 title: "Umzug aus FastBill mit Abgleich je Jahr"
 description: >-
-  Von FastBill zu Haben wechseln: Rechnungen, Gutschriften, Ausgaben, Angebote, Kunden, Artikel und offene Zeiten über die API übernehmen,
+  Von FastBill zu Haben wechseln: Rechnungen, Gutschriften, Ausgaben, Einnahmen, Angebote, Kunden, Artikel und offene Zeiten über die API übernehmen,
   unveränderlich archivieren und kündigen.
 ---
 
@@ -35,8 +35,8 @@ Trag Login-E-Mail, Tarif und API-Schlüssel ein und klicke „Prüfen und speich
 „Alles abrufen“ startet den Abruf im Hintergrund, mit Fortschritt, Abbrechen und Fortsetzen wie bei Lexoffice. Es läuft immer nur ein Abruf, gleich aus welcher Quelle.
 
 1. **Kunden:** Name (Firma oder Person), Adresse, Land, E-Mail, USt-IdNr. und Kundennummer, als Kontakte mit der Rolle Kunde. Gibt es in Haben schon einen Kontakt mit demselben Namen und ohne FastBill-Herkunft, verknüpft Haben ihn. FastBill führt Lieferanten nicht als Kontakte; sie stehen in den Ausgaben nur als Name.
-2. **Belegliste:** Ausgangsrechnungen, Gutschriften und stornierte Rechnungen, je Art ein eigener Abruf, dazu die Ausgaben. Entwürfe bleiben draußen.
-3. **Dateien:** je Rechnung und Gutschrift das PDF, je Ausgabe der hochgeladene Beleg. Gibt FastBill den Beleg einer Ausgabe nur im angemeldeten Browser heraus, wartet die Ausgabe, siehe [Belege, die FastBill nur im Browser herausgibt](#belege-die-fastbill-nur-im-browser-herausgibt).
+2. **Belegliste:** Ausgangsrechnungen, Gutschriften und stornierte Rechnungen, je Art ein eigener Abruf, dazu die Ausgaben und die Einnahmen, die du in FastBill unter „Einnahmen“ erfasst hast, etwa die Gutschrift einer Plattform. Entwürfe bleiben draußen. Antwortet FastBill beim Abruf der Einnahmen mit einem Fehler, etwa weil der Tarif sie nicht freigibt, läuft der Abruf mit den übrigen Belegen weiter und nennt den Fehler in der Liste der fehlgeschlagenen Belege.
+3. **Dateien:** je Rechnung und Gutschrift das PDF, je Ausgabe und Einnahme der hochgeladene Beleg. Gibt FastBill den Beleg einer Ausgabe oder Einnahme nur im angemeldeten Browser heraus, wartet der Eintrag, siehe [Belege, die FastBill nur im Browser herausgibt](#belege-die-fastbill-nur-im-browser-herausgibt).
 4. **Wiederkehrende Rechnungen:** als pausierte Vorlagen, siehe [Wiederkehrende Rechnungen](#wiederkehrende-rechnungen).
 5. **Angebote:** samt PDF als Auftragsdokumente ins Archiv, siehe [Angebote](#angebote).
 
@@ -50,20 +50,20 @@ Unter „Verbindung zu FastBill“ steht neben dem Tarif, wie viele Anfragen Hab
 
 ### Belege, die FastBill nur im Browser herausgibt
 
-Bei einem Teil der Ausgaben liefert die Download-Adresse aus der API (`DOCUMENT_URL`) die Datei nur, wenn man im Browser bei FastBill angemeldet ist; der API liefert sie nur eine leere Seite. Rechnungen und Gutschriften betrifft das nicht. Damit solche Ausgaben nicht ohne Beleg im unveränderlichen Archiv landen, archiviert Haben sie erst, wenn der Beleg da ist, und zeigt unter Schritt 2 den Kasten „Belege, die FastBill nur im Browser herausgibt“:
+Bei einem Teil der Ausgaben und Einnahmen liefert die Download-Adresse aus der API (`DOCUMENT_URL`) die Datei nur, wenn man im Browser bei FastBill angemeldet ist; der API liefert sie nur eine leere Seite. Rechnungen und Gutschriften betrifft das nicht. Damit solche Einträge nicht ohne Beleg im unveränderlichen Archiv landen, archiviert Haben sie erst, wenn der Beleg da ist, und zeigt unter Schritt 2 den Kasten „Belege, die FastBill nur im Browser herausgibt“:
 
 1. In my.fastbill.com anmelden und die Entwicklerwerkzeuge öffnen (F12), dort die Konsole.
-2. In Haben „Skript kopieren“, in der Konsole einfügen und mit Enter starten. Haben setzt beim Kopieren die Liste der wartenden Ausgaben ein; das Skript lädt mit deiner Anmeldung genau diese Belege und gibt sie als ZIP-Dateien zurück, jede Datei benannt nach der ID der Ausgabe in FastBill. Es liest nur.
-3. Die ZIP-Dateien in Haben hochladen. Haben ordnet jede Datei über die ID ihrer Ausgabe zu und nimmt nur PDFs und Bilder an. Manche Belege speichert FastBill samt der Hülle des Formulars, mit dem sie hochgeladen wurden; dann übernimmt Haben die Datei darin unverändert, ohne die Hülle.
-4. In Schritt 2 „Erneut abrufen“: Haben übernimmt die Ausgaben jetzt mit ihrem Beleg.
+2. In Haben „Skript kopieren“, in der Konsole einfügen und mit Enter starten. Haben setzt beim Kopieren die Liste der wartenden Einträge ein; das Skript lädt mit deiner Anmeldung genau diese Belege und gibt sie als ZIP-Dateien zurück, jede Datei benannt nach der ID in FastBill, bei einer Einnahme mit `einnahme-` davor. Es liest nur.
+3. Die ZIP-Dateien in Haben hochladen. Haben ordnet jede Datei über diese Kennung zu und nimmt nur PDFs und Bilder an. Manche Belege speichert FastBill samt der Hülle des Formulars, mit dem sie hochgeladen wurden; dann übernimmt Haben die Datei darin unverändert, ohne die Hülle.
+4. In Schritt 2 „Erneut abrufen“: Haben übernimmt die Ausgaben und Einnahmen jetzt mit ihrem Beleg.
 
 Warum das Skript zulässig ist, steht beim Umzug aus Lexoffice unter [Darf ich das?](lexoffice.md#darf-ich-das).
 
-Solange Ausgaben warten, zeigt der Abgleich je Jahr den offenen Punkt „Keine Ausgabe wartet auf ihren Beleg“.
+Solange Einträge warten, zeigt der Abgleich je Jahr den offenen Punkt „Kein Beleg aus FastBill wartet auf seine Datei“.
 
-Gibt es zu einer Ausgabe in FastBill wirklich keinen Beleg, übernimmt „Rest ohne Beleg übernehmen“ die übrigen wartenden Ausgaben beim nächsten Abruf ohne Datei. Im Abgleich bleibt „Jeder Beleg hat eine Datei“ für dieses Jahr dann offen; an einen archivierten Beleg lässt sich später keine Datei mehr hängen.
+Gibt es zu einer Ausgabe oder Einnahme in FastBill wirklich keinen Beleg, übernimmt „Rest ohne Beleg übernehmen“ die übrigen wartenden Einträge beim nächsten Abruf ohne Datei. Im Abgleich bleibt „Jeder Beleg hat eine Datei“ für dieses Jahr dann offen; an einen archivierten Beleg lässt sich später keine Datei mehr hängen.
 
-Ohne Skript in der Konsole: „Rest ohne Beleg übernehmen“, dann die Belege in FastBill selbst herunterladen (einzeln oder über den Sammeldownload unter Finanzen › Ausgaben) und in Schritt 4 je Jahr als „Sonstiges“ ablegen. Einer einzelnen Ausgabe ordnet Haben diese Dateien nicht zu.
+Ohne Skript in der Konsole: „Rest ohne Beleg übernehmen“, dann die Belege in FastBill selbst herunterladen (einzeln oder, bei Ausgaben, über den Sammeldownload unter Finanzen › Ausgaben) und in Schritt 4 je Jahr als „Sonstiges“ ablegen. Einem einzelnen Eintrag ordnet Haben diese Dateien nicht zu.
 
 ### Wie FastBill-Belege abgebildet werden
 
@@ -73,6 +73,7 @@ Ohne Skript in der Konsole: „Rest ohne Beleg übernehmen“, dann die Belege i
 | Gutschrift (`TYPE` credit) | Gutschrift, immer negativ |
 | Stornierte Rechnung (`STATE` canceled) und ihre Stornogutschrift | beide storniert und ausgeglichen; sie heben sich im Umsatz auf |
 | Ausgabe | Eingangsrechnung; mit negativem Betrag Gutschrift des Lieferanten |
+| Einnahme (`TYPE` incoming_credit) | Einnahmebeleg; mit negativem Betrag Einnahme-Gutschrift. Entwürfe bleiben draußen. Eine andere Art und eine stornierte Einnahme übernimmt Haben nicht, sondern nennt sie in der Liste der fehlgeschlagenen Belege: Für eine stornierte Einnahme liefert FastBill keine Gegenbuchung, sie zählte sonst voll. Gleiche sie mit FastBill ab und lege ihren Beleg in Schritt 4 als „Sonstiges“ ab |
 
 Eine Gutschrift gilt nur als Storno, wenn sie auf eine stornierte Rechnung verweist (`REFERENCED_INVOICE_ID`) und deren Betrag voll aufhebt. Eine Teilgutschrift bleibt eine Gutschrift mit eigenem Zahlungsstand.
 
@@ -159,9 +160,9 @@ Haben spricht standardmäßig mit `https://my.fastbill.com/api/1.0/api.php`. Mit
 ## Vor der Kündigung
 
 - [ ] Abruf ist fertig, die Liste der fehlgeschlagenen Belege ist leer
-- [ ] Keine Ausgabe wartet mehr auf ihren Beleg aus dem Browser-Skript
+- [ ] Kein Beleg aus FastBill wartet mehr auf seine Datei aus dem Browser-Skript
 - [ ] Angebote im Archiv, fehlende PDFs von Hand nachgereicht
-- [ ] Jeder Beleg hat eine Datei (Abgleich je Jahr); Ausgaben ohne Beleg in FastBill geklärt
+- [ ] Jeder Beleg hat eine Datei (Abgleich je Jahr); Ausgaben und Einnahmen ohne Beleg in FastBill geklärt
 - [ ] Für jedes Geschäftsjahr: DATEV-Buchungsstapel, DATEV-XML-Export, ELSTER-Protokolle und Kontoauszüge abgelegt, jeweils mit Jahr
 - [ ] Einnahmen, Ausgaben, Umsatz- und Vorsteuer je Jahr mit FastBill verglichen
 - [ ] Umsatzsteuer je Monat mit den übermittelten Voranmeldungen verglichen

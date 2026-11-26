@@ -4,18 +4,18 @@ import { db, schema } from "../../db/index.ts";
 import type { ReconciliationCheck } from "./umzug-abgleich.ts";
 
 /*
- * FastBill im Abgleich je Jahr (reconciliation in lexoffice.ts): Steuerart aus VAT_CASE und die offenen Punkte für Ausgaben,
- * die noch auf ihren Beleg aus dem Browser-Skript warten, und für Rechnungen mit Teilstorno.
+ * FastBill im Abgleich je Jahr (reconciliation in lexoffice.ts): Steuerart aus VAT_CASE und die offenen Punkte für Ausgaben
+ * und Einnahmen, die noch auf ihren Beleg aus dem Browser-Skript warten, und für Rechnungen mit Teilstorno.
  */
 
-/** Ausgaben aus FastBill, die noch auf ihren Beleg warten, liegen nicht im Archiv: Solange es sie gibt, ist das Jahr nicht vollständig */
+/** Ausgaben und Einnahmen aus FastBill, die noch auf ihren Beleg warten, liegen nicht im Archiv: Solange es sie gibt, ist das Jahr nicht vollständig */
 export function fastbillWaitingChecks(waiting: number | undefined): ReconciliationCheck[] {
   if (!waiting) return [];
   return [
     {
       ok: false,
-      label: "Keine Ausgabe wartet auf ihren Beleg",
-      detail: `${waiting} ${waiting === 1 ? "Ausgabe aus FastBill wartet" : "Ausgaben aus FastBill warten"}`,
+      label: "Kein Beleg aus FastBill wartet auf seine Datei",
+      detail: `${waiting} ${waiting === 1 ? "Beleg aus FastBill wartet" : "Belege aus FastBill warten"}`,
     },
   ];
 }

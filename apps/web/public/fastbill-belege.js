@@ -1,9 +1,9 @@
 /*
- * Ausgabenbelege aus FastBill für den Umzug nach Haben, die die API nicht herausgibt.
+ * Belege von Ausgaben und Einnahmen aus FastBill für den Umzug nach Haben, die die API nicht herausgibt.
  *
- * Bei manchen Ausgaben liefert DOCUMENT_URL die Datei nur, wenn man im Browser bei FastBill angemeldet ist; der Abruf in
- * Haben bekommt dort eine leere Antwort und merkt die Ausgabe als „wartet auf Beleg“ vor. Haben setzt beim Kopieren
- * unten die Liste dieser Ausgaben ein (ID und Download-Adresse aus der API).
+ * Bei manchen Ausgaben und Einnahmen liefert DOCUMENT_URL die Datei nur, wenn man im Browser bei FastBill angemeldet ist;
+ * der Abruf in Haben bekommt dort eine leere Antwort und merkt den Eintrag als „wartet auf Beleg“ vor. Haben setzt beim
+ * Kopieren unten die Liste dieser Einträge ein (Kennung und Download-Adresse aus der API).
  *
  * Ausführen: In my.fastbill.com anmelden, die Entwicklerwerkzeuge öffnen (F12), in der Konsole dieses Skript einfügen und
  * mit Enter starten. Es lädt mit deiner Anmeldung genau diese Dateien und gibt sie als ZIP-Dateien zurück (je höchstens
@@ -11,7 +11,7 @@
  *
  * Inhalt jeder ZIP-Datei:
  *   manifest.json             Format, Version, Teil, Zeitpunkt, IDs ohne Datei
- *   belege/<INVOICE_ID>.<ext> die Datei der Ausgabe, benannt nach ihrer ID in FastBill
+ *   belege/<Kennung>.<ext> die Datei, benannt nach der INVOICE_ID in FastBill, bei Einnahmen mit „einnahme-“ davor
  */
 {
   // Ein Block statt einer Funktion um alles: Die Hilfen bleiben lokal, auch wenn man das Skript zweimal einfügt, und keine
@@ -50,7 +50,7 @@
     }
   };
 
-  /** Datei einer Ausgabe oder null, wenn FastBill keine liefert (leere oder HTML-Antwort, etwa abgemeldet) */
+  /** Datei eines Eintrags oder null, wenn FastBill keine liefert (leere oder HTML-Antwort, etwa abgemeldet) */
   const receipt = async (entry) => {
     const url = new URL(entry.url);
     if (url.host !== location.host) return null;
@@ -220,7 +220,7 @@
     log(`Fertig: ${found} Belege in ${parts} ZIP-Datei(en).`);
     if (missing.length) {
       log(
-        `${missing.length} ohne Datei: FastBill liefert dort auch angemeldet nichts. Gibt es in FastBill wirklich keinen Beleg, übernimm diese Ausgaben in Haben „ohne Beleg“.`,
+        `${missing.length} ohne Datei: FastBill liefert dort auch angemeldet nichts. Gibt es in FastBill wirklich keinen Beleg, übernimm diese Einträge in Haben „ohne Beleg“.`,
       );
     }
   })(/*HABEN_LISTE*/ []);

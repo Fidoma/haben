@@ -13,6 +13,7 @@ export {
   mapFbInvoice,
 } from "./map.ts";
 export { type FbMappedEstimate, mapFbEstimate } from "./angebote.ts";
+export { fbRevenueKind, mapFbRevenue } from "./einnahmen.ts";
 export { fbArticlesCsv } from "./artikel.ts";
 export { type FbRecurringLine, type FbRecurringMapped, type FbRecurringTemplate, mapFbRecurring } from "./vorlagen.ts";
 export { type FbMappedTime, type FbTimeMapped, isFbTimeBilled, mapFbTime } from "./zeiten.ts";

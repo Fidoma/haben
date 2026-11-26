@@ -174,6 +174,11 @@ export class FastbillClient {
     return this.#pages("expense.get", "EXPENSES", filter, fbExpenseSchema, "INVOICE_ID");
   }
 
+  /** Einnahmen, die nicht als Rechnung geschrieben sind (#1938); invoice.get liefert sie nicht */
+  revenues(): AsyncGenerator<FbInvoice> {
+    return this.#pages("revenue.get", "REVENUES", {}, fbInvoiceSchema, "INVOICE_ID");
+  }
+
   /** Vorlagen wiederkehrender Rechnungen; ohne LIMIT liefert FastBill nur 10 */
   recurring(): AsyncGenerator<FbRecurring> {
     return this.#pages("recurring.get", "INVOICES", {}, fbRecurringSchema, "INVOICE_ID");

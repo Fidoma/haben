@@ -3449,7 +3449,7 @@ export const fastbillConnection = pgTable(
 export const fastbillReceipts = pgTable("fastbill_receipts", {
   /** Wie jede Tabelle mit Dateiverweis eine id, über die die Vollprüfung der Dateien den Datensatz nennt */
   id: uuid("id").primaryKey().defaultRandom(),
-  /** INVOICE_ID der Ausgabe in FastBill */
+  /** INVOICE_ID der Ausgabe in FastBill; bei einer Einnahme mit „einnahme-“ davor (fastbillReceiptKey, #1938) */
   expenseId: text("expense_id").notNull().unique(),
   status: text("status", { enum: ["wartet", "datei", "ohne_beleg"] }).notNull(),
   number: text("number").notNull().default(""),
