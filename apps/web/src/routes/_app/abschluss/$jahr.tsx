@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { BilanzGuv } from "../../../components/BilanzGuv.tsx";
 import { Ebilanz } from "../../../components/Ebilanz.tsx";
+import { EricHinweis } from "../../../components/EricHinweis.tsx";
 import { Hinterlegung } from "../../../components/Hinterlegung.tsx";
 import { Icon } from "../../../components/Icon.tsx";
 import { KapgSteuern } from "../../../components/KapgSteuern.tsx";
@@ -159,6 +160,7 @@ function Report({ data }: { data: Kapitalgesellschaft }) {
         <NoticeBanner notice={notice} />
       </section>
 
+      {data.ebilanz && data.elster.mode === "simuliert" && <EricHinweis />}
       {data.ebilanz && <Ebilanz year={data.year} ebilanz={data.ebilanz} setup={data.elster} closed={Boolean(data.status)} />}
 
       {data.hinterlegung && <Hinterlegung year={data.year} stand={data.hinterlegung} closed={Boolean(data.status)} />}

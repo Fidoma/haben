@@ -453,6 +453,7 @@ Ist weder `ERIC_HOME` gesetzt noch ERiC unter Einstellungen › ELSTER › ERiC 
 - Voranmeldung
 - Zusammenfassende Meldung (mit „Bundeszentralamt für Steuern“ statt „Finanzamt“)
 - Jahreserklärung
+- Jahresabschluss (E-Bilanz, nur bei GmbH und UG)
 - Lohnsteuer-Anmeldung
 - Lohnsteuerbescheinigung (nur in Jahren, die ERiC sendet)
 - Ausschüttungen (Kapitalertragsteuer-Anmeldung, nur bei GmbH und UG)
