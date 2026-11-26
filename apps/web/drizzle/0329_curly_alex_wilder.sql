@@ -1,0 +1,1 @@
+ALTER TABLE "assets" ADD COLUMN "special_depreciation" jsonb DEFAULT '[]'::jsonb NOT NULL;

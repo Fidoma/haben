@@ -105,6 +105,7 @@ function bausAfa(f: EuerFigures): XmlNode {
     "AfA",
     [
       [kz("afaBeweglich"), amount(f.afaBeweglich)],
+      [kz("sonderAfa"), amount(f.sonderAfa)],
       sumNode("Wirtschaftsgut_geringwertig", kz("gwg"), f.gwg),
       [
         "Weitere_Angabe",

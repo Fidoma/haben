@@ -2304,6 +2304,20 @@
       "when": 1795692060163,
       "tag": "0328_angebotsreferenz",
       "breakpoints": true
+    },
+    {
+      "idx": 329,
+      "version": "7",
+      "when": 1795695952125,
+      "tag": "0329_curly_alex_wilder",
+      "breakpoints": true
+    },
+    {
+      "idx": 330,
+      "version": "7",
+      "when": 1795695970088,
+      "tag": "0330_sonder_afa_trigger",
+      "breakpoints": true
     }
   ]
 }

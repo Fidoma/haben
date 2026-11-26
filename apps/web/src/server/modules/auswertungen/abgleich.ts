@@ -280,6 +280,13 @@ export async function euerAbgleich(year: number, q: Db | Tx = db): Promise<Abgle
     // Gegenprobe (#542): der Gewinn nach der DATEV-Formel aus Erfolgs- und Steuerkonten, Forderungen und Verbindlichkeiten;
     // erst, wenn AfA und Privatnutzung gebucht sind, denn die EÜR rechnet sie aus dem Anlagenverzeichnis
     if (ausJournal) {
+      zeilen.push(
+        row(
+          "Sonder-AfA",
+          saldo(sums, (kr) => [ASSET_ACCOUNTS[kr].sonderAfa, ASSET_ACCOUNTS[kr].sonderAfaKfz], anlage),
+          afa.sonderAfa ?? 0,
+        ),
+      );
       const nichtAbziehbar = ausJournal.summe.bewirtungNichtAbziehbar + ausJournal.summe.gewerbesteuerNichtAbziehbar;
       zeilen.push(
         row(

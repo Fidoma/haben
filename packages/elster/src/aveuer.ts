@@ -17,6 +17,7 @@ export interface AveuerAnlage {
   /** Buchwert zu Beginn des Jahres; bei Anschaffung im Jahr die Anschaffungskosten */
   buchwertBeginn: Cents;
   afa: Cents;
+  sonderAfa?: Cents;
   /** Restbuchwert beim Ausscheiden */
   abgang: Cents;
   buchwertEnde: Cents;
@@ -24,29 +25,56 @@ export interface AveuerAnlage {
   elektro?: boolean;
 }
 
-/** Feldkennungen je Gruppe: Einzelangaben und Summe (AVEÜR 2025) */
+/** Feldkennungen je Gruppe nach E77-2023 bis E77-2026 (ERiC 45.1.5.0) */
 const AVEUER_GRUPPEN: Record<
   AveuerGruppe,
   {
     kontext: string;
-    einz: { bez: string; datum: string; ak: string; bwBeginn: string; afa: string; abgang: string; bwEnde: string };
-    sum: { ak: string; bwBeginn: string; afa: string; abgang: string; bwEnde: string };
+    einz: { bez: string; datum: string; ak: string; bwBeginn: string; sonderAfa: string; afa: string; abgang: string; bwEnde: string };
+    sum: { ak: string; bwBeginn: string; sonderAfa: string; afa: string; abgang: string; bwEnde: string };
   }
 > = {
   kfz: {
     kontext: "KFZ",
-    einz: { bez: "E6007311", datum: "E6007326", ak: "E6007312", bwBeginn: "E6007314", afa: "E6007320", abgang: "E6007322", bwEnde: "E6007324" },
-    sum: { ak: "E6007313", bwBeginn: "E6007315", afa: "E6007321", abgang: "E6007323", bwEnde: "E6007325" },
+    einz: {
+      bez: "E6007311",
+      datum: "E6007326",
+      ak: "E6007312",
+      bwBeginn: "E6007314",
+      sonderAfa: "E6007318",
+      afa: "E6007320",
+      abgang: "E6007322",
+      bwEnde: "E6007324",
+    },
+    sum: { ak: "E6007313", bwBeginn: "E6007315", sonderAfa: "E6007319", afa: "E6007321", abgang: "E6007323", bwEnde: "E6007325" },
   },
   buero: {
     kontext: "Buero",
-    einz: { bez: "E6007331", datum: "E6007346", ak: "E6007332", bwBeginn: "E6007334", afa: "E6007340", abgang: "E6007342", bwEnde: "E6007344" },
-    sum: { ak: "E6007333", bwBeginn: "E6007335", afa: "E6007341", abgang: "E6007343", bwEnde: "E6007345" },
+    einz: {
+      bez: "E6007331",
+      datum: "E6007346",
+      ak: "E6007332",
+      bwBeginn: "E6007334",
+      sonderAfa: "E6007338",
+      afa: "E6007340",
+      abgang: "E6007342",
+      bwEnde: "E6007344",
+    },
+    sum: { ak: "E6007333", bwBeginn: "E6007335", sonderAfa: "E6007339", afa: "E6007341", abgang: "E6007343", bwEnde: "E6007345" },
   },
   andere: {
     kontext: "Andere",
-    einz: { bez: "E6007351", datum: "E6007366", ak: "E6007352", bwBeginn: "E6007354", afa: "E6007360", abgang: "E6007362", bwEnde: "E6007364" },
-    sum: { ak: "E6007353", bwBeginn: "E6007355", afa: "E6007361", abgang: "E6007363", bwEnde: "E6007365" },
+    einz: {
+      bez: "E6007351",
+      datum: "E6007366",
+      ak: "E6007352",
+      bwBeginn: "E6007354",
+      sonderAfa: "E6007358",
+      afa: "E6007360",
+      abgang: "E6007362",
+      bwEnde: "E6007364",
+    },
+    sum: { ak: "E6007353", bwBeginn: "E6007355", sonderAfa: "E6007359", afa: "E6007361", abgang: "E6007363", bwEnde: "E6007365" },
   },
 };
 
@@ -58,7 +86,8 @@ const SAMMELPOSTEN_VORJAHRE = [
   { kontext: "Sammelposten_VZm4", ak: "E6017404", bwBeginn: "E6017405", afa: "E6017406", bwEnde: undefined },
 ] as const;
 
-const sum = (list: AveuerAnlage[], key: "anschaffungskosten" | "buchwertBeginn" | "afa" | "abgang" | "buchwertEnde") => list.reduce((s, a) => s + a[key], 0);
+const sum = (list: AveuerAnlage[], key: "anschaffungskosten" | "buchwertBeginn" | "afa" | "sonderAfa" | "abgang" | "buchwertEnde") =>
+  list.reduce((s, a) => s + (a[key] ?? 0), 0);
 
 /** Bewegliche Wirtschaftsgüter einer Gruppe, einzeln und als Summe; null ohne Anlagen der Gruppe */
 function beweglicheGruppe(gruppe: "kfz" | "buero" | "andere", anlagen: AveuerAnlage[], year: number): XmlNode | null {
@@ -76,6 +105,7 @@ function beweglicheGruppe(gruppe: "kfz" | "buero" | "andere", anlagen: AveuerAnl
             [einz.datum, germanDate(a.anschaffung)],
             [einz.ak, elsterDecimal(a.anschaffungskosten)],
             [einz.bwBeginn, elsterDecimal(a.buchwertBeginn)],
+            [einz.sonderAfa, amount(a.sonderAfa)],
             [einz.afa, amount(a.afa)],
             [einz.abgang, amount(a.abgang)],
             [einz.bwEnde, elsterDecimal(a.buchwertEnde)],
@@ -89,6 +119,7 @@ function beweglicheGruppe(gruppe: "kfz" | "buero" | "andere", anlagen: AveuerAnl
         [
           [s.ak, elsterDecimal(sum(list, "anschaffungskosten"))],
           [s.bwBeginn, amount(sum(list, "buchwertBeginn"))],
+          [s.sonderAfa, amount(sum(list, "sonderAfa"))],
           [s.afa, amount(sum(list, "afa"))],
           [s.abgang, amount(sum(list, "abgang"))],
           [s.bwEnde, elsterDecimal(sum(list, "buchwertEnde"))],
@@ -148,10 +179,9 @@ function sammelposten(year: number, sammel: AveuerAnlage[]): XmlNode[] {
 /** Anlage AVEÜR; null ohne Anlagen */
 export function aveuer(year: number, anlagen: AveuerAnlage[]): XmlNode | null {
   const beweglich = (["kfz", "buero", "andere"] as const).map((gruppe) => beweglicheGruppe(gruppe, anlagen, year));
-  const afaBeweglich = sum(
-    anlagen.filter((a) => a.gruppe !== "sammelposten"),
-    "afa",
-  );
+  const beweglicheAnlagen = anlagen.filter((a) => a.gruppe !== "sammelposten");
+  const afaBeweglich = sum(beweglicheAnlagen, "afa");
+  const sonderAfa = sum(beweglicheAnlagen, "sonderAfa");
 
   const sammel = anlagen.filter((a) => a.gruppe === "sammelposten");
   const sammelNodes = sammelposten(year, sammel);
@@ -161,7 +191,19 @@ export function aveuer(year: number, anlagen: AveuerAnlage[]): XmlNode | null {
   return [
     "AVEUER",
     [
-      ["Bewegliche_WG", [...beweglich, ["GesamtSum", [["E6007372", amount(afaBeweglich)]]]]],
+      [
+        "Bewegliche_WG",
+        [
+          ...beweglich,
+          [
+            "GesamtSum",
+            [
+              ["E6007371", amount(sonderAfa)],
+              ["E6007372", amount(afaBeweglich)],
+            ],
+          ],
+        ],
+      ],
       ...sammelNodes,
       sammelNodes.length > 0 ? ["GesamtSum", [["E6017399", amount(sammelAfa)]]] : null,
     ],

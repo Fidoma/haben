@@ -101,6 +101,7 @@ export function euerZuordnung(kontenrahmen: Kontenrahmen, account: string, herku
   // Das GWG-Konto ist bei einer Anlage Anlagevermögen, bei einem Beleg die Kategorie „Hardware“ (unten)
   if ((herkunft === "asset" || herkunft === "anlage") && account === anlage.gwg) return null;
   if (account === anlage.afa || account === anlage.afaKfz) return "afa";
+  if (account === anlage.sonderAfa || account === anlage.sonderAfaKfz) return "sonderAfa";
   if (account === anlage.afaGwg) return "gwg";
   if (account === anlage.afaSammelposten) return "sammelposten";
   if (account === anlage.restbuchwert) return "restbuchwert";

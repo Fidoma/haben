@@ -309,6 +309,7 @@ function euerFigures(euer: EuerResult): EuerFigures {
         ustEntnahmen: "vereinnahmteUst",
         erstatteteUst: "erstatteteUst",
         afa: "afaBeweglich",
+        sonderAfa: "sonderAfa",
         gwg: "gwg",
         sammelposten: "sammelposten",
         restbuchwert: "restbuchwert",
@@ -420,11 +421,13 @@ export async function euerYear(year: number): Promise<EuerYear> {
       // Zugänge des Jahres stehen wie bei EasyCash&Tax im Buchwert zu Beginn
       buchwertBeginn: a.year!.opening + a.year!.addition,
       afa: a.year!.depreciation,
+      sonderAfa: a.year!.specialDepreciation,
       abgang: a.year!.disposal,
       buchwertEnde: a.year!.closing,
       // Antrieb ist bei erfasster Privatnutzung und bei der AfA nach § 7 Abs. 2a EStG bekannt; sonst gilt das Kfz als Verbrenner
       ...(a.kind === "kfz" ? { elektro: a.method === "elektro" || (a.privateUse ? a.privateUse.drive !== "verbrenner" : false) } : {}),
     }));
+
   const pendingAssets = assets.filter((a) => a.pending).length;
   return {
     year,

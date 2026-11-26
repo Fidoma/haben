@@ -788,7 +788,8 @@ a.table-row:hover { background: var(--ground); color: var(--ink); }
 .own-account-rename input { flex: 1 1 140px; min-width: 0; }
 .contact-cols { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.2fr) minmax(0, 1fr) 200px; }
 .table-row .row-title { font-weight: 500; color: var(--accent-ink); }
-.plan-cols { grid-template-columns: 60px repeat(5, minmax(0, 1fr)) 80px; }
+.card > .table-scroll { overflow-x: auto; }
+.plan-cols { grid-template-columns: 60px repeat(5, minmax(100px, 1fr)) 80px; }
 .dunning-cols { grid-template-columns: 100px minmax(0, 1.4fr) 110px 120px minmax(0, 1.4fr) 170px; }
 .recurring-cols { grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr) 120px 110px 120px; }
 .recurring-history-cols { grid-template-columns: 110px minmax(0, 1fr) 120px; }

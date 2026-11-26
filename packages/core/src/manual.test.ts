@@ -51,6 +51,8 @@ describe("manuelle Buchung", () => {
     ["SKR03", "8400", "Rechnungen (Erlöse)"],
     ["SKR03", "0320", "Anlagen"],
     ["SKR03", "4830", "Anlagen"],
+    ["SKR03", "4851", "Anlagen"],
+    ["SKR03", "4852", "Anlagen"],
     ["SKR04", "1800", "Bank"],
     ["SKR04", "1600", "Kassenbuch"],
     ["SKR04", "1200", "Rechnungen (offene Posten)"],
@@ -59,6 +61,8 @@ describe("manuelle Buchung", () => {
     ["SKR04", "1406", "Umsatzsteuer"],
     ["SKR04", "4400", "Rechnungen (Erlöse)"],
     ["SKR04", "6220", "Anlagen"],
+    ["SKR04", "6241", "Anlagen"],
+    ["SKR04", "6242", "Anlagen"],
     // Entstandene Einfuhrumsatzsteuer: Kz 62 der Voranmeldung kommt aus den Belegen, eine Umbuchung daran vorbei bräche den Abgleich
     ["SKR03", "1588", "Umsatzsteuer"],
     ["SKR04", "1433", "Umsatzsteuer"],

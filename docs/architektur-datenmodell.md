@@ -125,7 +125,7 @@ Alle Tabellen stehen in `apps/web/src/server/db/schema.ts`. Beträge sind ganze 
 | `annual_submissions` | Prüfungen und Übermittlungen der Jahreserklärungen (Formulare `ust`, `euer`, `est`, `kst`, `gewst`) und der E-Bilanz (`ebilanz`) mit Werten, XML und Protokoll-PDF; höchstens eine erfolgreiche Echtübermittlung je Erklärung und Jahr | nur anhängen, Audit ohne PDF und XML |
 | `income_tax_inputs` | Angaben zur Einkommensteuererklärung je Jahr (Vorsorge, Sonderausgaben, Kinder, KAP) | änderbar, Audit |
 | `pauschalen` | Pauschalen ohne Beleg (Homeoffice, Fahrt, Verpflegung, Wege zur Betriebsstätte) mit Angaben, Betrag und Buchung; Storno als Gegenzeile | nur anhängen, Audit |
-| `assets` | Anlagenverzeichnis: Art, Abschreibung, Anlagekonto, Anschaffung, Nutzungsdauer, degressiver Satz, Wechsel zur linearen AfA, Erinnerungswert, Übernahme, Abgang | Grundlagen fest nach der ersten Buchung (Wechsel zur linearen AfA nur in ein noch nicht gebuchtes Jahr), Audit |
+| `assets` | Anlagenverzeichnis: Art, Abschreibung, Anlagekonto, Anschaffung, Nutzungsdauer, degressiver Satz, Wechsel zur linearen AfA, Erinnerungswert, Übernahme, Sonder-AfA, Abgang | Grundlagen fest nach der ersten Buchung (Wechsel zur linearen AfA und Sonder-AfA nur für noch nicht gebuchte Jahre), Audit |
 | `asset_depreciations` | Gebuchte AfA je Anlage und Jahr mit Verweis auf die Buchung | nur anhängen, Audit |
 
 ## Lohn

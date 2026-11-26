@@ -94,6 +94,7 @@ export function EuerSection({ data }: { data: Data }) {
                     <th className="num">Gruppe</th>
                     <th className="num">Buchwert Beginn</th>
                     <th className="num">AfA</th>
+                    <th className="num">Sonder-AfA</th>
                     <th className="num">Abgang</th>
                     <th className="num">Buchwert Ende</th>
                   </tr>
@@ -112,6 +113,7 @@ export function EuerSection({ data }: { data: Data }) {
                       </td>
                       <td className="num">{formatEuro(a.buchwertBeginn)}</td>
                       <td className="num">{formatEuro(a.afa)}</td>
+                      <td className="num">{formatEuro(a.sonderAfa ?? 0)}</td>
                       <td className="num">{a.abgang ? formatEuro(a.abgang) : "–"}</td>
                       <td className="num">{formatEuro(a.buchwertEnde)}</td>
                     </tr>

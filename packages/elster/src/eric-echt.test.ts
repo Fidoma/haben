@@ -127,8 +127,9 @@ const anlagen = (year: number): AveuerAnlage[] => [
     anschaffungskosten: 120_000,
     buchwertBeginn: 120_000,
     afa: 9_000,
+    sonderAfa: 20_000,
     abgang: 0,
-    buchwertEnde: 111_000,
+    buchwertEnde: 91_000,
   },
   {
     gruppe: "andere",
@@ -183,6 +184,7 @@ const anlagen = (year: number): AveuerAnlage[] => [
 ];
 /** Alle Felder der EÜR, die Haben füllt; AfA, Sammelposten und Restbuchwert passend zu den Anlagen oben */
 const alleEuerFelder: EuerFigures = {
+  sonderAfa: 20_000,
   // Zeilen 39 und 48 (#312)
   miete: 1_200_000,
   erhaltung: 30_000,

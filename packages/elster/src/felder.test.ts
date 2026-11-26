@@ -124,3 +124,38 @@ describe("Personen und Voranmeldung", () => {
     ]);
   });
 });
+
+describe("Sonder-AfA in EÜR und AVEÜR", () => {
+  it.each([2023, 2024, 2025, 2026])("meldet die Einzelbeträge und Summen getrennt (%i)", (year) => {
+    const anlagen: AveuerAnlage[] = (["kfz", "buero", "andere"] as const).map((gruppe, index) => ({
+      gruppe,
+      bezeichnung: gruppe,
+      anschaffung: `${year}-01-01`,
+      anschaffungskosten: 100_000,
+      buchwertBeginn: 100_000,
+      afa: 10_000,
+      sonderAfa: (index + 1) * 5_000,
+      abgang: 0,
+      buchwertEnde: 90_000 - (index + 1) * 5_000,
+    }));
+    const xml = buildEuerXml({
+      ...base,
+      year,
+      allgemein: { artDesBetriebs: "Softwareentwicklung", einkunftsart: "selbstaendig" },
+      figures: { afaBeweglich: 30_000, sonderAfa: 30_000 },
+      anlagen,
+    });
+    expect(xml).toMatch(/<E6002101>300,00<\/E6002101>\s*<E6002201>300,00<\/E6002201>/);
+    expect(xml).toMatch(/<E6007371>300,00<\/E6007371>\s*<E6007372>300,00<\/E6007372>/);
+    for (const [id, value] of [
+      ["7318", "50,00"],
+      ["7319", "50,00"],
+      ["7338", "100,00"],
+      ["7339", "100,00"],
+      ["7358", "150,00"],
+      ["7359", "150,00"],
+    ]) {
+      expect(xml).toContain(`<E600${id}>${value}</E600${id}>`);
+    }
+  });
+});

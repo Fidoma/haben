@@ -137,6 +137,7 @@ export type EuerLineKey =
   | "schuldzinsenAnlage"
   | "schuldzinsen"
   | "afa"
+  | "sonderAfa"
   | "gwg"
   | "sammelposten"
   | "restbuchwert"
@@ -181,6 +182,7 @@ export const EUER_LABELS = {
   kursgewinne: "Erträge aus Kursdifferenzen",
   kursverluste: "Aufwendungen aus Kursdifferenzen",
   afa: "AfA auf bewegliche Wirtschaftsgüter",
+  sonderAfa: "Sonderabschreibungen nach § 7g EStG",
   gwg: "Sofortabschreibung geringwertiger Wirtschaftsgüter",
   sammelposten: "Auflösung Sammelposten",
   restbuchwert: "Restbuchwert ausgeschiedener Anlagegüter",
@@ -195,6 +197,7 @@ export const EUER_LABELS = {
 /** Abschreibungen eines Jahres aus dem Anlagenverzeichnis */
 export interface EuerDepreciation {
   afa: Cents;
+  sonderAfa?: Cents;
   gwg: Cents;
   sammelposten: Cents;
   restbuchwert: Cents;
@@ -264,8 +267,8 @@ export function euerErgebnis(
         c === "hardware" ? "Als geringwertige Wirtschaftsgüter sofort abgezogen" : c === "bewirtung" ? "Abziehbarer Teil (70 %)" : undefined,
       ),
     );
-  if (depreciation) for (const key of ["afa", "gwg", "sammelposten", "restbuchwert"] as const) add(key, depreciation[key]);
-  const depreciationLines = (["afa", "gwg", "sammelposten", "restbuchwert"] as const)
+  if (depreciation) for (const key of ["afa", "sonderAfa", "gwg", "sammelposten", "restbuchwert"] as const) add(key, depreciation[key] ?? 0);
+  const depreciationLines = (["afa", "sonderAfa", "gwg", "sammelposten", "restbuchwert"] as const)
     .filter((key) => (sums.get(key) ?? 0) !== 0)
     .map((key) => line(key, EUER_LABELS[key]));
   const pauschalen = (Object.keys(PAUSCHALE_LABEL) as PauschaleArt[])

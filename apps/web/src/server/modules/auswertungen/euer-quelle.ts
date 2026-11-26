@@ -11,7 +11,7 @@ import { euerAusJournal } from "./euer-journal.ts";
  */
 
 /** Zeilen aus den Buchungen des Anlagenverzeichnisses */
-const ANLAGE: EuerLineKey[] = ["afa", "gwg", "sammelposten", "restbuchwert", "privateKfz", "ustEntnahmen"];
+const ANLAGE: EuerLineKey[] = ["afa", "sonderAfa", "gwg", "sammelposten", "restbuchwert", "privateKfz", "ustEntnahmen"];
 const EINNAHMEN_IM_MONAT = new Set<EuerLineKey>(["einnahmenKleinunternehmer", "einnahmenSteuerpflichtig", "einnahmenSteuerfrei", "kursgewinne"]);
 const AUSGABEN_IM_MONAT = (key: EuerLineKey) =>
   key.startsWith("ausgabe:") ||

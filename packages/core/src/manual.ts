@@ -119,6 +119,8 @@ export function ledgerManagedAccounts(kontenrahmen: Kontenrahmen): Map<string, s
       assets.sammelposten,
       assets.afa,
       assets.afaKfz,
+      assets.sonderAfa,
+      assets.sonderAfaKfz,
       assets.afaGwg,
       assets.afaSammelposten,
       assets.restbuchwert,

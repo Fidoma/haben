@@ -1,4 +1,4 @@
-import { ACCOUNTS, ASSET_ACCOUNTS, depreciationAccount, privateUsePosting, type PostingLine, type ScheduleYear } from "@haben/core";
+import { ACCOUNTS, ASSET_ACCOUNTS, depreciationAccount, isKapitalgesellschaft, privateUsePosting, type PostingLine, type ScheduleYear } from "@haben/core";
 import { asc, eq, inArray } from "drizzle-orm";
 import { withActor } from "../../db/actor.ts";
 import { schema, type Tx } from "../../db/index.ts";
@@ -15,15 +15,15 @@ type Books = Awaited<ReturnType<typeof openBooks>>;
 type YearPlan = ReturnType<typeof yearPlan>;
 
 /** Was im Jahr zu buchen ist; fehlen frühere Jahre, bricht es mit ihrer Liste ab */
-function todoOfYear(assets: Asset[], done: Set<string>, year: number, kleinunternehmer: Awaited<ReturnType<typeof kleinunternehmerInYear>>) {
+function todoOfYear(assets: Asset[], done: Set<string>, year: number, kleinunternehmer: Awaited<ReturnType<typeof kleinunternehmerInYear>>, tax: boolean) {
   const missing: string[] = [];
   const todo: { asset: Asset; plan: YearPlan }[] = [];
   for (const asset of assets) {
     const start = Number((asset.openingDate ?? asset.acquisitionDate).slice(0, 4));
     const earlier: number[] = [];
-    for (let y = start; y < year; y++) if (yearPlan(asset, y).hasWork && !done.has(`${asset.id}|${y}`)) earlier.push(y);
+    for (let y = start; y < year; y++) if (yearPlan(asset, y, undefined, tax).hasWork && !done.has(`${asset.id}|${y}`)) earlier.push(y);
     if (earlier.length > 0) missing.push(`${asset.name} (${earlier.join(", ")})`);
-    const plan = yearPlan(asset, year, kleinunternehmer);
+    const plan = yearPlan(asset, year, kleinunternehmer, tax);
     if (plan.hasWork && !done.has(`${asset.id}|${year}`)) todo.push({ asset, plan });
   }
   if (missing.length > 0) throw new AssetUserError(`Zuerst die AfA früherer Jahre buchen: ${missing.join("; ")}.`);
@@ -54,7 +54,8 @@ async function bookOpening(tx: Tx, books: Books, asset: Asset): Promise<void> {
 
 /** AfA und Abgang eines Jahres als eine Buchung; null, wenn beides 0 ist */
 async function bookDepreciationRow(tx: Tx, books: Books, asset: Asset, row: ScheduleYear, year: number): Promise<string | null> {
-  if (row.depreciation === 0 && row.disposal === 0) return null;
+  const special = row.specialDepreciation ?? 0;
+  if (row.depreciation === 0 && row.disposal === 0 && special === 0) return null;
   const kr = books.kontenrahmen;
   const disposalInYear = asset.disposalDate && Number(asset.disposalDate.slice(0, 4)) === year;
   const lines: PostingLine[] = [];
@@ -63,6 +64,11 @@ async function bookDepreciationRow(tx: Tx, books: Books, asset: Asset, row: Sche
       { account: depreciationAccount(asset.kind, asset.method, kr), debit: row.depreciation, credit: 0, taxCode: null },
       { account: asset.account, debit: 0, credit: row.depreciation, taxCode: null },
     );
+  }
+  if (special > 0) {
+    // DATEV-Dokument 1000182: eigene Konten für § 7g Abs. 5, getrennt nach Kfz.
+    const konto = ASSET_ACCOUNTS[kr][asset.kind === "kfz" ? "sonderAfaKfz" : "sonderAfa"];
+    lines.push({ account: konto, debit: special, credit: 0, taxCode: null }, { account: asset.account, debit: 0, credit: special, taxCode: null });
   }
   if (row.disposal !== 0) {
     lines.push(
@@ -140,7 +146,7 @@ export async function bookDepreciation(actor: string, year: number, today: strin
       : [];
     const done = new Set(rows.map((r) => `${r.assetId}|${r.year}`));
     const kleinunternehmer = await kleinunternehmerInYear(year);
-    const todo = todoOfYear(assets, done, year, kleinunternehmer);
+    const todo = todoOfYear(assets, done, year, kleinunternehmer, !isKapitalgesellschaft(books.rechtsform));
     for (const { asset, plan } of todo) await bookAssetYear(tx, books, asset, plan, year);
     return { booked: todo.length };
   });

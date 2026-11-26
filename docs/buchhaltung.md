@@ -408,7 +408,7 @@ Dasselbe Journal steht im [Jahresexport](auswertungen.md#jahresexport) als `buch
 
 ## Was Haben nicht bucht
 
-- Gebäude, Sonderabschreibungen nach § 7g EStG und Investitionsabzugsbetrag
+- Gebäude und Investitionsabzugsbetrag
 - Fahrtenbuch und Wege zwischen Wohnung und Betriebsstätte mit einem Fahrzeug im Betriebsvermögen (mit dem Privatfahrzeug gibt es die [Entfernungspauschale](pauschalen.md#wege-zwischen-wohnung-und-betriebsstätte)); Sachentnahmen nur als [freie Buchung](#manuelle-und-freie-buchungen), nicht als Kleinunternehmer
 - Dreiecksgeschäfte, Konsignationslager und innergemeinschaftliches Verbringen; Einfuhrumsatzsteuer nur aus dem Bescheid des Zolls als Beleg ([Belege](belege-ausland.md#einfuhrumsatzsteuer)); innergemeinschaftliche Lieferungen und Erwerbe nur mit den Grenzen unter [Rechnungen](rechnungen.md#grenzen) und [Belege](belege.md#grenzen); § 13b als Leistungsempfänger nur für sonstige Leistungen ausländischer Unternehmer
 - Lohn nur aus der [Lohnabrechnung](lohn.md#buchung), mit deren Grenzen (keine Sachbezüge, kein Zuschuss zur privaten Krankenversicherung, keine Beiträge zur Berufsgenossenschaft); Fremdwährung nur für Belege und Rechnungen (siehe [Belege](belege-ausland.md#fremdwährung) und [Rechnungen](rechnungen.md#rechnungen-in-fremdwährung)), nicht für Bank- und Verrechnungskonten

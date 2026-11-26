@@ -1,12 +1,6 @@
-import {
-  DEGRESSIVE_PERIODS_TEXT,
-  ELEKTRO_STAFFEL,
-  elektroCumulative,
-  formatDegressiveRate,
-  isElektroDate,
-  MEMO_VALUE,
-  maxDegressiveRate,
-} from "./afa-methoden.ts";
+import { AssetError, linearSpecialSchedule, specialDepreciationIssues, type SpecialDepreciationAmount } from "./afa-sonder.ts";
+import { DEGRESSIVE_PERIODS_TEXT, formatDegressiveRate, isElektroDate, MEMO_VALUE, maxDegressiveRate } from "./afa-methoden.ts";
+import { monthIndex, planEnds, stepSchedule } from "./afa-stufenplan.ts";
 import type { BasisPoints, Cents } from "./money.ts";
 import type { Kontenrahmen } from "./posting.ts";
 
@@ -67,6 +61,8 @@ export const ASSET_ACCOUNTS = {
     sammelposten: "0485",
     afa: "4830",
     afaKfz: "4832",
+    sonderAfa: "4851",
+    sonderAfaKfz: "4852",
     afaGwg: "4855",
     afaSammelposten: "4862",
     restbuchwert: "2310",
@@ -78,6 +74,8 @@ export const ASSET_ACCOUNTS = {
     sammelposten: "0675",
     afa: "6220",
     afaKfz: "6222",
+    sonderAfa: "6241",
+    sonderAfaKfz: "6242",
     afaGwg: "6260",
     afaSammelposten: "6264",
     restbuchwert: "6895",
@@ -95,6 +93,8 @@ export const ASSET_ACCOUNT_NAMES: Record<Kontenrahmen, Record<string, string>> =
     "2310": "Anlagenabgänge Sachanlagen (Restbuchwert)",
     "4830": "Abschreibungen auf Sachanlagen",
     "4832": "Abschreibungen auf Kfz",
+    "4851": "Sonderabschreibungen nach § 7g EStG",
+    "4852": "Sonderabschreibungen auf Kfz nach § 7g EStG",
     "4855": "Sofortabschreibung geringwertiger Wirtschaftsgüter",
     "4862": "Abschreibungen auf den Sammelposten",
   },
@@ -107,6 +107,8 @@ export const ASSET_ACCOUNT_NAMES: Record<Kontenrahmen, Record<string, string>> =
     "0690": "Sonstige Betriebs- und Geschäftsausstattung",
     "6220": "Abschreibungen auf Sachanlagen",
     "6222": "Abschreibungen auf Kfz",
+    "6241": "Sonderabschreibungen nach § 7g EStG",
+    "6242": "Sonderabschreibungen auf Kfz nach § 7g EStG",
     "6260": "Sofortabschreibung geringwertiger Wirtschaftsgüter",
     "6264": "Abschreibungen auf den Sammelposten",
     "6895": "Anlagenabgänge Sachanlagen (Restbuchwert)",
@@ -152,6 +154,7 @@ export interface ScheduleAsset {
   opening?: { date: string; bookValue: Cents } | null;
   /** Ausgeschieden (Verkauf, Entnahme, Verschrottung); im Monat des Abgangs wird noch abgeschrieben */
   disposalDate?: string | null;
+  specialDepreciation?: readonly SpecialDepreciationAmount[];
 }
 
 export interface ScheduleYear {
@@ -161,15 +164,14 @@ export interface ScheduleYear {
   /** Zugang im Jahr der Anschaffung */
   addition: Cents;
   depreciation: Cents;
+  specialDepreciation?: Cents;
   /** Restbuchwert beim Abgang, wird als Aufwand gebucht */
   disposal: Cents;
   /** Buchwert am Jahresende */
   closing: Cents;
 }
 
-export class AssetError extends Error {}
-
-const monthIndex = (date: string) => Number(date.slice(0, 4)) * 12 + Number(date.slice(5, 7)) - 1;
+export { AssetError } from "./afa-sonder.ts";
 
 /** Prüft die Eingaben; leer = in Ordnung */
 export function assetIssues(asset: ScheduleAsset): string[] {
@@ -190,7 +192,22 @@ export function assetIssues(asset: ScheduleAsset): string[] {
     if (asset.disposalDate < start) issues.push("Abgang liegt vor der Anschaffung bzw. Übernahme");
   }
   issues.push(...methodIssues(asset));
-  if (issues.length === 0 && asset.opening && (asset.method === "degressiv" || asset.method === "elektro")) issues.push(...takeoverIssues(asset));
+  if (asset.specialDepreciation?.length) {
+    issues.push(...specialDepreciationIssues(asset.acquisitionDate, asset.cost, asset.specialDepreciation));
+    // § 7g Abs. 6 Nr. 2 EStG: https://www.gesetze-im-internet.de/estg/__7g.html
+    const acquisitionYear = Number(asset.acquisitionDate.slice(0, 4));
+    if (asset.disposalDate && Number(asset.disposalDate.slice(0, 4)) <= acquisitionYear + 1 && asset.specialDepreciation.some(({ amount }) => amount > 0)) {
+      issues.push("Sonder-AfA setzt voraus, dass die Anlage bis zum Ende des Folgejahres im Betrieb verbleibt");
+    }
+    if (!usesUsefulLife(asset.method)) {
+      issues.push("Sonder-AfA wird derzeit nur bei linearer oder degressiver AfA berechnet");
+    }
+  }
+  if (asset.opening && asset.specialDepreciation?.length) {
+    if (!asset.opening.date.endsWith("-01-01")) issues.push("Sonder-AfA bei Übernahme nur zum 1. Januar");
+  } else if (issues.length === 0 && asset.opening && (asset.method === "degressiv" || asset.method === "elektro")) {
+    issues.push(...takeoverIssues(asset));
+  }
   return issues;
 }
 
@@ -250,7 +267,13 @@ function takeoverIssues(asset: ScheduleAsset): string[] {
 export function depreciationSchedule(asset: ScheduleAsset, untilYear?: number): ScheduleYear[] {
   const issues = assetIssues(asset);
   if (issues.length > 0) throw new AssetError(issues.join(", "));
-  if (asset.method === "degressiv" || asset.method === "elektro") return stepSchedule(asset, untilYear);
+  if (asset.opening && asset.specialDepreciation?.some(({ amount }) => amount > 0)) {
+    const transferYear = Number(asset.opening.date.slice(0, 4));
+    return depreciationSchedule({ ...asset, opening: null }, untilYear).filter(({ year }) => year >= transferYear);
+  }
+  if (asset.method === "linear" && asset.specialDepreciation?.some(({ amount }) => amount > 0))
+    return linearSpecialSchedule(asset, untilYear, depreciationSchedule);
+  if (asset.method === "degressiv" || asset.method === "elektro") return stepSchedule(asset, untilYear, depreciationSchedule);
   const memo = asset.memoValue ? MEMO_VALUE : 0;
 
   const start = asset.opening?.date ?? asset.acquisitionDate;
@@ -287,68 +310,6 @@ export function depreciationSchedule(asset: ScheduleAsset, untilYear?: number): 
     let closing = opening + addition - depreciation;
     let disposal = 0;
     if (disposalYear === year && asset.method !== "sammelposten") {
-      disposal = closing;
-      closing = 0;
-    }
-    rows.push({ year, opening, addition, depreciation, disposal, closing });
-    bookValue = closing;
-    if (planEnds(closing, memo, year, disposalYear, untilYear)) break;
-  }
-  return rows;
-}
-
-/** Ende des Plans: Buchwert 0, beim Erinnerungswert das letzte gewünschte Jahr ohne ausstehenden Abgang */
-function planEnds(closing: Cents, memo: Cents, year: number, disposalYear: number | null, untilYear: number | undefined): boolean {
-  if (closing === 0 || year >= 2200) return true;
-  return closing <= memo && disposalYear === null && year >= (untilYear ?? year);
-}
-
-/**
- * Degressive und Elektro-AfA, Jahr für Jahr vom Buchwert aus.
- * - Degressiv: Satz × Buchwert am Jahresanfang × Monate / 12, im Anschaffungs- und im Abgangsjahr zeitanteilig
- *   (§ 7 Abs. 2 Satz 3 i. V. m. Abs. 1 Satz 4 EStG; R 7.4 Abs. 8 EStR). Linear (Buchwert / Restnutzungsdauer) ab dem
- *   Jahr, in dem das mindestens so viel ist, oder ab linearFromYear, danach nie zurück (§ 7 Abs. 3 EStG).
- * - Elektro: Staffel nach § 7 Abs. 2a EStG ohne Zwölftelung im Anschaffungsjahr (Satz 3); im Abgangsjahr zeitanteilig
- *   bis zum Abgangsmonat (R 7.4 Abs. 8 EStR, konservativ wie bei der linearen AfA).
- */
-function stepSchedule(asset: ScheduleAsset, untilYear: number | undefined): ScheduleYear[] {
-  const start = asset.opening?.date ?? asset.acquisitionDate;
-  const firstYear = Number(start.slice(0, 4));
-  const acquisitionYear = Number(asset.acquisitionDate.slice(0, 4));
-  const disposalMonth = asset.disposalDate ? monthIndex(asset.disposalDate) : null;
-  const disposalYear = asset.disposalDate ? Number(asset.disposalDate.slice(0, 4)) : null;
-  const memo = asset.memoValue ? MEMO_VALUE : 0;
-  let switched = false;
-
-  const elektro = (year: number, available: Cents): Cents => {
-    const k = year - acquisitionYear;
-    const planned = k >= ELEKTRO_STAFFEL.length - 1 ? available - memo : elektroCumulative(asset.cost, k) - elektroCumulative(asset.cost, k - 1);
-    const months = disposalYear === year ? disposalMonth! - year * 12 + 1 : 12;
-    return Math.round((planned * months) / 12);
-  };
-  const degressive = (year: number, available: Cents): Cents => {
-    const firstMonth = Math.max(year * 12, monthIndex(start));
-    const months = Math.min(year * 12 + 11, disposalMonth ?? Infinity) - firstMonth + 1;
-    const remaining = asset.usefulLifeMonths! - (firstMonth - monthIndex(asset.acquisitionDate));
-    if (months <= 0) return 0;
-    if (remaining <= months) return available - memo;
-    const linearAmount = Math.round((available * months) / remaining);
-    const degressiveAmount = Math.round((available * asset.degressiveRate! * months) / 120_000);
-    if (!switched && ((asset.linearFromYear != null && year >= asset.linearFromYear) || linearAmount >= degressiveAmount)) switched = true;
-    return switched ? linearAmount : degressiveAmount;
-  };
-  const amount = asset.method === "elektro" ? elektro : degressive;
-
-  const rows: ScheduleYear[] = [];
-  let bookValue = asset.opening ? asset.opening.bookValue : 0;
-  for (let year = firstYear; ; year++) {
-    const addition = !asset.opening && year === firstYear ? asset.cost : 0;
-    const opening = bookValue;
-    const available = opening + addition;
-    const depreciation = Math.max(0, Math.min(amount(year, available), available - memo));
-    let closing = available - depreciation;
-    let disposal = 0;
-    if (disposalYear === year) {
       disposal = closing;
       closing = 0;
     }

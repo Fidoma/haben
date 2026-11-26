@@ -1,12 +1,10 @@
 import { UserError } from "../../errors.ts";
 import {
   currentYear,
-  ASSET_KIND_KEYS,
-  ASSET_METHOD_KEYS,
   assetAccount,
   assetIssues,
+  AssetError,
   depreciationSchedule,
-  CAR_DRIVE_KEYS,
   privateUseMonth,
   privateUseMonths,
   type CarPrivateUse,
@@ -15,11 +13,9 @@ import {
   type ScheduleAsset,
   type ScheduleYear,
   isKapitalgesellschaft,
-  inBasisPoints,
-  inCents,
 } from "@haben/core";
 import { asc, eq, inArray } from "drizzle-orm";
-import { z } from "zod";
+import type { z } from "zod";
 import { kleinunternehmerHistory, lastDayOfMonth, loadCompany, type Company } from "../stammdaten/index.ts";
 import { withActor } from "../../db/actor.ts";
 // Für Aufrufer, die das Buchen hier suchen (Tests); gebucht wird in assets-buchen.ts
@@ -27,55 +23,12 @@ export { bookDepreciation } from "./assets-buchen.ts";
 import { elektroIssues, methodValues, switchToLinearProblem } from "./asset-methoden.ts";
 import { db, schema, type Db, type Tx } from "../../db/index.ts";
 
+import type { AssetInput, assetUpdateSchema } from "./asset-schema.ts";
+export { assetInputSchema, assetUpdateSchema, type AssetInput } from "./asset-schema.ts";
+
 export type Asset = typeof schema.assets.$inferSelect;
 
 export class AssetUserError extends UserError {}
-
-const isoDate = z.iso.date();
-
-/**
- * Anlage aus der Vorgänger-Buchhaltung übernehmen (z. B. aus dem Anlagenverzeichnis von Lexoffice).
- * Neue Anschaffungen entstehen beim Buchen eines Belegs mit Kategorie „Anlagegut“.
- */
-export const assetInputSchema = z.object({
-  name: z.string().trim().min(1, "Bezeichnung fehlt").max(200),
-  kind: z.enum(ASSET_KIND_KEYS),
-  method: z.enum(ASSET_METHOD_KEYS),
-  acquisitionDate: isoDate,
-  cost: inCents(z.number().int().min(1).max(100_000_000_00)),
-  usefulLifeMonths: z.number().int().min(1).max(600).nullable(),
-  /** Nur bei degressiv: Satz in Basispunkten; ohne Angabe der Höchstsatz */
-  degressiveRate: inBasisPoints(z.number().int().min(1).max(3000)).nullable().default(null),
-  /** Nur bei degressiv: ab diesem Jahr linear (§ 7 Abs. 3 EStG) */
-  linearFromYear: z.number().int().min(2000).max(2200).nullable().default(null),
-  /** Erinnerungswert von 1 € bis zum Abgang */
-  memoValue: z.boolean().default(false),
-  openingDate: isoDate,
-  openingBookValue: inCents(z.number().int().min(0).max(100_000_000_00)),
-  disposalDate: isoDate.nullable(),
-  /** Nur bei Fahrzeugen: private Nutzung nach der Listenpreismethode */
-  privateUse: z
-    .object({
-      listPrice: inCents(z.number().int().min(100).max(100_000_000_00)),
-      drive: z.enum(CAR_DRIVE_KEYS),
-      rate: inBasisPoints(z.union([z.literal(100), z.literal(50), z.literal(25)])),
-      vat: z.boolean(),
-    })
-    .nullable()
-    .default(null),
-  note: z.string().max(2000),
-});
-
-export type AssetInput = z.input<typeof assetInputSchema>;
-
-/** Was an einer Anlage nach der Anlage noch geändert werden darf */
-export const assetUpdateSchema = assetInputSchema.partial().extend({
-  name: z.string().trim().min(1).max(200),
-  // Ohne Vorgabe, damit eine Änderung ohne diese Felder sie nicht zurücksetzt
-  degressiveRate: inBasisPoints(z.number().int().min(1).max(3000)).nullable().optional(),
-  linearFromYear: z.number().int().min(2000).max(2200).nullable().optional(),
-  memoValue: z.boolean().optional(),
-});
 
 function scheduleInput(asset: Asset): ScheduleAsset {
   return {
@@ -93,9 +46,9 @@ function scheduleInput(asset: Asset): ScheduleAsset {
 }
 
 /** Plan bis mindestens untilYear: Mit Erinnerungswert hat jedes Jahr bis dahin seine Zeile mit 1 € Buchwert */
-function scheduleOf(asset: Asset, untilYear: number): ScheduleYear[] {
+function scheduleOf(asset: Asset, untilYear: number, tax = false): ScheduleYear[] {
   try {
-    return depreciationSchedule(scheduleInput(asset), untilYear);
+    return depreciationSchedule({ ...scheduleInput(asset), specialDepreciation: tax ? asset.specialDepreciation : undefined }, untilYear);
   } catch {
     return [];
   }
@@ -129,10 +82,12 @@ function privateUseForYear(asset: Asset, year: number, kleinunternehmer: Kleinun
 }
 
 /** Was im Jahr zu buchen ist: AfA laut Plan und Privatnutzung */
-export function yearPlan(asset: Asset, year: number, kleinunternehmer?: KleinunternehmerInMonth) {
-  const row = scheduleOf(asset, year).find((r) => r.year === year) ?? null;
+export function yearPlan(asset: Asset, year: number, kleinunternehmer?: KleinunternehmerInMonth, tax = false) {
+  const row = scheduleOf(asset, year, tax).find((r) => r.year === year) ?? null;
   const privateUse = privateUseForYear(asset, year, kleinunternehmer);
-  const hasWork = Boolean((row && (row.depreciation !== 0 || row.disposal !== 0)) || (privateUse && privateUse.withdrawal !== 0));
+  const hasWork = Boolean(
+    (row && (row.depreciation !== 0 || (row.specialDepreciation ?? 0) !== 0 || row.disposal !== 0)) || (privateUse && privateUse.withdrawal !== 0),
+  );
   return { row, privateUse, hasWork };
 }
 
@@ -158,14 +113,15 @@ export async function listAssets(year: number, q: Db | Tx = db) {
     q,
   );
   const kleinunternehmer = await kleinunternehmerInYear(year, q);
+  const tax = !isKapitalgesellschaft((await loadCompany(q)).rechtsform);
   return assets.map((asset) => {
-    const schedule = scheduleOf(asset, year);
+    const schedule = scheduleOf(asset, year, tax);
     const row = schedule.find((r) => r.year === year) ?? null;
     const first = schedule[0]?.year ?? Number(asset.acquisitionDate.slice(0, 4));
     // Nach dem Plan: Buchwert 0 bzw. vor Beginn kein Eintrag; zur Anzeige den Stand am Jahresende
     const closing = row?.closing ?? (year < first ? null : 0);
     const years = booked.get(asset.id) ?? [];
-    const plan = yearPlan(asset, year, kleinunternehmer);
+    const plan = yearPlan(asset, year, kleinunternehmer, tax);
     return {
       ...asset,
       schedule,
@@ -185,7 +141,7 @@ export async function getAsset(id: string) {
   const booked = (await bookedYears([id])).get(id) ?? [];
   return {
     asset,
-    schedule: scheduleOf(asset, currentYear()),
+    schedule: scheduleOf(asset, currentYear(), !isKapitalgesellschaft((await loadCompany()).rechtsform)),
     bookedYears: booked.sort((a, b) => a - b),
   };
 }
@@ -271,7 +227,31 @@ export async function updateAsset(actor: string, id: string, input: z.infer<type
       }
     }
 
-    const issues = [...assetIssues(scheduleInput(next)), ...elektroIssues(next, company.rechtsform)];
+    if (input.specialDepreciation !== undefined) {
+      const amounts = [...input.specialDepreciation].sort((a, b) => a.year - b.year);
+      const locked = (entries: typeof amounts) => entries.filter(({ year }) => lastBooked !== null && year <= lastBooked);
+      if (JSON.stringify(locked(amounts)) !== JSON.stringify(locked(asset.specialDepreciation))) {
+        throw new AssetUserError("Sonder-AfA für bereits gebuchte Jahre lässt sich nicht mehr ändern.");
+      }
+      next.specialDepreciation = amounts;
+    }
+    if (next.specialDepreciation.some(({ amount }) => amount > 0) && isKapitalgesellschaft(company.rechtsform)) {
+      throw new AssetUserError("Sonder-AfA ist nur für Einzelunternehmen verfügbar.");
+    }
+    if (next.specialDepreciation.length > 0) {
+      try {
+        const taxSchedule = depreciationSchedule({ ...scheduleInput(next), specialDepreciation: next.specialDepreciation });
+        if (next.openingDate && (taxSchedule[0]?.opening ?? 0) !== next.openingBookValue) {
+          throw new AssetUserError("Der übernommene Buchwert muss zum steuerlichen Plan einschließlich der bisherigen Sonder-AfA passen.");
+        }
+      } catch (error) {
+        if (error instanceof AssetError) throw new AssetUserError(error.message);
+        throw error;
+      }
+    }
+
+    const bookInput = { ...scheduleInput(next), specialDepreciation: isKapitalgesellschaft(company.rechtsform) ? undefined : next.specialDepreciation };
+    const issues = [...assetIssues(bookInput), ...elektroIssues(next, company.rechtsform)];
     if (issues.length > 0) throw new AssetUserError(`${issues.join(", ")}.`);
     const { id: _id, createdAt: _createdAt, ...values } = next;
     const [updated] = await tx
@@ -323,6 +303,7 @@ export function canBookYear(year: number, today: string): boolean {
 /** Abschreibungen eines Jahres für die EÜR, aus dem Plan (gebucht oder nicht) */
 export async function depreciationForEuer(year: number, q: Db | Tx = db): Promise<EuerDepreciation> {
   const assets = await q.select().from(schema.assets);
+  const tax = !isKapitalgesellschaft((await loadCompany(q)).rechtsform);
   const result: EuerDepreciation = {
     afa: 0,
     gwg: 0,
@@ -330,11 +311,12 @@ export async function depreciationForEuer(year: number, q: Db | Tx = db): Promis
     restbuchwert: 0,
   };
   for (const asset of assets) {
-    const row = scheduleOf(asset, year).find((r) => r.year === year);
+    const row = scheduleOf(asset, year, tax).find((r) => r.year === year);
     if (!row) continue;
     if (asset.method === "gwg") result.gwg += row.depreciation;
     else if (asset.method === "sammelposten") result.sammelposten += row.depreciation;
     else result.afa += row.depreciation;
+    if (row.specialDepreciation) result.sonderAfa = (result.sonderAfa ?? 0) + row.specialDepreciation;
     result.restbuchwert += row.disposal;
   }
   return result;

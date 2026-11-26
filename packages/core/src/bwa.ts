@@ -148,6 +148,7 @@ const FESTE_ZEILEN: Partial<Record<EuerLineKey, Form43Zeile>> = {
   schuldzinsenAnlage: "sonstigeAufwendungen",
   kursverluste: "sonstigeAufwendungen",
   afa: "abschreibungen",
+  sonderAfa: "abschreibungen",
   gwg: "abschreibungen",
   sammelposten: "abschreibungen",
   restbuchwert: "buchwertAnlagenabgang",

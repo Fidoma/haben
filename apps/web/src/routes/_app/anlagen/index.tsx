@@ -121,7 +121,7 @@ function AssetsPage() {
               <div>Anschaffung</div>
               <div className="num">Buchwert 1.1.</div>
               <div className="num">Zugang</div>
-              <div className="num">AfA</div>
+              <div className="num">{person ? "AfA inkl. Sonder-AfA" : "AfA"}</div>
               <div className="num">Abgang</div>
               <div className="num">Buchwert 31.12.</div>
             </div>
@@ -133,7 +133,7 @@ function AssetsPage() {
                     <Status tone="ok" inline>
                       Gebucht
                     </Status>
-                  ) : asset.year && (asset.year.depreciation || asset.year.disposal) ? (
+                  ) : asset.year && (asset.year.depreciation || asset.year.specialDepreciation || asset.year.disposal) ? (
                     <Status inline detail="Abschreibung nicht gebucht">
                       Offen
                     </Status>
@@ -149,7 +149,7 @@ function AssetsPage() {
                 </div>
                 <div className="num">{formatEuro(asset.year?.opening ?? asset.closing ?? 0)}</div>
                 <div className="num">{formatEuro(asset.year?.addition ?? 0)}</div>
-                <div className="num">{formatEuro(asset.year?.depreciation ?? 0)}</div>
+                <div className="num">{formatEuro((asset.year?.depreciation ?? 0) + (asset.year?.specialDepreciation ?? 0))}</div>
                 <div className="num">{formatEuro(asset.year?.disposal ?? 0)}</div>
                 <div className="num">{formatEuro(asset.year?.closing ?? asset.closing ?? 0)}</div>
               </Link>
@@ -159,7 +159,7 @@ function AssetsPage() {
               <div />
               <div className="num">{formatEuro(total((a) => a.year?.opening ?? a.closing ?? 0))}</div>
               <div className="num">{formatEuro(total((a) => a.year?.addition ?? 0))}</div>
-              <div className="num">{formatEuro(total((a) => a.year?.depreciation ?? 0))}</div>
+              <div className="num">{formatEuro(total((a) => (a.year?.depreciation ?? 0) + (a.year?.specialDepreciation ?? 0)))}</div>
               <div className="num">{formatEuro(total((a) => a.year?.disposal ?? 0))}</div>
               <div className="num">{formatEuro(total((a) => a.year?.closing ?? a.closing ?? 0))}</div>
             </div>

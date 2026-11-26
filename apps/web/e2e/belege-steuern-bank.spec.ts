@@ -224,18 +224,38 @@ test("Anlage übernehmen: degressive AfA mit Höchstsatz, Restbuchwert geprüft,
   await form.getByLabel("Restbuchwert zum Stichtag (€)").fill("34.000,00");
   await form.getByRole("button", { name: "Anlage übernehmen" }).click();
   await page.waitForURL(/\/anlagen\/[0-9a-f-]{36}$/);
-  const plan = page.getByRole("region", { name: "Abschreibungsplan" });
+  const plan = page.getByRole("region", { name: "Abschreibungsplan", exact: true });
   await expect(plan).toContainText("Degressiv mit Wechsel zur linearen (§ 7 Abs. 2 EStG), 10 Jahre, 20 %");
   await expect(plan.locator(".table-row", { hasText: /^2026/ })).toContainText("6.800,00");
 
   // Wechsel zur linearen AfA ab 2027: 27.200 € über die Restnutzungsdauer von 87 Monaten
   const angaben = page.getByRole("region", { name: "Angaben" });
   await angaben.getByLabel("Linear ab Jahr (optional)").fill("2027");
-  await angaben.getByRole("button", { name: "Speichern" }).click();
+  await angaben.getByRole("button", { name: "Speichern", exact: true }).click();
   await expect(page.getByRole("status").filter({ hasText: "Gespeichert." })).toBeVisible();
   await expect(plan).toContainText("linear ab 2027");
   await expect(plan.locator(".table-row", { hasText: /^2027/ })).toContainText("3.751,72");
   await expect(angaben.getByLabel("Erinnerungswert 1 € bis zum Abgang stehen lassen")).not.toBeChecked();
+
+  const sonderAfA = angaben.getByRole("button", { name: "Sonder-AfA speichern" });
+  await expect(sonderAfA).toHaveCount(1);
+  const betrag = angaben.getByRole("textbox", { name: "2026 (€)", exact: true });
+  await betrag.fill("5000");
+  const bestaetigung = angaben.getByRole("checkbox", { name: /maßgebliche Vorjahresgewinn/ });
+  await sonderAfA.click();
+  await expect(bestaetigung).toBeFocused();
+  await expect(bestaetigung).toHaveAccessibleDescription("Bestätige die Voraussetzungen für die Sonder-AfA.");
+  await bestaetigung.check();
+  await sonderAfA.click();
+  await expect(page.getByRole("status").filter({ hasText: "Sonder-AfA gespeichert." })).toBeVisible();
+  await expect(plan.locator(".table-row", { hasText: /^2026/ })).toContainText("5.000,00 Sonder-AfA");
+  await page.reload();
+  await expect(betrag).toHaveValue("5.000,00");
+  await expect(plan.locator(".table-row", { hasText: /^2026/ })).toContainText("5.000,00 Sonder-AfA");
+  await betrag.fill("0");
+  await sonderAfA.click();
+  await expect(betrag).toHaveValue("0,00");
+  await expect(plan.locator(".table-row", { hasText: /^2026/ })).not.toContainText("Sonder-AfA");
 });
 
 test("Beleg als Anlagegut: Wechsel von Fahrzeug zu Sonstige Transportmittel lässt die sechs Jahre für Pkw nicht stehen (#312)", async ({ browser }) => {
@@ -277,7 +297,7 @@ test("Anlage anlegen: Erinnerungswert angehakt, dann zu Computer gewechselt, wir
   await form.getByLabel("Restbuchwert zum Stichtag (€)").fill("0,00");
   await form.getByRole("button", { name: "Anlage übernehmen" }).click();
   await page.waitForURL(/\/anlagen\/[0-9a-f-]{36}$/);
-  await expect(page.getByRole("region", { name: "Abschreibungsplan" })).not.toContainText("Erinnerungswert");
+  await expect(page.getByRole("region", { name: "Abschreibungsplan", exact: true })).not.toContainText("Erinnerungswert");
 });
 
 test("Anlage: Eingaben direkt nach dem Speichern bleiben erhalten (#1793)", async () => {

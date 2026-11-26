@@ -1132,7 +1132,7 @@ test("Anlage: Wechsel ohne Neuladen zwischen den baugleichen Anlagen aus dem Imp
   await expect(notiz).toHaveValue("RAD-2");
 
   // Gespeichert, dann zurück: Die Meldung gehört zur anderen Anlage
-  await angaben.getByRole("button", { name: "Speichern" }).click();
+  await angaben.getByRole("button", { name: "Speichern", exact: true }).click();
   await expect(gespeichert).toBeVisible();
   await ueberSchnellsuche(page, "RAD-1", /Lastenrad/);
   await expect(notiz).toHaveValue("RAD-1");
