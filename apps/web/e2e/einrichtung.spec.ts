@@ -177,6 +177,47 @@ test("Leere Belegliste: Satz mit Beispiel, Weg zum Postfach, kein Filter und kei
   await expect(page).toHaveURL(/\/einstellungen\?bereich=email/);
 });
 
+// DESIGN.md, Seitenkopf: Leert ein Filter die Liste, steht kein Knopf zum Anlegen im Leerzustand. Mit „Archivierte zeigen“
+// (archiv=true) zählen auch die archivierten Kontakte mit, die Liste ist also nur ohne jeden Kontakt leer.
+test("Leere Kontaktliste: Satz und Knopf zum Anlegen, mit Archivfilter nur der Satz (#1253)", async () => {
+  await gehe(page, "/kontakte");
+  const liste = page.getByRole("region", { name: "Kontaktliste" });
+  await expect(liste.getByText("Hier stehen deine Kunden und Lieferanten.")).toBeVisible();
+  await expect(liste.getByRole("link", { name: "Neuer Kontakt" })).toBeVisible();
+  await gehe(page, "/kontakte?archiv=true");
+  await expect(liste.getByText("Keine Kontakte, auch keine archivierten.")).toBeVisible();
+  await expect(liste.getByText("Hier stehen deine Kunden und Lieferanten.")).toHaveCount(0);
+  await expect(liste.getByRole("link", { name: "Neuer Kontakt" })).toHaveCount(0);
+});
+
+// DESIGN.md, Seitenkopf: Hat der Kopf einen Knopf zum Anlegen, steht derselbe Knopf im Leerzustand noch einmal, mit einem Filter nicht.
+// Bank kennt die Ausnahme, Pauschalen und Kasse haben keinen Knopf im Kopf.
+const LEERZUSTAND = [
+  { pfad: "/angebote", rolle: "link", name: "Neues Angebot" },
+  { pfad: "/rechnungen", rolle: "link", name: "Neue Rechnung" },
+  { pfad: "/rechnungen/wiederkehrend", rolle: "link", name: "Neue Vorlage" },
+  { pfad: "/dauerbelege", rolle: "link", name: "Neuer Dauerbeleg" },
+  { pfad: "/buchungen", rolle: "link", name: "Buchung erfassen" },
+  { pfad: "/anlagen", rolle: "link", name: "Anlage übernehmen" },
+  { pfad: "/artikel", rolle: "button", name: "Neuer Artikel", filter: "Archiviert" },
+  { pfad: "/textbausteine", rolle: "button", name: "Neuer Textbaustein", filter: "Archiviert" },
+  { pfad: "/leistungen", rolle: "button", name: "Neuer Eintrag", filter: "?von=2020-01-01" },
+] as const;
+
+for (const { pfad, rolle, name, ...rest } of LEERZUSTAND) {
+  test(`Leere Liste ${pfad}: „${name}“ im Seitenkopf und noch einmal im Leerzustand, mit Filter nur im Kopf (#1253)`, async () => {
+    const filter = "filter" in rest ? rest.filter : undefined;
+    const knopf = page.getByRole(rolle, { name, exact: true });
+    await gehe(page, pfad);
+    await expect(page.locator(".page-head").getByRole(rolle, { name, exact: true })).toHaveCount(1);
+    await expect(knopf).toHaveCount(2);
+    if (!filter) return;
+    if (filter.startsWith("?")) await gehe(page, pfad + filter);
+    else await page.getByRole("button", { name: new RegExp(`^${filter}`) }).click();
+    await expect(knopf).toHaveCount(1);
+  });
+}
+
 test("Am Handy ohne waagrechtes Scrollen, hell und dunkel", async () => {
   await page.setViewportSize({ width: 390, height: 844 });
   for (const modus of ["hell", "dunkel"]) {

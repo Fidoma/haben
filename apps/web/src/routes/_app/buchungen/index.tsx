@@ -13,6 +13,7 @@ import styles from "../../../styles/auswertungen.css?url";
 import { ERSTES_JAHR, LETZTES_JAHR } from "../../../lib/jahre.ts";
 import { ConfirmDialog } from "../../../components/ConfirmDialog.tsx";
 import { Field } from "../../../components/Field.tsx";
+import { menueGruppe } from "../../../lib/menue-gruppe.ts";
 
 export const Route = createFileRoute("/_app/buchungen/")({
   validateSearch: z.object({ jahr: z.optional(z.int()), monat: z.optional(z.int().check(z.minimum(1), z.maximum(12))) }),
@@ -117,6 +118,22 @@ function ReverseButton({ entry, busy, onConfirm }: { entry: Entry; busy: boolean
   );
 }
 
+/** Leerer Monat: der Satz und, wie im Seitenkopf, nur für den Inhaber der Knopf zum Erfassen */
+function JournalLeer({ inhaber }: { inhaber: boolean }) {
+  return (
+    <>
+      <p className="muted" style={{ margin: 0 }}>
+        Hier stehen die festgeschriebenen Buchungen des Monats.
+      </p>
+      {inhaber && (
+        <Link to="/buchungen/neu" className="btn btn-primary" style={{ alignSelf: "flex-start" }}>
+          Buchung erfassen
+        </Link>
+      )}
+    </>
+  );
+}
+
 function JournalPage() {
   const { period, entries } = Route.useLoaderData();
   const { rechtsform, user } = Route.useRouteContext();
@@ -158,7 +175,7 @@ function JournalPage() {
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Journal · festgeschrieben</div>
+          <div className="eyebrow">{menueGruppe("/buchungen", inhaber)}</div>
           <h1>Buchungen {periodLabel(period)}</h1>
         </div>
         <div className="actions">
@@ -181,6 +198,9 @@ function JournalPage() {
           )}
         </div>
       </div>
+      <p className="muted small" style={{ margin: 0, maxWidth: 760 }}>
+        Das Journal: alle festgeschriebenen Buchungen des Monats.
+      </p>
       <NoticeBanner notice={notice} />
 
       <div className="filter-row">
@@ -203,9 +223,7 @@ function JournalPage() {
 
       <section className="card" aria-label="Buchungen">
         {entries.length === 0 ? (
-          <p className="muted" style={{ margin: 0 }}>
-            Keine Buchungen in diesem Monat.
-          </p>
+          <JournalLeer inhaber={inhaber} />
         ) : (
           <table className="report-table journal-table sticky-head stack-table">
             <thead>

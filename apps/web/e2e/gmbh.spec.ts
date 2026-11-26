@@ -127,7 +127,7 @@ test("Eröffnung nach geleertem Datum: „Wähle das Datum.“ steht am Feld, ni
 
 test("Manuelle Buchung: Stammkapital erfassen, prüfen, stornieren", async () => {
   await go("/buchungen");
-  await page.getByRole("link", { name: "Buchung erfassen" }).click();
+  await page.locator(".page-head").getByRole("link", { name: "Buchung erfassen" }).click();
   await page.waitForURL("**/buchungen/neu");
   await page.waitForLoadState("networkidle");
   expect(await axe(), "/buchungen/neu").toEqual([]);

@@ -10,6 +10,7 @@ import type { Notice } from "../../../lib/use-action.ts";
 import { archiveTextBlock, getTextBlocks, saveTextBlock } from "../../../server/functions/text-blocks.ts";
 import { ContactCombobox, type ContactChoice } from "../../../components/ContactCombobox.tsx";
 import { Field } from "../../../components/Field.tsx";
+import { menueGruppe } from "../../../lib/menue-gruppe.ts";
 
 export const Route = createFileRoute("/_app/textbausteine/")({
   loader: () => getTextBlocks(),
@@ -170,29 +171,28 @@ function TextBlocksPage() {
   }
 
   const formOpen = creating || editing !== null;
+  const newButton = (
+    <button
+      type="button"
+      className="btn btn-primary"
+      onClick={() => {
+        setEditing(null);
+        setCreating(true);
+        setNotice(null);
+      }}
+    >
+      Neuer Textbaustein
+    </button>
+  );
 
   return (
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Verkauf</div>
+          <div className="eyebrow">{menueGruppe("/textbausteine")}</div>
           <h1>Textbausteine</h1>
         </div>
-        {!formOpen && (
-          <div className="actions">
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => {
-                setEditing(null);
-                setCreating(true);
-                setNotice(null);
-              }}
-            >
-              Neuer Textbaustein
-            </button>
-          </div>
-        )}
+        {!formOpen && <div className="actions">{newButton}</div>}
       </div>
       <p className="muted small" style={{ margin: 0, maxWidth: 760 }}>
         Kopf- und Fußtexte legst du einmal an und fügst sie in Rechnung, Angebot oder wiederkehrender Rechnung mit „Textbaustein einfügen“ ein. Eingefügt wird
@@ -223,9 +223,12 @@ function TextBlocksPage() {
             </button>
           </div>
           {shown.length === 0 ? (
-            <p className="muted" style={{ margin: 0 }}>
-              {showArchived ? "Keine archivierten Textbausteine." : "Noch keine Textbausteine. Lege den ersten mit „Neuer Textbaustein“ an."}
-            </p>
+            <>
+              <p className="muted" style={{ margin: 0 }}>
+                {showArchived ? "Keine archivierten Textbausteine." : "Hier stehen deine Kopf- und Fußtexte für Rechnungen und andere Belege."}
+              </p>
+              {!showArchived && !formOpen && <div style={{ alignSelf: "flex-start" }}>{newButton}</div>}
+            </>
           ) : (
             <div className="table">
               {shown.map((b) => (

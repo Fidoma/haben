@@ -25,6 +25,7 @@ import { kindHint, type Mode } from "./-kasse-hinweis.ts";
 import { createCashEntryFn, createCashIncomeFn, createCashInvoiceEntryFn, getCashBook, reverseCashEntryFn } from "../../server/functions/cash.ts";
 import { ConfirmDialog } from "../../components/ConfirmDialog.tsx";
 import { Field } from "../../components/Field.tsx";
+import { menueGruppe } from "../../lib/menue-gruppe.ts";
 
 export const Route = createFileRoute("/_app/kasse")({
   validateSearch: z.object({
@@ -53,7 +54,7 @@ function CashPage() {
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Bargeld</div>
+          <div className="eyebrow">{menueGruppe("/kasse")}</div>
           <h1>Kassenbuch {year}</h1>
         </div>
         <div className="actions">
@@ -62,6 +63,9 @@ function CashPage() {
           </a>
         </div>
       </div>
+      <p className="muted small" style={{ margin: 0, maxWidth: 760 }}>
+        Das Kassenbuch führt dein Bargeld: Einnahmen, Ausgaben und den Bestand.
+      </p>
       <p className="muted small" style={{ margin: 0, maxWidth: 760 }}>
         Bar bezahlte <Link to="/belege">Belege</Link> landen beim Buchen automatisch hier; Bareinnahmen auf <Link to="/rechnungen">Rechnungen</Link> und ohne
         Rechnung, {isKapitalgesellschaft(data.rechtsform) ? "Geld vom und an den Gesellschafter" : "Einlagen, Entnahmen"} und Geld von oder zur Bank trägst du
@@ -272,7 +276,7 @@ function CashList({ data, onNotice }: { data: Data; onNotice: (n: Notice) => voi
       </ConfirmDialog>
       {data.entries.length === 0 ? (
         <p className="muted" style={{ margin: 0 }}>
-          Keine Einträge in {data.year}.
+          Keine Einträge in {data.year}; Bareinnahmen und Barausgaben trägst du oben im Formular „Eintragen“ ein.
         </p>
       ) : (
         <div className="table">

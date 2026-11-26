@@ -8,6 +8,7 @@ import { Icon } from "../../components/Icon.tsx";
 import { ScrollTable } from "../../components/ScrollTable.tsx";
 import { Gesamtumsatz } from "../../components/Gesamtumsatz.tsx";
 import { ERSTES_JAHR, LETZTES_JAHR } from "../../lib/jahre.ts";
+import { menueGruppe } from "../../lib/menue-gruppe.ts";
 import { StandHinweis, StandSchalter } from "../../components/StandSchalter.tsx";
 import { AdvanceOpenTables, OpenTable } from "./-auswertungen-offen.tsx";
 import { EuerCard, MonthlyChart } from "./-auswertungen-teile.tsx";
@@ -29,6 +30,7 @@ function ReportsPage() {
   const { euer, open, years, stand, stichtag, versteuerung, gesamtumsatz } = Route.useLoaderData();
   // GmbH und UG bilanzieren (§ 238 HGB): Die Zahlen nach Zahlung sind dort keine EÜR, den Gewinn zeigt der Jahresabschluss
   const { rechtsform, user } = Route.useRouteContext();
+  const inhaber = user.role === "inhaber";
   const gesellschaft = isKapitalgesellschaft(rechtsform);
   const year = euer.year;
   const heute = currentYear();
@@ -48,7 +50,7 @@ function ReportsPage() {
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">{gesellschaft ? "Zufluss und Abfluss" : "Einnahmen-Überschuss-Rechnung · Zufluss und Abfluss"}</div>
+          <div className="eyebrow">{menueGruppe("/auswertungen", inhaber)}</div>
           <h1>Auswertungen {year}</h1>
         </div>
         <div className="actions">
@@ -90,6 +92,9 @@ function ReportsPage() {
           )}
         </div>
       </div>
+      <p className="muted small" style={{ margin: 0, maxWidth: 760 }}>
+        {gesellschaft ? "Einnahmen und Ausgaben nach Zufluss und Abfluss." : "Einnahmen-Überschuss-Rechnung (EÜR) nach Zufluss und Abfluss."}
+      </p>
 
       {stichtag && <StandHinweis year={year} />}
 
@@ -111,7 +116,7 @@ function ReportsPage() {
           <div className="kpi-value">{formatEuro(euer.gewinn)}</div>
           <div className="small muted">
             {gesellschaft ? (
-              <>Einnahmen minus Ausgaben; den Gewinn zeigt der {user.role === "inhaber" ? <Link to="/abschluss">Jahresabschluss</Link> : "Jahresabschluss"}</>
+              <>Einnahmen minus Ausgaben; den Gewinn zeigt der {inhaber ? <Link to="/abschluss">Jahresabschluss</Link> : "Jahresabschluss"}</>
             ) : (
               "Einnahmen minus Ausgaben mit Umsatzsteuer (EÜR)"
             )}

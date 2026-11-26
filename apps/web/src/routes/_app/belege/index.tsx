@@ -10,6 +10,7 @@ import { BelegFilterChips, BelegeLeer, filterBelege, filterName, sucheBelege } f
 import { Field } from "../../../components/Field.tsx";
 import { formatDate, formatDateTime } from "../../../lib/format.ts";
 import { getDocuments } from "../../../server/functions/documents.ts";
+import { menueGruppe } from "../../../lib/menue-gruppe.ts";
 
 export const Route = createFileRoute("/_app/belege/")({
   validateSearch: z.object({
@@ -98,7 +99,7 @@ function DocumentsPage() {
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Eingangsrechnungen und Quittungen</div>
+          <div className="eyebrow">{menueGruppe("/belege", inhaber)}</div>
           <h1>Belege</h1>
         </div>
         {open > 0 && (
@@ -107,6 +108,9 @@ function DocumentsPage() {
           </Status>
         )}
       </div>
+      <p className="muted small" style={{ margin: 0, maxWidth: 760 }}>
+        Hier stehen Eingangsrechnungen und Quittungen, von der Prüfung bis zur Buchung.
+      </p>
       {inhaber && <DocumentUpload aiAvailable={aiAvailable} />}
       {inbox ? (
         <p className="small muted" style={{ margin: 0, overflowWrap: "anywhere" }}>

@@ -8,6 +8,7 @@ import { getSvMeldeportal } from "../../server/functions/sv-meldungen.ts";
 import styles from "../../styles/auswertungen.css?url";
 import { Field } from "../../components/Field.tsx";
 import { Status } from "../../components/Status.tsx";
+import { menueGruppe } from "../../lib/menue-gruppe.ts";
 
 /*
  * Personal › SV-Meldeportal: Ausfüllliste je Monat (docs/lohn-plan.md, PR 6). Beitragsnachweise je Einzugsstelle und
@@ -161,7 +162,7 @@ function OhneMitarbeiter() {
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Personal</div>
+          <div className="eyebrow">{menueGruppe("/sv-meldeportal")}</div>
           <h1>SV-Meldeportal</h1>
         </div>
       </div>
@@ -183,7 +184,7 @@ function SvMeldeportalPage() {
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Personal</div>
+          <div className="eyebrow">{menueGruppe("/sv-meldeportal")}</div>
           <h1>SV-Meldeportal {data.name}</h1>
         </div>
         <MonatWahl data={data} />

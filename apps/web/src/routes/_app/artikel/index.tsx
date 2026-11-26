@@ -9,6 +9,7 @@ import { NoticeBanner } from "../../../components/NoticeBanner.tsx";
 import type { Notice } from "../../../lib/use-action.ts";
 import { archiveArticle, getArticles } from "../../../server/functions/articles.ts";
 import { getUnits } from "../../../server/functions/units.ts";
+import { menueGruppe } from "../../../lib/menue-gruppe.ts";
 
 export const Route = createFileRoute("/_app/artikel/")({
   loader: async () => {
@@ -62,7 +63,7 @@ function ArticlesPage() {
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Verkauf</div>
+          <div className="eyebrow">{menueGruppe("/artikel")}</div>
           <h1>Artikel und Leistungen</h1>
         </div>
         {!formOpen && (
@@ -102,11 +103,14 @@ function ArticlesPage() {
             </button>
           </div>
           {shown.length === 0 ? (
-            <p className="muted" style={{ margin: 0 }}>
-              {showArchived
-                ? "Keine archivierten Artikel."
-                : "Noch keine Artikel. Lege den ersten mit „Neuer Artikel“ an oder speichere eine Position im Rechnungseditor."}
-            </p>
+            <>
+              <p className="muted" style={{ margin: 0 }}>
+                {showArchived
+                  ? "Keine archivierten Artikel."
+                  : "Hier stehen deine Artikel; neue entstehen auch beim Speichern einer Position im Rechnungseditor."}
+              </p>
+              {!showArchived && !formOpen && <div style={{ alignSelf: "flex-start" }}>{newButton}</div>}
+            </>
           ) : (
             <div className="table">
               <div className="table-row head article-cols">

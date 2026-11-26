@@ -10,6 +10,7 @@ import { useAction } from "../../lib/use-action.ts";
 import { createFristenAbo, getFristen, reactivateFristenAbo, revokeFristenAbo } from "../../server/functions/fristen.ts";
 import styles from "../../styles/auswertungen.css?url";
 import { Field } from "../../components/Field.tsx";
+import { menueGruppe } from "../../lib/menue-gruppe.ts";
 
 export const Route = createFileRoute("/_app/fristen")({
   loader: () => getFristen(),
@@ -147,14 +148,14 @@ function FristenPage() {
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Steuertermine</div>
+          <div className="eyebrow">{menueGruppe("/fristen")}</div>
           <h1>Fristen</h1>
         </div>
       </div>
       <p className="muted small" style={{ margin: 0, maxWidth: 760 }}>
-        Voranmeldungen, Jahreserklärungen, Vorauszahlungen, Einspruchsfristen aus dem <Link to="/finanzamt">ELSTER-Postfach</Link> und der Ablauf des
-        Zertifikats, dazu Beitragsnachweise und Meldungen im <Link to="/sv-meldeportal">SV-Meldeportal</Link>. Fällt eine Steuerfrist auf ein Wochenende oder
-        einen Feiertag, gilt der nächste Werktag. Erledigt ist, was echt übermittelt oder als im Portal abgegeben vermerkt ist.
+        Steuertermine: Voranmeldungen, Jahreserklärungen, Vorauszahlungen, Einspruchsfristen aus dem <Link to="/finanzamt">ELSTER-Postfach</Link> und der Ablauf
+        des Zertifikats, dazu Beitragsnachweise und Meldungen im <Link to="/sv-meldeportal">SV-Meldeportal</Link>. Fällt eine Steuerfrist auf ein Wochenende
+        oder einen Feiertag, gilt der nächste Werktag. Erledigt ist, was echt übermittelt oder als im Portal abgegeben vermerkt ist.
       </p>
       <div className="stack" style={{ gap: 16 }}>
         {ueberfaellig.length > 0 && <Gruppe titel="Überfällig" fristen={ueberfaellig} today={today} />}

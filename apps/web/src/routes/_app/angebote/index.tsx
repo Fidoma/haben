@@ -7,6 +7,7 @@ import { QuoteStatus } from "../../../components/QuoteStatus.tsx";
 import { formatDate } from "../../../lib/format.ts";
 import { getQuotes } from "../../../server/functions/quotes.ts";
 import { Icon } from "../../../components/Icon.tsx";
+import { menueGruppe } from "../../../lib/menue-gruppe.ts";
 
 export const Route = createFileRoute("/_app/angebote/")({
   validateSearch: z.object({ suche: z.optional(z.string()) }),
@@ -36,7 +37,7 @@ function QuotesPage() {
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Vor der Rechnung</div>
+          <div className="eyebrow">{menueGruppe("/angebote")}</div>
           <h1>Angebote</h1>
         </div>
         <div className="actions">
@@ -45,6 +46,9 @@ function QuotesPage() {
           </Link>
         </div>
       </div>
+      <p className="muted small" style={{ margin: 0, maxWidth: 760 }}>
+        Angebote schreibst du vor der Rechnung; nimmt der Kunde an, wird daraus mit einem Klick eine Rechnung.
+      </p>
       {offen.length > 0 && (
         <p className="muted" style={{ marginTop: 0 }}>
           {offen.length} {offen.length === 1 ? "Angebot wartet" : "Angebote warten"} auf Antwort, zusammen {formatEuro(offen.reduce((s, q) => s + q.net, 0))}{" "}
@@ -60,9 +64,14 @@ function QuotesPage() {
       )}
       <section className="card" aria-label="Angebotsliste">
         {quotes.length === 0 ? (
-          <p className="muted" style={{ margin: 0 }}>
-            Noch keine Angebote. Das erste legst du mit „Neues Angebot“ an; nimmt der Kunde an, wird daraus mit einem Klick eine Rechnung.
-          </p>
+          <>
+            <p className="muted" style={{ margin: 0 }}>
+              Hier stehen die Angebote, die du an Kunden schreibst.
+            </p>
+            <Link to="/angebote/neu" className="btn btn-primary" style={{ alignSelf: "flex-start" }}>
+              Neues Angebot
+            </Link>
+          </>
         ) : shown.length === 0 ? (
           <p className="muted" style={{ margin: 0 }}>
             Kein Angebot passt zu „{query}“.

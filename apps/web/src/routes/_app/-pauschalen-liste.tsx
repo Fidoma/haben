@@ -9,6 +9,7 @@ import { reversePauschaleFn } from "../../server/functions/pauschalen.ts";
 import { ConfirmDialog } from "../../components/ConfirmDialog.tsx";
 import { PauschaleStatus } from "../../components/PauschaleStatus.tsx";
 import { type Data, MAHLZEIT_LABEL } from "./-pauschalen-formulare.tsx";
+import { menueGruppe } from "../../lib/menue-gruppe.ts";
 
 export type Entry = Data["entries"][number];
 
@@ -58,13 +59,13 @@ export function OnlyEinzelunternehmen() {
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Ausgaben ohne Beleg</div>
+          <div className="eyebrow">{menueGruppe("/pauschalen")}</div>
           <h1>Pauschalen</h1>
         </div>
       </div>
-      <p className="muted" style={{ marginTop: 0, maxWidth: 760 }}>
-        Pauschalen gibt es nur im Einzelunternehmen. Erstattet die Gesellschaft dem Gesellschafter Reisekosten oder Auslagen, lade die Abrechnung unter{" "}
-        <Link to="/belege">Belege</Link> hoch und wähle „Vom Gesellschafter ausgelegt“.
+      <p className="muted small" style={{ margin: 0, maxWidth: 760 }}>
+        Pauschalen für Ausgaben ohne Beleg gibt es nur im Einzelunternehmen. Erstattet die Gesellschaft dem Gesellschafter Reisekosten oder Auslagen, lade die
+        Abrechnung unter <Link to="/belege">Belege</Link> hoch und wähle „Vom Gesellschafter ausgelegt“.
       </p>
     </>
   );
@@ -102,7 +103,7 @@ export function Liste({ data }: { data: Data }) {
       </ConfirmDialog>
       {data.entries.length === 0 ? (
         <p className="muted" style={{ margin: 0 }}>
-          Noch keine Pauschalen für {data.year}.
+          Noch keine Pauschalen für {data.year}; trage sie oben unter „Pauschale eintragen“ ein.
         </p>
       ) : (
         <table className="report-table stack-table">

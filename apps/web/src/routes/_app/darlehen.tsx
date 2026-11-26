@@ -11,6 +11,7 @@ import { darlehenFehler } from "./-darlehen-pruefung.ts";
 import { createLoanFn, getLoans } from "../../server/functions/darlehen.ts";
 import styles from "../../styles/auswertungen.css?url";
 import { Field } from "../../components/Field.tsx";
+import { menueGruppe } from "../../lib/menue-gruppe.ts";
 
 export const Route = createFileRoute("/_app/darlehen")({
   loader: () => getLoans(),
@@ -26,13 +27,12 @@ function DarlehenPage() {
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Geld</div>
+          <div className="eyebrow">{menueGruppe("/darlehen")}</div>
           <h1>Darlehen</h1>
         </div>
       </div>
-      <p className="muted" style={{ marginTop: 0, maxWidth: 760 }}>
-        Aufgenommene Darlehen mit Restschuld. Auszahlung, Tilgung, Zinsen und Gebühren ordnest du im <Link to="/bank">Bankabgleich</Link> zu; eine Rate teilst
-        du dort mit „Aufteilen“ in Tilgung, Zinsen und Gebühr. Tilgung und Auszahlung ändern den Gewinn nicht, Zinsen und Gebühren sind Schuldzinsen.
+      <p className="muted small" style={{ margin: 0, maxWidth: 760 }}>
+        Aufgenommene Darlehen mit Restschuld.
       </p>
       <div className="stack" style={{ gap: 16 }}>
         <Liste loans={data.loans} />
@@ -48,9 +48,13 @@ function Liste({ loans }: { loans: Data["loans"] }) {
       <h2 id="darlehen-heading" style={{ margin: 0, fontSize: 16 }}>
         Bestand
       </h2>
+      <p className="muted small" style={{ margin: 0 }}>
+        Auszahlung, Tilgung, Zinsen und Gebühren ordnest du im <Link to="/bank">Bankabgleich</Link> zu; eine Rate teilst du dort mit „Aufteilen“ in Tilgung,
+        Zinsen und Gebühr. Tilgung und Auszahlung ändern den Gewinn nicht, Zinsen und Gebühren sind Schuldzinsen.
+      </p>
       {loans.length === 0 ? (
         <p className="muted" style={{ margin: 0 }}>
-          Noch kein Darlehen angelegt.
+          Hier stehen deine Darlehen mit Restschuld; das erste legst du unten im Formular „Darlehen anlegen“ an.
         </p>
       ) : (
         <ScrollTable className="report-table">

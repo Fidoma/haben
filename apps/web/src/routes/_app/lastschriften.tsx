@@ -7,6 +7,7 @@ import { formatDate, formatDateTime } from "../../lib/format.ts";
 import { useAction } from "../../lib/use-action.ts";
 import { createDirectDebitFileFn, getDirectDebitPage } from "../../server/functions/sepa.ts";
 import { Field } from "../../components/Field.tsx";
+import { menueGruppe } from "../../lib/menue-gruppe.ts";
 
 export const Route = createFileRoute("/_app/lastschriften")({
   loader: () => getDirectDebitPage(),
@@ -28,7 +29,7 @@ function DirectDebitPage() {
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Verkauf</div>
+          <div className="eyebrow">{menueGruppe("/lastschriften")}</div>
           <h1>Lastschriften</h1>
         </div>
       </div>

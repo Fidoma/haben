@@ -17,6 +17,7 @@ import { AllocationPanel } from "./-bank-zuordnung.tsx";
 import { BankSync } from "./-bank-verbindung.tsx";
 import { AccountSettings, ImportControls, SearchBox } from "./-bank-konto.tsx";
 import { ExterneQuelle } from "../../components/ExterneQuelle.tsx";
+import { menueGruppe } from "../../lib/menue-gruppe.ts";
 
 const searchSchema = z.object({
   /** Ein Konto oder „alle“ (#617) */
@@ -138,11 +139,14 @@ function BankPage() {
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Umsätze zuordnen</div>
+          <div className="eyebrow">{menueGruppe("/bank")}</div>
           <h1>Bank</h1>
         </div>
         <ImportControls data={data} />
       </div>
+      <p className="muted small" style={{ margin: 0, maxWidth: 760 }}>
+        Hier ordnest du die Umsätze deiner Konten Belegen und Rechnungen zu.
+      </p>
 
       <BankSync sync={data.sync} fints={data.fints} result={search.abruf ? { ok: search.abruf === "ok", message: search.meldung ?? "" } : null} />
 

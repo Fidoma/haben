@@ -1181,7 +1181,7 @@ test("Lohn: Minijob anlegen und den laufenden Monat abrechnen", async ({ browser
 test("Dauerbeleg: Miete mit Vertrag anlegen, Beleg zu prüfen, im Bankabgleich buchen und zuordnen", async () => {
   const termin = day(-4);
   await go("/dauerbelege");
-  await page.getByRole("link", { name: "Neuer Dauerbeleg" }).click();
+  await page.locator(".page-head").getByRole("link", { name: "Neuer Dauerbeleg" }).click();
   await page.waitForURL(/\/dauerbelege\/neu$/);
   await page.waitForLoadState("networkidle");
   await page.getByLabel("Bezeichnung").fill("Büromiete Hafenstraße");

@@ -31,13 +31,15 @@ export function BankSync({ sync, fints, result }: { sync: Sync; fints: Data["fin
 
   if (!sync.configured && sync.connections.length === 0 && !fints.configured && fints.connections.length === 0) {
     return (
-      <p className="small muted" style={{ margin: "0 0 16px" }}>
-        Automatischer Abruf: mit einer Enable-Banking-Anwendung oder über FinTS holt Haben die Umsätze täglich selbst. Einrichten unter{" "}
-        <Link to="/einstellungen" search={{ bereich: "bank" }}>
-          Einstellungen › Bank
-        </Link>
-        .
-      </p>
+      <section className="card">
+        <p className="small muted" style={{ margin: 0 }}>
+          Automatischer Abruf: mit einer Enable-Banking-Anwendung oder über FinTS holt Haben die Umsätze täglich selbst. Einrichten unter{" "}
+          <Link to="/einstellungen" search={{ bereich: "bank" }}>
+            Einstellungen › Bank
+          </Link>
+          .
+        </p>
+      </section>
     );
   }
 

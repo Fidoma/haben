@@ -97,7 +97,7 @@ test("Grundstücksleistung: fester Aufbewahrungshinweis, Entwurf speichern und e
 
 test("§ 35a EStG: Artikel mit Arbeitskosten setzt den Haken, die Vorschau nennt den Anteil, Ausschalten nimmt das Kennzeichen (#712)", async () => {
   await go("/artikel");
-  await page.getByRole("button", { name: "Neuer Artikel" }).click();
+  await page.locator(".page-head").getByRole("button", { name: "Neuer Artikel" }).click();
   const form = page.getByRole("form", { name: "Neuer Artikel" });
   await form.getByLabel("Bezeichnung").fill("Montage Rauchwarnmelder");
   await form.getByLabel("Preis (€)").fill("8,00");

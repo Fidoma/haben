@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { z } from "zod/mini";
 import { SaldoBetrag, ZEITRAEUME, lastDayBefore } from "../../../components/Ledger.tsx";
 import { formatDate } from "../../../lib/format.ts";
+import { menueGruppe } from "../../../lib/menue-gruppe.ts";
 import { getSaldenliste } from "../../../server/functions/ledger.ts";
 import styles from "../../../styles/auswertungen.css?url";
 import { Field } from "../../../components/Field.tsx";
@@ -35,6 +36,7 @@ function Kpi({ label, value, hint }: { label: string; value: number; hint: strin
 
 function KontenPage() {
   const data = Route.useLoaderData();
+  const inhaber = Route.useRouteContext().user.role === "inhaber";
   const deps = Route.useSearch();
   const navigate = useNavigate();
   const year = Number(data.from.slice(0, 4));
@@ -77,7 +79,7 @@ function KontenPage() {
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Saldenliste</div>
+          <div className="eyebrow">{menueGruppe("/konten", inhaber)}</div>
           <h1>Konten {year}</h1>
         </div>
         <div className="actions" style={{ alignItems: "end", flexWrap: "wrap" }}>
@@ -108,6 +110,9 @@ function KontenPage() {
           </a>
         </div>
       </div>
+      <p className="muted small" style={{ margin: 0, maxWidth: 760 }}>
+        Die Saldenliste zeigt zu jedem Konto Soll, Haben und Saldo im gewählten Zeitraum, mit Eröffnung, wenn es davor schon Buchungen gab.
+      </p>
 
       <div className="kpi-grid" aria-label="Kennzahlen">
         <Kpi label="Bank" value={k.bank} hint={`laut Buchungen am ${formatDate(until)}`} />

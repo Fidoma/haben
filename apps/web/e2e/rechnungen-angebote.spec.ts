@@ -420,8 +420,8 @@ test("Leistungen: Eintrag mit eigenem Stundensatz anlegen, ändern, nach Kunde f
   // Die Seite heißt Zeiteinträge, die Adresse bleibt /leistungen (#1253)
   await expect(page.getByRole("heading", { level: 1, name: "Zeiteinträge" })).toBeVisible();
   await expect(page).toHaveTitle("Zeiteinträge · Haben");
-  await expect(page.getByText("Noch keine Einträge.")).toBeVisible();
-  await page.getByRole("button", { name: "Neuer Eintrag" }).click();
+  await expect(page.getByText("Hier stehen deine Zeiteinträge je Kunde.")).toBeVisible();
+  await page.locator(".page-head").getByRole("button", { name: "Neuer Eintrag" }).click();
   const neu = page.getByRole("form", { name: "Neuer Eintrag" });
   await neu.getByLabel("Kunde").selectOption({ label: "Rheinpixel GmbH" });
   await neu.getByLabel("Dauer", { exact: true }).fill("1:30");
@@ -488,7 +488,7 @@ test("Leistungen: Eintrag mit eigenem Stundensatz anlegen, ändern, nach Kunde f
   await liste.getByRole("button", { name: /löschen/ }).click();
   await page.getByRole("dialog", { name: "Eintrag löschen?" }).getByRole("button", { name: "Löschen" }).click();
   await expect(page.getByText("Eintrag gelöscht.")).toBeVisible();
-  await expect(page.getByText("Noch keine Einträge.")).toBeVisible();
+  await expect(page.getByText("Hier stehen deine Zeiteinträge je Kunde.")).toBeVisible();
 });
 
 test("Leistungen abrechnen: Vorschau, Rechnungsentwurf mit Nachweis, Einträge gesperrt, nicht zweimal abrechenbar (#417)", async () => {
@@ -499,7 +499,7 @@ test("Leistungen abrechnen: Vorschau, Rechnungsentwurf mit Nachweis, Einträge g
     ["0:45", "Interne Abstimmung", true],
   ];
   for (const [dauer, text, intern] of eintraege) {
-    await page.getByRole("button", { name: "Neuer Eintrag" }).click();
+    await page.locator(".page-head").getByRole("button", { name: "Neuer Eintrag" }).click();
     const neu = page.getByRole("form", { name: "Neuer Eintrag" });
     await neu.getByLabel("Kunde").selectOption({ label: "Rheinpixel GmbH" });
     await neu.getByLabel("Dauer", { exact: true }).fill(dauer);
@@ -1054,7 +1054,7 @@ test("Kontaktseite: Zeiteinträge des Kunden erfassen und ansehen, Rechnung mit 
   // Ohne offene Einträge: nur „Zeiteinträge“, als Einstieg zum Erfassen
   await kopf.getByRole("link", { name: "Zeiteinträge", exact: true }).click();
   await page.waitForURL(/\/leistungen\?kunde=[0-9a-f-]{36}$/);
-  await page.getByRole("button", { name: "Neuer Eintrag" }).click();
+  await page.locator(".page-head").getByRole("button", { name: "Neuer Eintrag" }).click();
   const neu = page.getByRole("form", { name: "Neuer Eintrag" });
   await expect(neu.getByLabel("Kunde").locator("option:checked")).toHaveText("Nordwerk Software GmbH");
   await neu.getByLabel("Dauer", { exact: true }).fill("1:30");

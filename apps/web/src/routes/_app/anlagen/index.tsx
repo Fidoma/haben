@@ -10,6 +10,7 @@ import { useAction } from "../../../lib/use-action.ts";
 import { bookDepreciationFn, getAssets } from "../../../server/functions/assets.ts";
 import { ConfirmDialog } from "../../../components/ConfirmDialog.tsx";
 import { Status } from "../../../components/Status.tsx";
+import { menueGruppe } from "../../../lib/menue-gruppe.ts";
 
 export const Route = createFileRoute("/_app/anlagen/")({
   validateSearch: z.object({ jahr: z.optional(z.int().check(z.minimum(2000), z.maximum(2100))) }),
@@ -48,7 +49,7 @@ function AssetsPage() {
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Anlagenverzeichnis</div>
+          <div className="eyebrow">{menueGruppe("/anlagen")}</div>
           <h1>Anlagen {year}</h1>
         </div>
         <div className="actions">
@@ -66,6 +67,9 @@ function AssetsPage() {
           )}
         </div>
       </div>
+      <p className="muted small" style={{ margin: 0, maxWidth: 760 }}>
+        Das Anlagenverzeichnis führt die Anschaffungen, die du über mehrere Jahre abschreibst.
+      </p>
 
       {years.length > 1 && (
         <nav className="filter-row" aria-label="Jahr wählen">
@@ -102,10 +106,14 @@ function AssetsPage() {
 
       <section className="card" aria-label="Anlagen">
         {shown.length === 0 ? (
-          <p className="muted" style={{ margin: 0 }}>
-            Keine Anlagen in {year}. Neue Anschaffungen entstehen beim Buchen eines Belegs mit der Kategorie „Anlagegut“; Anlagen aus der bisherigen Buchhaltung
-            übernimmst du mit <Link to="/anlagen/neu">Anlage übernehmen</Link>.
-          </p>
+          <>
+            <p className="muted" style={{ margin: 0 }}>
+              Keine Anlagen in {year}; neue entstehen beim Buchen eines Belegs mit der Kategorie „Anlagegut“.
+            </p>
+            <Link to="/anlagen/neu" className="btn" style={{ alignSelf: "flex-start" }}>
+              Anlage übernehmen
+            </Link>
+          </>
         ) : (
           <div className="table">
             <div className="table-row head asset-cols">

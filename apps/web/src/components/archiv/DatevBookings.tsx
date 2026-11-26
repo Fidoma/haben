@@ -54,7 +54,7 @@ export function DatevBookings({ year, years, data, search }: { year: number; yea
         {data.rows.length === 0 ? (
           <p className="muted" style={{ margin: 0 }}>
             {data.total === 0 && !search.suche && !search.ohneBeleg
-              ? "Für dieses Jahr ist kein DATEV-Buchungsstapel übernommen."
+              ? "Hier stehen die Buchungen eines DATEV-Stapels; übernimm ihn im Tab „Umzug“."
               : "Keine Buchungen für diese Auswahl."}
           </p>
         ) : (

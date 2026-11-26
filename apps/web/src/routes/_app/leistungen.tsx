@@ -12,6 +12,7 @@ import { errorMessage, formatDate } from "../../lib/format.ts";
 import type { Notice } from "../../lib/use-action.ts";
 import { serviceEntryNote } from "../../lib/zeiteintrag.ts";
 import { getServiceEntries, removeServiceEntry } from "../../server/functions/leistungen.ts";
+import { menueGruppe } from "../../lib/menue-gruppe.ts";
 
 const searchSchema = z.object({
   kunde: z.uuid().optional(),
@@ -43,6 +44,20 @@ function ServiceEntriesPage() {
   const [confirm, setConfirm] = useState<ServiceEntryRow | null>(null);
   const names = new Map(customers.map((c) => [c.id, c.name]));
   const formOpen = creating || editing !== null || billing;
+  const newButton = (
+    <button
+      type="button"
+      className="btn btn-primary"
+      onClick={() => {
+        setEditing(null);
+        setBilling(false);
+        setCreating(true);
+        setNotice(null);
+      }}
+    >
+      Neuer Eintrag
+    </button>
+  );
 
   async function onDelete(entry: ServiceEntryRow) {
     try {
@@ -54,13 +69,14 @@ function ServiceEntriesPage() {
     }
   }
 
+  const filtered = Boolean(search.kunde || search.von || search.bis || search.stand);
   const filter = (patch: Partial<Search>) => void navigate({ search: (prev) => ({ ...prev, ...patch }) });
 
   return (
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Verkauf</div>
+          <div className="eyebrow">{menueGruppe("/leistungen")}</div>
           <h1>Zeiteinträge</h1>
         </div>
         {!formOpen && (
@@ -77,18 +93,7 @@ function ServiceEntriesPage() {
             >
               Abrechnen
             </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => {
-                setEditing(null);
-                setBilling(false);
-                setCreating(true);
-                setNotice(null);
-              }}
-            >
-              Neuer Eintrag
-            </button>
+            {newButton}
           </div>
         )}
       </div>
@@ -118,11 +123,12 @@ function ServiceEntriesPage() {
         <section className="card" aria-label="Leistungsliste">
           <LeistungsFilter search={search} customers={customers} filter={filter} />
           {entries.length === 0 ? (
-            <p className="muted" style={{ margin: 0 }}>
-              {search.kunde || search.von || search.bis || search.stand
-                ? "Keine Einträge für diesen Filter."
-                : "Noch keine Einträge. Lege den ersten mit „Neuer Eintrag“ an."}
-            </p>
+            <>
+              <p className="muted" style={{ margin: 0 }}>
+                {filtered ? "Keine Einträge für diesen Filter." : "Hier stehen deine Zeiteinträge je Kunde."}
+              </p>
+              {!filtered && !formOpen && <div style={{ alignSelf: "flex-start" }}>{newButton}</div>}
+            </>
           ) : (
             <>
               <div className="table">

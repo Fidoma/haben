@@ -5,6 +5,7 @@ import { FORMAT_LABEL, type InvoiceFormat } from "../../../lib/invoice.ts";
 import { getContacts } from "../../../server/functions/contacts.ts";
 import { Field } from "../../../components/Field.tsx";
 import { Tag } from "../../../components/Status.tsx";
+import { menueGruppe } from "../../../lib/menue-gruppe.ts";
 
 export const Route = createFileRoute("/_app/kontakte/")({
   validateSearch: z.object({
@@ -91,7 +92,7 @@ function ContactsPage() {
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Verkauf</div>
+          <div className="eyebrow">{menueGruppe("/kontakte")}</div>
           <h1>Kontakte</h1>
         </div>
         <div className="actions">
@@ -134,9 +135,20 @@ function ContactsPage() {
       </div>
       <section className="card" aria-label="Kontaktliste">
         {contacts.length === 0 ? (
-          <p className="muted" style={{ margin: 0 }}>
-            {rolle ? `Keine ${rolle === "kunde" ? "Kunden" : "Lieferanten"}.` : "Noch keine Kontakte. Lege den ersten mit „Neuer Kontakt“ an."}
-          </p>
+          <>
+            <p className="muted" style={{ margin: 0 }}>
+              {rolle
+                ? `Keine ${rolle === "kunde" ? "Kunden" : "Lieferanten"}.`
+                : archiv
+                  ? "Keine Kontakte, auch keine archivierten."
+                  : "Hier stehen deine Kunden und Lieferanten."}
+            </p>
+            {!rolle && !archiv && (
+              <Link to="/kontakte/neu" className="btn btn-primary" style={{ alignSelf: "flex-start" }}>
+                Neuer Kontakt
+              </Link>
+            )}
+          </>
         ) : shown.length === 0 ? (
           <p className="muted" style={{ margin: 0 }}>
             Kein Kontakt passt zu „{query}“.

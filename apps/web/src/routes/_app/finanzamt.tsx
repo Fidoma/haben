@@ -9,6 +9,7 @@ import { type Topic, vorauszahlungHinweis } from "./-finanzamt-daten.ts";
 import { History, Postfach } from "./-finanzamt-postfach.tsx";
 import { BankChangeForm, MessageForm } from "./-finanzamt-nachrichten.tsx";
 import { PrepaymentForm } from "./-finanzamt-vorauszahlung.tsx";
+import { menueGruppe } from "../../lib/menue-gruppe.ts";
 
 export const Route = createFileRoute("/_app/finanzamt")({
   // Datum in Deutschland, nicht UTC; kommt beim ersten Aufruf mit den Loader-Daten vom Server
@@ -30,10 +31,13 @@ function FinanzamtPage() {
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Über ELSTER</div>
+          <div className="eyebrow">{menueGruppe("/finanzamt")}</div>
           <h1>Finanzamt</h1>
         </div>
       </div>
+      <p className="muted small" style={{ margin: 0, maxWidth: 760 }}>
+        Hier schreibst du dem Finanzamt über ELSTER und holst Bescheide aus dem Postfach.
+      </p>
 
       {data.mode === "simuliert" && <EricHinweis />}
       {data.issues.length > 0 && (

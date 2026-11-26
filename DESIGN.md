@@ -187,6 +187,19 @@ Auf dem Handy steht der Kopf kompakt: die Aktionen in einer Zeile, die seitlich 
 
 Der Kontaktdialog (`NewContactDialog`) folgt demselben Muster: Titel in Seitentitelgröße oben und die Knöpfe unten stehen, nur das Formular dazwischen scrollt; der Dialog ist selbst die Karte, das Formular darin hat keinen eigenen Rahmen. Formular-Dialoge laufen über `FormDialog`, und der setzt Rand, Abstände und die stehende Knopfzeile selbst: Das Formular darin ist ein schlichtes `<form>` mit Feldern und als letztem Kind einer `.actions`-Zeile, ohne eigene Klassen für Rand oder Fußzeile. Abschnitte (`form-section`), auch in dem `fieldset-plain`, das die Felder beim Speichern sperrt (siehe Gesperrte Knöpfe), und die Knopfzeile reichen bis an den Rand des Dialogs.
 
+Der Eyebrow über dem Titel einer Seite in einer Menügruppe ist der Name dieser Gruppe, für die Steuerberatung der ihres Menüs (`menueGruppe` in `lib/menue-gruppe.ts`, nie von Hand getippt; `lib/menue-gruppe.test.ts` prüft beide Menülisten). Ausnahmen:
+
+- Die Weiterleitungen (Jahresabschluss, Jahreserklärung, Umsatzsteuer): Der Eyebrow steht von Hand auf ihrer Zielseite.
+- Die Tabs Mahnwesen und Wiederkehrend der Rechnungen zeigen „Rechnungen › Mahnwesen“ und „Rechnungen › Wiederkehrend“, die Elternseite als Link.
+
+Ein Fachbegriff, der Orientierung gibt, steht nicht im Eyebrow, sondern in einem Satz unter dem Kopf (`<p className="muted small">`); eine längere Einleitung, die es auf einer Seite schon gibt, bleibt, und der Begriff steht dann in ihrem ersten Satz oder in einem eigenen davor.
+
+Eine leere Liste, die man von Hand füllt, nennt kurz, was hier entsteht:
+
+- Hat der Seitenkopf einen Knopf zum Anlegen, steht derselbe Knopf noch einmal im Leerzustand, nur für den, der ihn im Kopf sieht, und nicht, wenn ein Filter (Rolle, Archiv, Suche) die Liste leert; Jahr und Monat zählen nicht als Filter.
+- Hat der Kopf keinen, nennt der Satz den Ort (Formular, Karte, Tab oder Link); bei den Belegen kommt für den Inhaber ohne Postfach der Knopf „Postfach für Belege einrichten“ dazu.
+- Ausnahme Bank: Der Kopf hat „Konto hinzufügen“ und „CSV / CAMT importieren“, der Leerzustand erklärt den Weg ohne Knopf.
+
 ### Rückfragen
 
 Folgenreiches bestätigt der Dialog `ConfirmDialog` (#404), nie ein zweiter Klick auf denselben Knopf und nie `window.confirm`. Der Titel ist eine Frage mit dem Objekt („Entwurf löschen?“), darunter stehen die Folgen, rechts die Aktion mit ihrem Namen, nie „OK“. Der Kopf hat keine Trennlinie und kein Schließen-X; die Linie unter dem Titel gehört zu Formular-Dialogen wie `NewContactDialog`, deren Inhalt scrollt.

@@ -8,6 +8,7 @@ import { getPauschalen } from "../../server/functions/pauschalen.ts";
 import styles from "../../styles/auswertungen.css?url";
 import { EntfernungTab, FahrtForm, HomeofficeForm, VerpflegungForm } from "./-pauschalen-formulare.tsx";
 import { Liste, OnlyEinzelunternehmen } from "./-pauschalen-liste.tsx";
+import { menueGruppe } from "../../lib/menue-gruppe.ts";
 
 export const Route = createFileRoute("/_app/pauschalen")({
   validateSearch: z.object({ jahr: z.optional(z.int().check(z.minimum(2000), z.maximum(2100))) }),
@@ -43,14 +44,13 @@ function PauschalenList() {
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Ausgaben ohne Beleg</div>
+          <div className="eyebrow">{menueGruppe("/pauschalen")}</div>
           <h1>Pauschalen {year}</h1>
         </div>
       </div>
-      <p className="muted" style={{ marginTop: 0, maxWidth: 760 }}>
-        Homeoffice-Tage, Fahrten mit dem eigenen Auto, Wege zur Betriebsstätte und Verpflegung auf Geschäftsreisen mindern den Gewinn, ohne dass du etwas
-        bezahlt hast, das einen Beleg hätte. Haben bucht sie als Ausgabe an Privateinlage und trägt sie in die richtigen Zeilen der{" "}
-        <Link to="/jahreserklaerung">Anlage EÜR</Link> ein. Halte fest, wann du wo warst (Kalender, Fahrtenliste); das Finanzamt kann danach fragen.
+      <p className="muted small" style={{ margin: 0, maxWidth: 760 }}>
+        Ausgaben ohne Beleg: Homeoffice-Tage, Fahrten mit dem eigenen Auto, Wege zur Betriebsstätte und Verpflegung auf Geschäftsreisen mindern den Gewinn, ohne
+        dass du etwas bezahlt hast, das einen Beleg hätte.
       </p>
 
       <nav className="filter-row" aria-label="Jahr wählen">
@@ -96,6 +96,10 @@ function PauschalenList() {
           <h2 id="neu-heading" style={{ margin: 0, fontSize: 16 }}>
             Pauschale eintragen
           </h2>
+          <p className="muted small" style={{ margin: 0 }}>
+            Haben bucht sie als Ausgabe an Privateinlage und trägt sie in die richtigen Zeilen der <Link to="/jahreserklaerung">Anlage EÜR</Link> ein. Halte
+            fest, wann du wo warst (Kalender, Fahrtenliste); das Finanzamt kann danach fragen.
+          </p>
           <div className="mode-switch" role="group" aria-label="Art der Pauschale">
             {ARTEN.map((a) => (
               <button

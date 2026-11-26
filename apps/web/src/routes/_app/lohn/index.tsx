@@ -10,6 +10,7 @@ import { useAction } from "../../../lib/use-action.ts";
 import { abrechnenFn, getLohn } from "../../../server/functions/lohn.ts";
 import styles from "../../../styles/auswertungen.css?url";
 import { Field } from "../../../components/Field.tsx";
+import { menueGruppe } from "../../../lib/menue-gruppe.ts";
 
 /*
  * Personal › Lohn: Mitarbeiter und die Abrechnung eines Monats. Haben rechnet Lohnsteuer und Sozialversicherung, hält
@@ -221,7 +222,7 @@ function LohnPage() {
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Personal</div>
+          <div className="eyebrow">{menueGruppe("/lohn")}</div>
           <h1>Lohn {data.monat.name}</h1>
         </div>
         <MonatWahl data={data} />
