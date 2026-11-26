@@ -5,9 +5,9 @@ import { databaseUrlFuer, STRIPE_PORT } from "./durchlaeufe.ts";
 import { axeVerstoesse, durchlaufSeite, einrichten, gehe } from "./einrichtung.ts";
 
 /**
- * Stripe (#1280) in eigener, leerer Datenbank (Projekt „stripe-abruf“, e2e/durchlaeufe.ts): Schlüssel des Testmodus
- * abgelehnt, Live-Schlüssel gespeichert, Balance Transactions abgerufen und als Umsätze im Konto des
- * Zahlungsdienstleisters, Zugang entfernt. Nur der Server dieses Durchlaufs fragt die nachgebaute API unten
+ * Stripe (#1280, #1729) in eigener, leerer Datenbank (Projekt „stripe-abruf“, e2e/durchlaeufe.ts): Schlüssel des Testmodus
+ * abgelehnt, Live-Schlüssel als Verbindung gespeichert, Balance Transactions abgerufen und als Umsätze im Konto des
+ * Zahlungsdienstleisters, Verbindung entfernt. Nur der Server dieses Durchlaufs fragt die nachgebaute API unten
  * (STRIPE_API_URL in playwright.config.ts): eine Zahlung mit Gebühr und eine Auszahlung.
  */
 
@@ -89,7 +89,10 @@ test.afterEach(() => {
   expect(pageErrors).toEqual([]);
 });
 
-const karte = () => page.getByRole("region", { name: "Stripe", exact: true });
+const karte = () => page.getByRole("region", { name: "Zahlungsdienstleister", exact: true });
+const formular = () => karte().getByRole("form", { name: "Neue Verbindung" });
+/** Die Verbindung heißt wie vorgeschlagen nach dem Anbieter */
+const verbindung = () => karte().getByRole("region", { name: "Stripe", exact: true });
 
 test("Einrichtung", async () => {
   await einrichten(page);
@@ -98,31 +101,41 @@ test("Einrichtung", async () => {
 test("Ein Schlüssel des Testmodus wird abgelehnt, ohne Stripe zu fragen", async () => {
   await gehe(page, "/einstellungen?bereich=bank");
   await expect(karte().getByText("Nicht eingerichtet.")).toBeVisible();
-  await expect(karte().getByRole("button", { name: "Jetzt abrufen" })).toBeDisabled();
-  expect(await axeVerstoesse(page), "Einstellungen › Bank mit der Stripe-Karte").toEqual([]);
+  expect(await axeVerstoesse(page), "Einstellungen › Bank mit der Karte der Zahlungsdienstleister").toEqual([]);
 
-  await karte().getByLabel("API-Schlüssel").fill(["rk", "test", "e2eBeispielSchluessel4711"].join("_"));
-  await karte().getByRole("button", { name: "Speichern" }).click();
-  await expect(karte().getByRole("alert")).toContainText("Haben ruft nur Live-Umsätze ab; bitte einen Live-Schlüssel mit Leserechten eintragen.");
-  await expect(karte().getByText("Nicht eingerichtet.")).toBeVisible();
+  await karte().getByRole("button", { name: "Verbindung hinzufügen" }).click();
+  await expect(formular().getByLabel("Anbieter")).toHaveValue("stripe");
+  await expect(formular().getByLabel("Name")).toHaveValue("Stripe");
+  // Ohne Namen: Fehler am Feld statt Meldung des Browsers, der Fokus steht im Feld (DESIGN.md, Gesperrte Knöpfe)
+  await formular().getByLabel("Name").fill("");
+  await formular().getByRole("button", { name: "Speichern" }).click();
+  await expect(formular().getByText("Gib der Verbindung einen Namen.")).toBeVisible();
+  await expect(formular().getByLabel("Name")).toBeFocused();
+  await formular().getByLabel("Name").fill("Stripe");
+  await formular().getByLabel("API-Schlüssel").fill(["rk", "test", "e2eBeispielSchluessel4711"].join("_"));
+  await formular().getByRole("button", { name: "Speichern" }).click();
+  await expect(formular().getByRole("alert")).toContainText("Haben ruft nur Live-Umsätze ab; bitte einen Live-Schlüssel mit Leserechten eintragen.");
+  await expect(verbindung()).toHaveCount(0);
   expect(anfragen).toEqual([]);
 });
 
 test("Live-Schlüssel speichern: Stripe nennt das Konto, der Schlüssel liegt nur verschlüsselt in der Datenbank", async () => {
-  await gehe(page, "/einstellungen?bereich=bank");
-  await karte().getByLabel("API-Schlüssel").fill(SCHLUESSEL);
-  await karte().getByRole("button", { name: "Speichern" }).click();
+  await formular().getByLabel("API-Schlüssel").fill(SCHLUESSEL);
+  await formular().getByRole("button", { name: "Speichern" }).click();
 
-  await expect(karte().getByText("Zugang gespeichert.")).toBeVisible();
-  await expect(karte().getByText(`Verbunden mit ${KONTO} (Schlüssel …4711).`)).toBeVisible();
-  await expect(karte().getByText("Noch kein Abruf.")).toBeVisible();
-  await expect(karte().getByLabel("API-Schlüssel (leer lassen zum Behalten)")).toHaveValue("");
+  await expect(karte().getByText("Verbindung gespeichert.")).toBeVisible();
+  await expect(verbindung().getByText(`Stripe: verbunden mit ${KONTO} (Schlüssel …4711).`)).toBeVisible();
+  await expect(verbindung().getByText(/Noch kein Abruf\./)).toBeVisible();
+  await verbindung().getByRole("button", { name: "Bearbeiten" }).click();
+  await expect(verbindung().getByLabel("API-Schlüssel (leer lassen zum Behalten)")).toHaveValue("");
+  await verbindung().getByRole("button", { name: "Abbrechen" }).click();
   expect(anfragen.map((a) => a.pfad)).toEqual(["GET /v1/account"]);
 
   const sql = postgres(databaseUrlFuer("stripe-abruf"), { max: 1, onnotice: () => {} });
   try {
-    const [zeile] = await sql`select account_id, key_hint, position('e2eBeispiel' in encode(ciphertext, 'escape')) as klartext from stripe_connections`;
-    expect(zeile).toEqual({ account_id: KONTO, key_hint: "4711", klartext: 0 });
+    const [zeile] =
+      await sql`select provider, name, account_id, key_hint, position('e2eBeispiel' in encode(ciphertext, 'escape')) as klartext from psp_connections`;
+    expect(zeile).toEqual({ provider: "stripe", name: "Stripe", account_id: KONTO, key_hint: "4711", klartext: 0 });
   } finally {
     await sql.end();
   }
@@ -133,9 +146,9 @@ test("Jetzt abrufen: Zahlung, Gebühr und Auszahlung kommen ins Konto des Zahlun
   try {
     await sql`insert into bank_accounts (name, purpose, provider, ledger_index) values ('Stripe', 'zahlungsdienstleister', 'stripe', 3)`;
     await gehe(page, "/einstellungen?bereich=bank");
-    await karte().getByRole("button", { name: "Jetzt abrufen" }).click();
-    await expect(karte().getByText("Abruf durchgelaufen.")).toBeVisible();
-    await expect(karte().getByText(/Letzter Abruf: /)).toBeVisible();
+    await verbindung().getByRole("button", { name: "Jetzt abrufen" }).click();
+    await expect(verbindung().getByText("Abruf durchgelaufen.")).toBeVisible();
+    await expect(verbindung().getByText(/Letzter Abruf: /)).toBeVisible();
 
     const abruf = anfragen.find((a) => a.pfad.startsWith("GET /v1/balance_transactions"));
     expect(abruf?.pfad).toContain("expand%5B%5D=data.source");
@@ -150,8 +163,8 @@ test("Jetzt abrufen: Zahlung, Gebühr und Auszahlung kommen ins Konto des Zahlun
     expect(umsaetze.find((u) => u.bank_reference === "txn_e2eZahlung")?.counterparty_name).toBe("Studio Süd");
 
     // Ein zweiter Abruf legt nichts doppelt an
-    await karte().getByRole("button", { name: "Jetzt abrufen" }).click();
-    await expect(karte().getByText("Abruf durchgelaufen.")).toBeVisible();
+    await verbindung().getByRole("button", { name: "Jetzt abrufen" }).click();
+    await expect(verbindung().getByText("Abruf durchgelaufen.")).toBeVisible();
     expect(await sql`select count(*)::int as n from bank_transactions`).toEqual([{ n: 3 }]);
   } finally {
     await sql.end();
@@ -161,17 +174,17 @@ test("Jetzt abrufen: Zahlung, Gebühr und Auszahlung kommen ins Konto des Zahlun
   await expect(page.getByText("Studio Süd").first()).toBeVisible();
 });
 
-test("Zugang entfernen löscht den Schlüssel, die Umsätze bleiben", async () => {
+test("Verbindung entfernen löscht den Schlüssel, die Umsätze bleiben", async () => {
   await gehe(page, "/einstellungen?bereich=bank");
-  await karte().getByRole("button", { name: "Zugang entfernen" }).click();
-  const dialog = page.getByRole("dialog", { name: "Stripe-Zugang entfernen?" });
+  await verbindung().getByRole("button", { name: "Verbindung entfernen" }).click();
+  const dialog = page.getByRole("dialog", { name: "Verbindung Stripe entfernen?" });
   await dialog.getByRole("button", { name: "Entfernen" }).click();
-  await expect(karte().getByText("Zugang entfernt. Übernommene Umsätze bleiben im Konto stehen.")).toBeVisible();
+  await expect(karte().getByText("Verbindung entfernt. Übernommene Umsätze bleiben im Konto stehen.")).toBeVisible();
   await expect(karte().getByText("Nicht eingerichtet.")).toBeVisible();
 
   const sql = postgres(databaseUrlFuer("stripe-abruf"), { max: 1, onnotice: () => {} });
   try {
-    expect(await sql`select count(*)::int as n from stripe_connections`).toEqual([{ n: 0 }]);
+    expect(await sql`select count(*)::int as n from psp_connections`).toEqual([{ n: 0 }]);
     expect(await sql`select count(*)::int as n from bank_transactions`).toEqual([{ n: 3 }]);
   } finally {
     await sql.end();

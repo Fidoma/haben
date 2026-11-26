@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { networkErrorText } from "@haben/core";
 import { backoff, parseRetryAfter, RETRY_STATUSES } from "../retry.ts";
+import { apiBetragInCent } from "../text.ts";
 
 /*
  * Lesender Client für die Transaction Search API von PayPal
@@ -98,14 +99,11 @@ const listSchema = z.looseObject({
 const balancesSchema = z.looseObject({ account_id: z.string().min(1) });
 const tokenSchema = z.looseObject({ access_token: z.string().min(1), expires_in: z.number().positive().nullish() });
 
-/** Betrag „-12.30“ als ganze Cent, ohne Gleitkomma; mehr als zwei Nachkommastellen mit Wert gibt es bei EUR nicht */
+/** Betrag „-12.30“ als ganze Cent über den gemeinsamen Helfer; mehr als zwei Nachkommastellen mit Wert gibt es bei EUR nicht */
 export function centsOf(value: string, what: string): number {
-  const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(value.trim());
-  if (!match) throw new PayPalApiError(`Unerwarteter Betrag bei PayPal (${what})`, 0, "");
-  const fraction = match[3] ?? "";
-  if (fraction.length > 2 && /[1-9]/.test(fraction.slice(2))) throw new PayPalApiError(`Betrag mit mehr als zwei Nachkommastellen bei PayPal (${what})`, 0, "");
-  const cents = Number(match[2]) * 100 + Number(fraction.slice(0, 2).padEnd(2, "0"));
-  return match[1] ? -cents : cents;
+  const cents = apiBetragInCent(value);
+  if (cents === null) throw new PayPalApiError(`Unerwarteter Betrag bei PayPal (${what}): ${value}`, 0, "");
+  return cents;
 }
 
 const clean = (value: string | null | undefined) => value?.replace(/\s+/g, " ").trim() || undefined;

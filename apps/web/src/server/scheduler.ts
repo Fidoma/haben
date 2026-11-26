@@ -12,10 +12,9 @@ import { runDueExchangeRates } from "./modules/stammdaten/index.ts";
 import { runDueFristenMails, runDuePostfachFetch } from "./modules/finanzamt/index.ts";
 import { applyPublishedRatesToDrafts, runDueBaseRate, runDueRecurring } from "./modules/rechnungen/index.ts";
 import { runDueEtsySyncs } from "./modules/etsy/index.ts";
-import { runDuePayPalSyncs } from "./modules/paypal/index.ts";
-import { runDueStripeSyncs } from "./modules/stripe/index.ts";
 import { runDueStoreSyncs } from "./modules/stores/index.ts";
 import { runDueUstIdPruefung } from "./modules/umsatzsteuer/index.ts";
+import { runDuePspSyncs } from "./modules/zahlungsdienstleister/index.ts";
 import { today } from "./today.ts";
 
 const HOUR = 60 * 60 * 1000;
@@ -133,23 +132,13 @@ const JOBS: ScheduledJob[] = [
     },
   },
   {
-    task: "paypal_sync",
-    label: "PayPal",
+    task: "psp_sync",
+    label: "Zahlungsdienstleister",
     run: async () => {
-      const result = await runDuePayPalSyncs();
-      if (result.added > 0) console.log(`PayPal: ${result.added} neue Umsätze aus der Transaction Search`);
-      // Hinweise wie eine Lücke im Zeitraum sind kein Fehler
-      for (const message of result.messages) console.warn(`PayPal: ${message}`);
-      return warnAll(result.errors);
-    },
-  },
-  {
-    task: "stripe_sync",
-    label: "Stripe",
-    run: async () => {
-      const result = await runDueStripeSyncs();
-      if (result.added > 0) console.log(`Stripe: ${result.added} neue Umsätze aus den Balance Transactions`);
-      for (const message of result.messages) console.warn(`Stripe: ${message}`);
+      const result = await runDuePspSyncs();
+      if (result.added > 0) console.log(`Zahlungsdienstleister: ${result.added} neue Umsätze`);
+      // Hinweise wie eine Lücke im Zeitraum sind kein Fehler; jede Meldung nennt ihre Verbindung
+      for (const message of result.messages) console.warn(message);
       return warnAll(result.errors);
     },
   },

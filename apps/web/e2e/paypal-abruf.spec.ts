@@ -93,7 +93,10 @@ test.afterEach(() => {
   expect(pageErrors).toEqual([]);
 });
 
-const karte = () => page.getByRole("region", { name: "PayPal" });
+const karte = () => page.getByRole("region", { name: "Zahlungsdienstleister", exact: true });
+const formular = () => karte().getByRole("form", { name: "Neue Verbindung" });
+/** Die Verbindung heißt wie vorgeschlagen nach dem Anbieter */
+const verbindung = () => karte().getByRole("region", { name: "PayPal", exact: true });
 
 async function mitDatenbank<T>(arbeit: (sql: postgres.Sql) => Promise<T>): Promise<T> {
   const sql = postgres(databaseUrlFuer("paypal-abruf"), { max: 1, onnotice: () => {} });
@@ -111,35 +114,39 @@ test("Einrichtung", async () => {
 test("Falsche Zugangsdaten: PayPal lehnt ab, nichts wird gespeichert, das Secret steht in keiner Meldung", async () => {
   await gehe(page, "/einstellungen?bereich=bank");
   await expect(karte().getByText("Nicht eingerichtet.")).toBeVisible();
-  await expect(karte().getByRole("button", { name: "Jetzt abrufen" })).toBeDisabled();
 
-  await karte().getByLabel("Client-ID", { exact: true }).fill(CLIENT_ID);
-  await karte().getByLabel("Secret", { exact: true }).fill("falsches-geheimnis");
-  await karte().getByRole("button", { name: "Speichern" }).click();
+  await karte().getByRole("button", { name: "Verbindung hinzufügen" }).click();
+  await formular().getByLabel("Anbieter").selectOption("paypal");
+  await expect(formular().getByLabel("Name")).toHaveValue("PayPal");
+  await formular().getByLabel("Client-ID", { exact: true }).fill(CLIENT_ID);
+  await formular().getByLabel("Secret", { exact: true }).fill("falsches-geheimnis");
+  await formular().getByRole("button", { name: "Speichern" }).click();
 
-  const meldung = karte().getByText(/PayPal nimmt die Zugangsdaten nicht an: Anmeldung abgelehnt/);
+  const meldung = formular().getByText(/PayPal nimmt die Zugangsdaten nicht an: Anmeldung abgelehnt/);
   await expect(meldung).toBeVisible();
   await expect(meldung).not.toContainText("falsches-geheimnis");
-  await expect(karte().getByText("Nicht eingerichtet.")).toBeVisible();
-  expect(await mitDatenbank((sql) => sql`select count(*)::int as n from paypal_connections`)).toEqual([{ n: 0 }]);
+  await expect(verbindung()).toHaveCount(0);
+  expect(await mitDatenbank((sql) => sql`select count(*)::int as n from psp_connections`)).toEqual([{ n: 0 }]);
 });
 
 test("Zugang speichern: Haben prüft ihn bei PayPal und nennt das Konto", async () => {
   const abrufAb = new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10);
-  await karte().getByLabel("Client-ID", { exact: true }).fill(CLIENT_ID);
-  await karte().getByLabel("Secret", { exact: true }).fill(SECRET);
-  await karte().getByLabel("Abruf ab").fill(abrufAb);
-  await karte().getByRole("button", { name: "Speichern" }).click();
+  await formular().getByLabel("Client-ID", { exact: true }).fill(CLIENT_ID);
+  await formular().getByLabel("Secret", { exact: true }).fill(SECRET);
+  await formular().getByLabel("Abruf ab").fill(abrufAb);
+  await formular().getByRole("button", { name: "Speichern" }).click();
 
-  await expect(karte().getByText("Zugang gespeichert.")).toBeVisible();
-  await expect(karte().getByText(`Verbunden mit ${KONTO} (Client-ID …AB12).`)).toBeVisible();
-  await expect(karte().getByText("Noch kein Abruf.")).toBeVisible();
+  await expect(karte().getByText("Verbindung gespeichert.")).toBeVisible();
+  await expect(verbindung().getByText(`PayPal: verbunden mit ${KONTO} (Client-ID …AB12).`)).toBeVisible();
+  await expect(verbindung().getByText(/Noch kein Abruf\./)).toBeVisible();
   // Client-ID und Secret stehen nicht in den Feldern und nicht im Klartext in der Datenbank
-  await expect(karte().getByLabel("Secret (leer lassen zum Behalten)")).toHaveValue("");
-  await expect(karte().getByLabel("Client-ID (leer lassen zum Behalten)")).toHaveValue("");
+  await verbindung().getByRole("button", { name: "Bearbeiten" }).click();
+  await expect(verbindung().getByLabel("Secret (leer lassen zum Behalten)")).toHaveValue("");
+  await expect(verbindung().getByLabel("Client-ID (leer lassen zum Behalten)")).toHaveValue("");
+  await verbindung().getByRole("button", { name: "Abbrechen" }).click();
   const [zeile] = await mitDatenbank(
     (sql) =>
-      sql`select account_id, key_hint, abruf_start::text, position(${SECRET} in encode(ciphertext, 'escape')) as secret, position(${CLIENT_ID} in encode(ciphertext, 'escape')) as client from paypal_connections`,
+      sql`select account_id, key_hint, abruf_start::text, position(${SECRET} in encode(ciphertext, 'escape')) as secret, position(${CLIENT_ID} in encode(ciphertext, 'escape')) as client from psp_connections`,
   );
   expect(zeile).toEqual({ account_id: KONTO, key_hint: "AB12", abruf_start: abrufAb, secret: 0, client: 0 });
   expect(anfragen).toContain("GET /v1/reporting/balances");
@@ -148,9 +155,9 @@ test("Zugang speichern: Haben prüft ihn bei PayPal und nennt das Konto", async 
 test("Jetzt abrufen: Zahlung, Gebühr und Abbuchung per Hand kommen ins Konto des Zahlungsdienstleisters, ein zweiter Abruf legt nichts doppelt an", async () => {
   await mitDatenbank((sql) => sql`insert into bank_accounts (name, purpose, provider, ledger_index) values ('PayPal', 'zahlungsdienstleister', 'paypal', 3)`);
   await gehe(page, "/einstellungen?bereich=bank");
-  await karte().getByRole("button", { name: "Jetzt abrufen" }).click();
-  await expect(karte().getByText("Abruf durchgelaufen.")).toBeVisible();
-  await expect(karte().getByText(/Letzter Abruf: /)).toBeVisible();
+  await verbindung().getByRole("button", { name: "Jetzt abrufen" }).click();
+  await expect(verbindung().getByText("Abruf durchgelaufen.")).toBeVisible();
+  await expect(verbindung().getByText(/Letzter Abruf: /)).toBeVisible();
   expect(anfragen).toContain("GET /v1/reporting/transactions");
 
   const umsaetze = () => mitDatenbank((sql) => sql`select amount, counterparty_name from bank_transactions order by amount`);
@@ -162,17 +169,17 @@ test("Jetzt abrufen: Zahlung, Gebühr und Abbuchung per Hand kommen ins Konto de
   ];
   expect(await umsaetze()).toEqual(erwartet);
 
-  await karte().getByRole("button", { name: "Jetzt abrufen" }).click();
-  await expect(karte().getByText("Abruf durchgelaufen.")).toBeVisible();
+  await verbindung().getByRole("button", { name: "Jetzt abrufen" }).click();
+  await expect(verbindung().getByText("Abruf durchgelaufen.")).toBeVisible();
   expect(await umsaetze()).toEqual(erwartet);
 });
 
-test("Zugang entfernen löscht Client-ID und Secret, die Umsätze bleiben", async () => {
-  await karte().getByRole("button", { name: "Zugang entfernen" }).click();
-  const dialog = page.getByRole("dialog", { name: "PayPal-Zugang entfernen?" });
+test("Verbindung entfernen löscht Client-ID und Secret, die Umsätze bleiben", async () => {
+  await verbindung().getByRole("button", { name: "Verbindung entfernen" }).click();
+  const dialog = page.getByRole("dialog", { name: "Verbindung PayPal entfernen?" });
   await dialog.getByRole("button", { name: "Entfernen" }).click();
-  await expect(karte().getByText("Zugang entfernt. Übernommene Umsätze bleiben im Konto stehen.")).toBeVisible();
+  await expect(karte().getByText("Verbindung entfernt. Übernommene Umsätze bleiben im Konto stehen.")).toBeVisible();
   await expect(karte().getByText("Nicht eingerichtet.")).toBeVisible();
-  expect(await mitDatenbank((sql) => sql`select count(*)::int as n from paypal_connections`)).toEqual([{ n: 0 }]);
+  expect(await mitDatenbank((sql) => sql`select count(*)::int as n from psp_connections`)).toEqual([{ n: 0 }]);
   expect(await mitDatenbank((sql) => sql`select count(*)::int as n from bank_transactions`)).toEqual([{ n: 3 }]);
 });

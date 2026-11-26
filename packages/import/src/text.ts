@@ -64,6 +64,19 @@ function parseGermanHundredths(input: string): number | null {
   return Number.isNaN(hundredths) ? null : hundredths;
 }
 
+/**
+ * Betrag aus der API eines Anbieters als Dezimaltext ("-12.30", "1234", "2.500") in ganzen Cent, ohne Gleitkomma (#1729).
+ * Null bei anderem Aufbau (Komma, Exponent, Tausenderzeichen), bei einem Wert nach dem Cent und außerhalb der sicheren Ganzzahlen.
+ */
+export function apiBetragInCent(value: string): Cents | null {
+  const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(value.trim());
+  if (!match) return null;
+  const fraction = match[3] ?? "";
+  if (/[1-9]/.test(fraction.slice(2))) return null;
+  const cents = joinHundredths(match[1] === "-", match[2]!, fraction.slice(0, 2));
+  return Number.isNaN(cents) ? null : cents;
+}
+
 /** Liest einen Betrag mit Dezimalpunkt in Cent: "-12.5", "1234.56", "1,234.56". */
 export function parseDotAmount(input: string): Cents | null {
   const { negative, body } = stripAmount(input);

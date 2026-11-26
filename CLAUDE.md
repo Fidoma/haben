@@ -27,6 +27,7 @@ the change before starting.
 | Roadmap board (GitHub Project) | `mitwirken.md`: Etwas übernehmen, Vom Issue zum Release | `board-pflegen` |
 | Releasing a version | `entwicklung.md`: Veröffentlichen, Release Candidates | `release` |
 | Yearly official values (PAP, social insurance, ERiC, taxonomy, laws) | `entwicklung.md`: Jahreswerte | `jahreswerte` |
+| New bank or payment provider (API adapter, file format) | `entwicklung.md`: Neues Bankformat, Neuer Zahlungsdienstleister | `anbindung-hinzufuegen` |
 | Quick search (command palette): new group or field | `architektur.md`: Schnellsuche, `suche.md` | `schnellsuche-erweitern` |
 | Writing or changing a skill (description, `references/`) | `entwicklung.md`: Befehle, „Skills“ | |
 | Who may merge what | `mitwirken.md`: Wer mergt was | |

@@ -7,7 +7,9 @@ import { describe, expect, it } from "vitest";
 /*
  * INTERNAL_PROVIDERS fällt offen aus: Fehlt eine Anbindung, nimmt der REST-Import Lieferungen in ihre Quelle an
  * (#306; PayPal und Stripe wurden so schon vergessen). Jede Anbindung bindet ihre Quelle mit einem festen Anbieter
- * an `storeBatch` (`binding: { provider: "…" }`); hier wird jede solche Stelle im Code gegen die Liste geprüft.
+ * an `storeBatch` (`binding: { provider: "…" }`); hier wird jede solche Stelle im Code gegen die Liste geprüft. Die
+ * Zahlungsdienstleister mit Adapter binden mit dem Anbieter ihrer Verbindung (zahlungsdienstleister/abruf.ts, #1729): Dort
+ * zählt jeder Adapter aus der Liste der Anbieter.
  */
 
 const modules = fileURLToPath(new URL("..", import.meta.url));
@@ -29,8 +31,20 @@ describe("Interne Anbieter (#306)", () => {
   it("jede Anbindung in Haben steht in INTERNAL_PROVIDERS", () => {
     const gefunden = gebundeneAnbieter();
     // Die Suche selbst greift: die bekannten Abrufe werden gefunden
-    expect([...gefunden.keys()]).toEqual(expect.arrayContaining(["enablebanking", "etsy", "paypal", "stripe"]));
+    expect([...gefunden.keys()]).toEqual(expect.arrayContaining(["enablebanking", "etsy"]));
     const fehlend = [...gefunden].filter(([provider]) => !(INTERNAL_PROVIDERS as readonly string[]).includes(provider));
     expect(Object.fromEntries(fehlend)).toEqual({});
+  });
+
+  it("jeder Adapter eines Zahlungsdienstleisters steht in INTERNAL_PROVIDERS", () => {
+    // Die gemeinsame Anbindung bindet mit dem Anbieter der Verbindung, nicht mit einem festen Text
+    const ordner = join(modules, "zahlungsdienstleister");
+    expect(readFileSync(join(ordner, "abruf.ts"), "utf8")).toMatch(/binding:\s*\{\s*provider:\s*row\.provider/);
+    // Jeder Adapter (`PspAdapter<…> = { provider: "…"`) gehört in die Liste
+    const anbieter = readdirSync(ordner)
+      .filter((datei) => datei.endsWith(".ts") && !datei.endsWith(".test.ts"))
+      .flatMap((datei) => [...readFileSync(join(ordner, datei), "utf8").matchAll(/PspAdapter<[^=]*= \{\s*provider:\s*"([^"]+)"/g)].map((m) => m[1]!));
+    expect(anbieter).toEqual(expect.arrayContaining(["paypal", "stripe"]));
+    expect(anbieter.filter((p) => !(INTERNAL_PROVIDERS as readonly string[]).includes(p))).toEqual([]);
   });
 });

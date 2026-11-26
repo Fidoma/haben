@@ -2115,20 +2115,6 @@
       "function": "public.haben_seal()"
     },
     {
-      "table": "public.paypal_connections",
-      "name": "paypal_connections_audit",
-      "enabled": "O",
-      "definition": "CREATE TRIGGER paypal_connections_audit AFTER INSERT OR DELETE OR UPDATE ON public.paypal_connections FOR EACH ROW EXECUTE FUNCTION public.haben_audit()",
-      "function": "public.haben_audit()"
-    },
-    {
-      "table": "public.paypal_connections",
-      "name": "paypal_connections_no_truncate",
-      "enabled": "O",
-      "definition": "CREATE TRIGGER paypal_connections_no_truncate BEFORE TRUNCATE ON public.paypal_connections FOR EACH STATEMENT EXECUTE FUNCTION public.haben_reject_truncate()",
-      "function": "public.haben_reject_truncate()"
-    },
-    {
       "table": "public.payroll_runs",
       "name": "payroll_runs_audit",
       "enabled": "O",
@@ -2294,6 +2280,20 @@
       "name": "procedure_details_no_truncate",
       "enabled": "O",
       "definition": "CREATE TRIGGER procedure_details_no_truncate BEFORE TRUNCATE ON public.procedure_details FOR EACH STATEMENT EXECUTE FUNCTION public.haben_reject_truncate()",
+      "function": "public.haben_reject_truncate()"
+    },
+    {
+      "table": "public.psp_connections",
+      "name": "psp_connections_audit",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER psp_connections_audit AFTER INSERT OR DELETE OR UPDATE ON public.psp_connections FOR EACH ROW EXECUTE FUNCTION public.haben_audit()",
+      "function": "public.haben_audit()"
+    },
+    {
+      "table": "public.psp_connections",
+      "name": "psp_connections_no_truncate",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER psp_connections_no_truncate BEFORE TRUNCATE ON public.psp_connections FOR EACH STATEMENT EXECUTE FUNCTION public.haben_reject_truncate()",
       "function": "public.haben_reject_truncate()"
     },
     {
@@ -2840,20 +2840,6 @@
       "name": "store_reports_no_truncate",
       "enabled": "O",
       "definition": "CREATE TRIGGER store_reports_no_truncate BEFORE TRUNCATE ON public.store_reports FOR EACH STATEMENT EXECUTE FUNCTION public.haben_reject_truncate()",
-      "function": "public.haben_reject_truncate()"
-    },
-    {
-      "table": "public.stripe_connections",
-      "name": "stripe_connections_audit",
-      "enabled": "O",
-      "definition": "CREATE TRIGGER stripe_connections_audit AFTER INSERT OR DELETE OR UPDATE ON public.stripe_connections FOR EACH ROW EXECUTE FUNCTION public.haben_audit()",
-      "function": "public.haben_audit()"
-    },
-    {
-      "table": "public.stripe_connections",
-      "name": "stripe_connections_no_truncate",
-      "enabled": "O",
-      "definition": "CREATE TRIGGER stripe_connections_no_truncate BEFORE TRUNCATE ON public.stripe_connections FOR EACH STATEMENT EXECUTE FUNCTION public.haben_reject_truncate()",
       "function": "public.haben_reject_truncate()"
     },
     {

@@ -365,6 +365,10 @@ Die Parser liegen in `packages/import/src/`. Ohne eigenen Parser liest Haben ein
 
 Das Format wird als Text in `bank_imports.format` gespeichert; eine Migration ist dafür nicht nötig. Liefert die Datei keine eigene IBAN, muss das Konto vor dem Import angelegt werden (wie bei N26).
 
+## Neuer Zahlungsdienstleister
+
+Ein Zahlungsdienstleister mit API läuft über die gemeinsame Anbindung im Modul `zahlungsdienstleister` ([#1729](https://github.com/Speicherstadt/haben/issues/1729)): Client und Lieferung in `packages/import/src/<anbieter>/`, ein Adapter nach dem Vertrag in `adapter.ts` und sein Eintrag in `anbieter.ts`. Tabelle, Zeitplan und Einstellungen nehmen ihn ohne Migration auf; dazu kommt er in einige feste Listen (`PAYMENT_PROVIDERS`, interne Quellen, Formatnamen). Die Schritte stehen im Skill [`anbindung-hinzufuegen`](https://github.com/Speicherstadt/haben/blob/main/.claude/skills/anbindung-hinzufuegen/SKILL.md).
+
 ## Neue Ausgabenkategorie
 
 Die Kategorien stehen in `EXPENSE_CATEGORIES` in `packages/core/src/kontenplan.ts`, je mit Bezeichnung und Aufwandskonto für SKR03 und SKR04. Ein neuer Eintrag erscheint automatisch in der Auswahl am Beleg, in der Anweisung für die KI-Auslesung, im Journal und in der EÜR. Die Kategorie steht als Text am Beleg, eine Migration ist nicht nötig. Für übernommene Lexoffice-Belege kannst du in `apps/web/src/server/modules/archiv/legacy-open.ts` (`CATEGORY_HINTS`) ein Suchmuster ergänzen. Die Kontonummern stimmst du mit der Steuerberatung ab.

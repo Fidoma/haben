@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { abrufFaellig, minusDays, naechsterAbrufStart, OVERLAP_DAYS } from "./abruf-regeln.ts";
+import { abrufFaellig, minusDays } from "./regeln.ts";
+import { STRIPE_OVERLAP_DAYS as OVERLAP_DAYS, stripeNaechsterStart as naechsterAbrufStart } from "./stripe-regeln.ts";
 
 describe("naechsterAbrufStart", () => {
   it("beginnt drei Tage vor heute", () => {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { abrufFaellig, abrufFenster, AUSSTEHEND_TAGE, naechsterAbrufStart } from "./abruf-regeln.ts";
+import { AUSSTEHEND_TAGE, paypalFenster as abrufFenster, paypalNaechsterStart as naechsterAbrufStart } from "./paypal-regeln.ts";
+import { abrufFaellig } from "./regeln.ts";
 
 describe("naechsterAbrufStart", () => {
   const jetzt = new Date("2026-11-07T10:00:00Z");

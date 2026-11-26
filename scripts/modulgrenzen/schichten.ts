@@ -34,8 +34,7 @@ export const SCHICHTEN = [
   "instanzwechsel",
   "stores",
   "etsy",
-  "paypal",
-  "stripe",
+  "zahlungsdienstleister",
   "mcp",
   "api",
 ] as const;

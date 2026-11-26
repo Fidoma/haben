@@ -3,6 +3,7 @@ import type postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { StripeBalanceTransaction, StripeClient } from "@haben/import";
 import { setupTestDb, testDatabaseUrl } from "../../test-db.ts";
+import { alsStripe } from "./test-verbindung.ts";
 
 /*
  * Der CSV-Export „Balance history“ kam vor dem Abruf (#1280, #306): Der Abruf verbindet die Umsätze aus der Datei mit
@@ -34,14 +35,14 @@ function csv(): Uint8Array {
 }
 
 describe.skipIf(!testDatabaseUrl)("Stripe-Abruf nach dem CSV-Export (Postgres)", () => {
-  let stripe: typeof import("./index.ts");
+  let stripe: ReturnType<typeof alsStripe>;
   let bank: typeof import("../bank/index.ts");
   let sql: postgres.Sql;
   const actor = "test-user";
 
   beforeAll(async () => {
     sql = await setupTestDb();
-    stripe = await import("./index.ts");
+    stripe = alsStripe(await import("./index.ts"));
     bank = await import("../bank/index.ts");
     stripe.setStripeClientFactory(() => ({ accountId: async () => "acct_beispiel", balanceTransactions: async () => transactions }) as unknown as StripeClient);
   }, 60_000);

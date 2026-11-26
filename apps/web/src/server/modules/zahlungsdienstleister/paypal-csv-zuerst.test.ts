@@ -3,6 +3,7 @@ import type postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PayPalClient } from "@haben/import";
 import { setupTestDb, testDatabaseUrl } from "../../test-db.ts";
+import { alsPayPal } from "./test-verbindung.ts";
 
 /*
  * Der Aktivitätenexport (CSV) kam vor dem Abruf (#1512, #306): Der Abruf verbindet die Umsätze aus der Datei mit der
@@ -102,14 +103,14 @@ function csv(): Uint8Array {
 }
 
 describe.skipIf(!testDatabaseUrl)("PayPal-Abruf nach dem CSV-Export (Postgres)", () => {
-  let paypal: typeof import("./index.ts");
+  let paypal: ReturnType<typeof alsPayPal>;
   let bank: typeof import("../bank/index.ts");
   let sql: postgres.Sql;
   const actor = "test-user";
 
   beforeAll(async () => {
     sql = await setupTestDb();
-    paypal = await import("./index.ts");
+    paypal = alsPayPal(await import("./index.ts"));
     bank = await import("../bank/index.ts");
     paypal.setPayPalClientFactory(factory);
   }, 60_000);

@@ -7,7 +7,8 @@ import { useSubmitCheck } from "../lib/use-submit-check.ts";
 import { addExternalBankSource } from "../server/functions/bank-quellen.ts";
 import { Field } from "./Field.tsx";
 import { FormDialog } from "./FormDialog.tsx";
-import { KonfliktKlaeren, quelleZuAnbieter } from "./ImportKonflikt.tsx";
+import { KonfliktKlaeren } from "./ImportKonflikt.tsx";
+import { quelleZuAnbieter } from "../lib/import-quelle.ts";
 import { NoticeBanner } from "./NoticeBanner.tsx";
 
 /*

@@ -29,6 +29,7 @@ export {
   accountSettingsSchema,
   createAccount,
   createProviderAccount,
+  providerKontoAnlegen,
   listAccounts,
   ownAccounts,
   providerAccountSchema,
@@ -150,5 +151,5 @@ export {
   MAX_MOVEMENTS,
   type ExternalImportResult,
 } from "./externe-quellen.ts";
-export { keineExterneQuelleFuerAbruf } from "./abruf-bindung.ts";
+export { keineExterneQuelle, keineExterneQuelleFuerAbruf } from "./abruf-bindung.ts";
 export { runExistingDuplicateCheck } from "./duplicate-scan.ts";

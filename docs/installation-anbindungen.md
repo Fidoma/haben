@@ -196,7 +196,11 @@ Was an Enable Banking geht: beim Verbinden die gewählte Bank und die Rückleitu
 
 ## PayPal-Abruf
 
-Der Abruf der PayPal-Umsätze braucht auf dem Server nichts Eigenes: keine Umgebungsvariable und kein Secret für PayPal. Die Zugangsdaten verschlüsselt Haben wie alle anderen mit dem vorhandenen Schlüssel der Installation; wechselst du ihn, musst du sie neu eintragen. Client-ID und Secret der PayPal-App trägst du in Haben ein (Einstellungen › Bank › PayPal, siehe [PayPal-Umsätze über die API](bank-zahlungsdienstleister.md#paypal-umsätze-über-die-api)); sie liegen verschlüsselt in der Datenbank. Der Server muss `api-m.paypal.com` (Sandbox: `api-m.sandbox.paypal.com`) auf Port 443 erreichen.
+Der Abruf der PayPal-Umsätze braucht auf dem Server nichts Eigenes: keine Umgebungsvariable und kein Secret für PayPal. Die Zugangsdaten verschlüsselt Haben wie alle anderen mit dem vorhandenen Schlüssel der Installation; wechselst du ihn, musst du sie neu eintragen. Client-ID und Secret der PayPal-App trägst du in Haben ein (Einstellungen › Bank › Zahlungsdienstleister, siehe [PayPal-Umsätze über die API](bank-zahlungsdienstleister.md#paypal-umsätze-über-die-api)); sie liegen verschlüsselt in der Datenbank. Der Server muss `api-m.paypal.com` (Sandbox: `api-m.sandbox.paypal.com`) auf Port 443 erreichen.
+
+## Stripe-Abruf
+
+Wie bei PayPal braucht der Abruf der Stripe-Umsätze keine Umgebungsvariable und kein Secret auf dem Server. Den API-Schlüssel trägst du in Haben ein (Einstellungen › Bank › Zahlungsdienstleister, siehe [Stripe-Umsätze über die API](bank-zahlungsdienstleister.md#stripe-umsätze-über-die-api)); er liegt verschlüsselt in der Datenbank. Der Server muss `api.stripe.com` auf Port 443 erreichen.
 
 ## Kontoabruf über FinTS
 

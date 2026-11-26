@@ -1,5 +1,6 @@
 import { and, eq, gte, lte, notInArray } from "drizzle-orm";
 import type { INTERNAL_PROVIDERS, StatementFormat } from "@haben/import";
+import { FORMAT_NAMEN } from "@haben/import/format-namen";
 import { schema, type Tx } from "../../db/index.ts";
 
 /*
@@ -10,39 +11,6 @@ import { schema, type Tx } from "../../db/index.ts";
  * Dubletten und legt dieselbe Zahlung ein zweites Mal an. Beim Test von #627 waren von zwölf Umsätzen
  * eines Quartals acht doppelt, und aufgefallen ist es erst am Kontostand.
  */
-
-/** Formate lesbar machen; als `Record<StatementFormat, …>` meldet tsc ein neues Format, das hier fehlt. */
-const FORMAT_NAMEN: Record<StatementFormat, string> = {
-  "dkb-csv": "DKB",
-  "dkb-csv-alt": "DKB",
-  "n26-csv": "N26",
-  "swan-csv": "Swan",
-  "commerzbank-csv": "Commerzbank",
-  "bw-bank-csv": "BW-Bank",
-  "ing-csv": "ING",
-  "c24-csv": "C24",
-  "deutsche-bank-group-csv": "Deutsche Bank",
-  "csv-zuordnung": "CSV mit eigener Zuordnung",
-  camt053: "CAMT.053",
-  enablebanking: "Bankabruf",
-  fints: "FinTS-Abruf",
-  "accountable-xlsx": "Accountable",
-  "paypal-csv": "PayPal",
-  "paypal-api": "PayPal (Abruf)",
-  "stripe-csv": "Stripe",
-  "stripe-api": "Stripe (Abruf)",
-  "shopify-payments-csv": "Shopify",
-  "ebay-csv": "eBay",
-  "amazon-settlement": "Amazon",
-  "etsy-csv": "Etsy",
-  // Bewusst ein anderer Name als beim CSV-Import: Wer von der CSV auf den Abruf wechselt, wechselt die Quelle
-  "etsy-ledger": "Etsy Payments (Abruf)",
-  "googleplay-earnings": "Google Play",
-  "appstore-finance": "App Store",
-  "store-payout": "Store-Auszahlung",
-  importvertrag: "REST-Import",
-  "importvertrag-psp": "REST-Import",
-};
 
 /** Anbieter einer Quellenbindung (`import_sources.provider`, #306), wie die Meldung ihn nennt; tsc verlangt genau die Einträge aus INTERNAL_PROVIDERS */
 const ABRUF_NAMEN: Record<string, string> = {

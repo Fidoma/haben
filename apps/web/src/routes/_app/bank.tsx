@@ -1,4 +1,6 @@
 import { formatEuro } from "@haben/core";
+import type { StatementFormat } from "@haben/import";
+import { FORMAT_NAMEN } from "@haben/import/format-namen";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { z } from "zod/mini";
@@ -64,36 +66,8 @@ export const Route = createFileRoute("/_app/bank")({
   component: BankPage,
 });
 
-const FORMAT_LABEL = (format: string) =>
-  format === "enablebanking" || format === "fints"
-    ? "Abruf"
-    : format.startsWith("importvertrag")
-      ? "REST-Import"
-      : format.startsWith("camt")
-        ? "CAMT.053"
-        : format === "paypal-csv"
-          ? "PayPal"
-          : format === "paypal-api"
-            ? "PayPal (Abruf)"
-            : format === "stripe-csv"
-              ? "Stripe"
-              : format === "stripe-api"
-                ? "Stripe (Abruf)"
-                : format === "shopify-payments-csv"
-                  ? "Shopify"
-                  : format === "ebay-csv"
-                    ? "eBay"
-                    : format === "etsy-csv"
-                      ? "Etsy"
-                      : format === "etsy-ledger"
-                        ? "Etsy (Abruf)"
-                        : format === "googleplay-earnings"
-                          ? "Google Play"
-                          : format === "appstore-finance"
-                            ? "App Store"
-                            : format === "store-payout"
-                              ? "Auszahlung"
-                              : "CSV";
+/** Quelle des letzten Imports in der Kontenliste; unbekannte Formate (aus älteren Versionen) als „Datei“ */
+const FORMAT_LABEL = (format: string) => FORMAT_NAMEN[format as StatementFormat] ?? "Datei";
 
 /** J/K springen zum nächsten bzw. vorigen Umsatz */
 function useUmsatzTasten(transactions: Data["transactions"], index: number) {

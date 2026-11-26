@@ -107,8 +107,10 @@ describe.skipIf(!testDatabaseUrl)("Abruf an einem Konto mit externer Quelle (Pos
   });
 
   it("speichert den Zugang zu PayPal, Stripe oder Etsy nicht, wenn ihr Konto schon eine externe Quelle hat", async () => {
-    const paypal = await import("../paypal/index.ts");
-    const stripe = await import("../stripe/index.ts");
+    const { alsPayPal, alsStripe } = await import("../zahlungsdienstleister/test-verbindung.ts");
+    const psp = await import("../zahlungsdienstleister/index.ts");
+    const paypal = alsPayPal(psp);
+    const stripe = alsStripe(psp);
     const etsy = await import("../etsy/index.ts");
     paypal.setPayPalClientFactory(() => ({ accountId: async () => "HAENDLER2" }) as never);
     stripe.setStripeClientFactory(() => ({ accountId: async () => "acct_beispiel" }) as never);
@@ -122,6 +124,6 @@ describe.skipIf(!testDatabaseUrl)("Abruf an einem Konto mit externer Quelle (Pos
     await expect(etsy.saveEtsyConnection("test", { keystring: "abc", sharedSecret: "geheim", fetchFrom: tag.slice(0, 7) })).rejects.toThrow(
       /schon über die Schnittstelle/,
     );
-    expect(await sql`select 1 from paypal_connections union all select 1 from stripe_connections union all select 1 from etsy_connections`).toHaveLength(0);
+    expect(await sql`select 1 from psp_connections union all select 1 from etsy_connections`).toHaveLength(0);
   });
 });

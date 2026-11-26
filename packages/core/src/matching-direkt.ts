@@ -37,6 +37,9 @@ export const AMAZON_MARKETPLACES: readonly string[] = ["Amazon.de", "Amazon.fr",
 
 export type PaymentProvider = keyof typeof PAYMENT_PROVIDERS;
 
+/** Die Schlüssel als Liste für `z.enum` und die Spalte `bank_accounts.provider`; ein neuer Anbieter steht damit nur in PAYMENT_PROVIDERS */
+export const PAYMENT_PROVIDER_KEYS = Object.keys(PAYMENT_PROVIDERS) as [PaymentProvider, ...PaymentProvider[]];
+
 /** Zweck eines Bankkontos; Zahlungsdienstleister legt Haben nur über „Zahlungsdienstleister hinzufügen“ an */
 export type AccountPurpose = keyof typeof ACCOUNT_PURPOSES | "zahlungsdienstleister";
 

@@ -2,6 +2,7 @@ import type postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { StripeBalanceTransaction, StripeClient } from "@haben/import";
 import { setupTestDb, testDatabaseUrl } from "../../test-db.ts";
+import { alsStripe } from "./test-verbindung.ts";
 
 /* Review (#1237): Fälle, die der Abruf über storeBatch und das Modul stripe nicht verfehlen darf. */
 
@@ -44,14 +45,14 @@ const fake = (accountId = "acct_review") =>
   }) as unknown as StripeClient;
 
 describe.skipIf(!testDatabaseUrl)("Review Stripe-Abruf (Postgres)", () => {
-  let stripe: typeof import("./index.ts");
+  let stripe: ReturnType<typeof alsStripe>;
   let bank: typeof import("../bank/index.ts");
   let sql: postgres.Sql;
   const actor = "review";
 
   beforeAll(async () => {
     sql = await setupTestDb();
-    stripe = await import("./index.ts");
+    stripe = alsStripe(await import("./index.ts"));
     bank = await import("../bank/index.ts");
     stripe.setStripeClientFactory(() => fake());
     await sql`insert into bank_accounts (name, purpose, provider, ledger_index) values ('Stripe', 'zahlungsdienstleister', 'stripe', 3)`;
@@ -67,7 +68,7 @@ describe.skipIf(!testDatabaseUrl)("Review Stripe-Abruf (Postgres)", () => {
     await sql?.end();
   });
 
-  const reset = () => sql`update stripe_connections set fetch_from = '2026-10-01'`;
+  const reset = () => sql`update psp_connections set fetch_from = '2026-10-01' where provider = 'stripe'`;
   const refs = async (like: string) =>
     (await sql`select bank_reference as r, amount from bank_transactions where bank_reference like ${like} order by bank_reference, amount`).map((r) => [
       r.r,
@@ -186,7 +187,7 @@ describe.skipIf(!testDatabaseUrl)("Review Stripe-Abruf (Postgres)", () => {
     } finally {
       stripe.setStripeClientFactory(() => fake());
     }
-    const [row] = await sql`select fetch_from::text as f, last_error from stripe_connections`;
+    const [row] = await sql`select fetch_from::text as f, last_error from psp_connections where provider = 'stripe'`;
     expect(row!.f).toBe("2026-10-01");
     expect(row!.last_error).toContain("kaputt");
   });

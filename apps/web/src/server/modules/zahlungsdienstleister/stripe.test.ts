@@ -3,6 +3,7 @@ import type postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { StripeBalanceTransaction, StripeClient } from "@haben/import";
 import { setupTestDb, testDatabaseUrl } from "../../test-db.ts";
+import { alsStripe } from "./test-verbindung.ts";
 
 /*
  * Abruf der Balance Transactions von Stripe gegen Postgres: Zugang speichern, Umsätze abrufen, ins Konto des
@@ -44,14 +45,14 @@ function csv(): Uint8Array {
 }
 
 describe.skipIf(!testDatabaseUrl)("Stripe-Abruf (Postgres)", () => {
-  let stripe: typeof import("./index.ts");
+  let stripe: ReturnType<typeof alsStripe>;
   let bank: typeof import("../bank/index.ts");
   let sql: postgres.Sql;
   const actor = "test-user";
 
   beforeAll(async () => {
     sql = await setupTestDb();
-    stripe = await import("./index.ts");
+    stripe = alsStripe(await import("./index.ts"));
     bank = await import("../bank/index.ts");
     stripe.setStripeClientFactory(() => fake());
   }, 60_000);
@@ -59,12 +60,6 @@ describe.skipIf(!testDatabaseUrl)("Stripe-Abruf (Postgres)", () => {
   afterAll(async () => {
     await sql?.end();
   });
-
-  async function kontoAnlegen() {
-    await sql`insert into bank_accounts (name, purpose, provider, ledger_index) values ('Stripe', 'zahlungsdienstleister', 'stripe', 3) on conflict do nothing`;
-    const [konto] = await sql`select id from bank_accounts where provider = 'stripe'`;
-    return konto!.id as string;
-  }
 
   it("speichert den Schlüssel verschlüsselt und nennt in der Zusammenfassung nur die Kontokennung und die letzten Zeichen", async () => {
     await stripe.saveStripeConnection(actor, { apiKey: KEY, fetchFrom: "2019-01-01" });
@@ -77,16 +72,16 @@ describe.skipIf(!testDatabaseUrl)("Stripe-Abruf (Postgres)", () => {
       rhythmus: "taeglich",
     });
     expect(JSON.stringify(stand)).not.toContain("abcdefgh");
-    const [row] = await sql`select ciphertext::text as c from stripe_connections`;
+    const [row] = await sql`select ciphertext::text as c from psp_connections where provider = 'stripe'`;
     expect(row!.c).not.toContain("abcdefgh");
   });
 
   it("lehnt Schlüssel des Testmodus ab und speichert nichts, damit keine Testdaten ins Konto kommen", async () => {
-    const vorher = await sql`select account_id, key_hint from stripe_connections`;
+    const vorher = await sql`select account_id, key_hint from psp_connections where provider = 'stripe'`;
     for (const key of ["rk_test_abcdefghijkl", "sk_test_abcdefghijkl"]) {
       await expect(stripe.saveStripeConnection(actor, { apiKey: key, fetchFrom: "2019-01-01" })).rejects.toThrow("nur Live-Umsätze");
     }
-    expect(await sql`select account_id, key_hint from stripe_connections`).toEqual(vorher);
+    expect(await sql`select account_id, key_hint from psp_connections where provider = 'stripe'`).toEqual(vorher);
   });
 
   it("lehnt den öffentlichen Schlüssel, unbekannte Werte und einen Start in der Zukunft ab", async () => {
@@ -99,19 +94,16 @@ describe.skipIf(!testDatabaseUrl)("Stripe-Abruf (Postgres)", () => {
     await stripe.saveStripeConnection(actor, { fetchFrom: "2019-01-01", rhythmus: "taeglich" });
   });
 
-  it("legt ohne Konto des Dienstleisters nichts an und lässt den Startpunkt stehen", async () => {
-    const result = await stripe.syncStripe(actor, HEUTE);
-    expect(result.error).toBeNull();
-    expect(result.accountName).toBeNull();
-    expect(result.messages.join(" ")).toContain("noch kein Konto");
-    const [anzahl] = await sql`select count(*)::int as n from bank_transactions`;
-    expect(anzahl!.n).toBe(0);
-    const [row] = await sql`select fetch_from::text as f from stripe_connections`;
-    expect(row!.f).toBe("2019-01-01");
+  it("legt beim Speichern das Konto des Dienstleisters mit dem Namen der Verbindung an, wenn keins frei ist (#1729)", async () => {
+    const konten =
+      await sql`select b.name, b.purpose, b.provider from psp_connections c join bank_accounts b on b.id = c.bank_account_id where c.provider = 'stripe'`;
+    expect(konten).toEqual([{ name: "Stripe", purpose: "zahlungsdienstleister", provider: "stripe" }]);
+    // Weiteres Speichern legt kein zweites an
+    expect((await sql`select count(*)::int as n from bank_accounts where provider = 'stripe'`)[0]!.n).toBe(1);
+    expect((await sql`select count(*)::int as n from bank_transactions`)[0]!.n).toBe(0);
   });
 
   it("übernimmt die Umsätze ins Konto des Dienstleisters, Zahlung und Gebühr getrennt", async () => {
-    await kontoAnlegen();
     const result = await stripe.syncStripe(actor, HEUTE);
     expect(result.error).toBeNull();
     expect(result.entries).toBe(6);
@@ -150,7 +142,7 @@ describe.skipIf(!testDatabaseUrl)("Stripe-Abruf (Postgres)", () => {
     const [anzahl] = await sql`select count(*)::int as n from bank_transactions`;
     expect(anzahl!.n).toBe(10);
     // Drei Tage vor heute
-    const [row] = await sql`select fetch_from::text as f, last_error from stripe_connections`;
+    const [row] = await sql`select fetch_from::text as f, last_error from psp_connections where provider = 'stripe'`;
     expect(row!.f).toBe("2026-11-04");
     expect(row!.last_error).toBeNull();
     expect((await stripe.stripeSummary()).fetchFrom).toBe("2019-01-01");
@@ -252,7 +244,7 @@ describe.skipIf(!testDatabaseUrl)("Stripe-Abruf (Postgres)", () => {
       const result = await stripe.syncStripe(actor, nachts);
       expect(result.error).toBeNull();
       expect(result.added).toBe(2);
-      const [row] = await sql`select fetch_from::text as f, last_error from stripe_connections`;
+      const [row] = await sql`select fetch_from::text as f, last_error from psp_connections where provider = 'stripe'`;
       expect(row!.last_error).toBeNull();
       // Nie vor dem gewählten Start: der Abruf rückt nicht hinter den Tag zurück, den die Person gewählt hat
       expect(row!.f).toBe("2026-11-08");

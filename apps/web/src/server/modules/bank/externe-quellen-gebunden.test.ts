@@ -68,15 +68,15 @@ describe.skipIf(!testDatabaseUrl)("Externe Quelle an einem Konto mit Abruf (Post
   it("Konto des PayPal-Abrufs bekommt vor dem ersten Abruf keine externe Quelle, ein zweites PayPal-Konto schon", async () => {
     const konto = await pspKonto("PayPal", "paypal");
     const zweites = await pspKonto("PayPal privat", "paypal");
-    await sql`insert into paypal_connections (account_id, ciphertext, fetch_from, abruf_start) values ('HAENDLER1', '\\x00', '2026-10-01', '2026-10-01')`;
+    await sql`insert into psp_connections (provider, name, account_id, ciphertext, fetch_from, abruf_start) values ('paypal', 'PayPal', 'HAENDLER1', '\\x00', '2026-10-01', '2026-10-01')`;
     await expect(freigeben(konto, "fremd-dienst")).rejects.toThrow(/nur aus einer/);
-    // Der Abruf schreibt nur in das älteste PayPal-Konto (paypal/import.ts)
+    // Ohne gewähltes Konto schreibt der Abruf in das älteste freie PayPal-Konto (freiesKonto in zahlungsdienstleister/)
     expect(await freigeben(zweites, "fremd-paypal")).toMatchObject({ bankAccountId: zweites });
   });
 
   it("Konto des Stripe-Abrufs bekommt vor dem ersten Abruf keine externe Quelle", async () => {
     const konto = await pspKonto("Stripe", "stripe");
-    await sql`insert into stripe_connections (account_id, ciphertext, fetch_from, abruf_start) values ('acct_beispiel', '\\x00', '2026-10-01', '2026-10-01')`;
+    await sql`insert into psp_connections (provider, name, account_id, ciphertext, fetch_from, abruf_start) values ('stripe', 'Stripe', 'acct_beispiel', '\\x00', '2026-10-01', '2026-10-01')`;
     await expect(freigeben(konto, "fremd-dienst")).rejects.toThrow(/nur aus einer/);
   });
 

@@ -1,7 +1,7 @@
 // Bankkonten und Konten der Zahlungsdienstleister: anlegen, ändern, auflisten
 
 import { BankError } from "./bank-error.ts";
-import { AMAZON_MARKETPLACES, gruppiereGebuehren, type OwnAccount } from "@haben/core";
+import { AMAZON_MARKETPLACES, gruppiereGebuehren, type OwnAccount, PAYMENT_PROVIDER_KEYS } from "@haben/core";
 import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { withActor } from "../../db/actor.ts";
@@ -156,7 +156,7 @@ export async function updateAccount(actor: string, input: z.infer<typeof account
 export const providerAccountSchema = z
   .object({
     name: z.string().trim().min(1, "Name fehlt").max(100),
-    provider: z.enum(["paypal", "stripe", "shopify", "etsy", "ebay", "amazon", "sumup", "googleplay", "appstore", "sonstige"]),
+    provider: z.enum(PAYMENT_PROVIDER_KEYS),
     marketplace: z.string().trim().max(40).optional(),
   })
   .superRefine((value, ctx) => {
@@ -170,25 +170,28 @@ export const providerAccountSchema = z
 
 export async function createProviderAccount(actor: string, input: z.input<typeof providerAccountSchema>) {
   const data = providerAccountSchema.parse(input);
-  return withActor(actor, async (tx) => {
-    // Sperre gegen zwei gleichzeitige Anlagen mit derselben Nummer; die Spalte ist zusätzlich eindeutig
-    await tx.execute(sql`lock table bank_accounts in share row exclusive mode`);
-    const used = new Set((await tx.select({ i: schema.bankAccounts.ledgerIndex }).from(schema.bankAccounts)).map((r) => r.i));
-    const ledgerIndex = [1, 2, 3, 4, 5, 6, 7, 8, 9].find((i) => !used.has(i));
-    if (!ledgerIndex) throw new BankError("Es gibt schon neun Zahlungsdienstleister; mehr Verrechnungskonten sieht Haben nicht vor.");
-    const [created] = await tx
-      .insert(schema.bankAccounts)
-      .values({
-        name: data.name,
-        iban: null,
-        purpose: "zahlungsdienstleister",
-        provider: data.provider,
-        marketplace: data.provider === "amazon" ? (data.marketplace ?? null) : null,
-        ledgerIndex,
-      })
-      .returning();
-    return created!;
-  });
+  return withActor(actor, (tx) => providerKontoAnlegen(tx, data));
+}
+
+/** Legt das Konto in einer laufenden Transaktion an, etwa zusammen mit der Verbindung des Abrufs (zahlungsdienstleister/, #1729) */
+export async function providerKontoAnlegen(tx: Tx, data: z.output<typeof providerAccountSchema>) {
+  // Sperre gegen zwei gleichzeitige Anlagen mit derselben Nummer; die Spalte ist zusätzlich eindeutig
+  await tx.execute(sql`lock table bank_accounts in share row exclusive mode`);
+  const used = new Set((await tx.select({ i: schema.bankAccounts.ledgerIndex }).from(schema.bankAccounts)).map((r) => r.i));
+  const ledgerIndex = [1, 2, 3, 4, 5, 6, 7, 8, 9].find((i) => !used.has(i));
+  if (!ledgerIndex) throw new BankError("Es gibt schon neun Zahlungsdienstleister; mehr Verrechnungskonten sieht Haben nicht vor.");
+  const [created] = await tx
+    .insert(schema.bankAccounts)
+    .values({
+      name: data.name,
+      iban: null,
+      purpose: "zahlungsdienstleister",
+      provider: data.provider,
+      marketplace: data.provider === "amazon" ? (data.marketplace ?? null) : null,
+      ledgerIndex,
+    })
+    .returning();
+  return created!;
 }
 
 /** Konto zur IBAN; fehlt es, wird es angelegt */
