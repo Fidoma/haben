@@ -2290,6 +2290,13 @@
       "when": 1795547499310,
       "tag": "0326_bank_wiederzuordnung",
       "breakpoints": true
+    },
+    {
+      "idx": 327,
+      "version": "7",
+      "when": 1795642566276,
+      "tag": "0327_kleinunternehmer_zuordnung",
+      "breakpoints": true
     }
   ]
 }

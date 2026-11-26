@@ -440,11 +440,62 @@ describe.skipIf(!testDatabaseUrl)("Kleinunternehmer-Umsätze in Kz 48 (Postgres)
     await firma("SKR03", "soll");
     await rechnung();
     const entwurf = await vat.saveDraft(actor, september, { mode: "berechnet" });
-    // So steht eine früher gesendete Anmeldung da: Kz 48 ohne die Umsätze als Kleinunternehmer
-    await sql`update vat_returns set kz48 = 0, status = 'sent', sent_at = now() where id = ${entwurf.id}`;
+    // So steht eine früher gesendete Anmeldung da: Kz 48 ohne die Umsätze als Kleinunternehmer, ohne Zuordnung (#1811)
+    await sql`update vat_returns set kz48 = 0, small_business_rule = null, status = 'sent', sent_at = now() where id = ${entwurf.id}`;
     expect(await vat.gesendeteAbweichungen([2026])).toEqual([]);
 
     await sql`update vat_returns set kz48 = 12300 where id = ${entwurf.id}`;
     expect(await vat.gesendeteAbweichungen([2026])).toEqual([{ period: september, feld: "Kz 48", gesendet: 12_300, journal: 80_000 }]);
+  });
+
+  // #1811: Kz 48 ohne die Umsätze als Kleinunternehmer gilt nur bei Anmeldungen als gleich, deren berechnete Werte vor
+  // #1268 entstanden sind. Danach gespeicherte melden jede spätere Änderung, auch auf den Wert ohne diese Umsätze.
+  const senden = (id: string) => sql`update vat_returns set status = 'sent', sent_at = clock_timestamp() where id = ${id}`;
+  const nachher = { period: september, feld: "Kz 48", gesendet: 0, journal: 80_000 };
+
+  for (const [kontenrahmen, versteuerung] of [
+    ["SKR03", "ist"],
+    ["SKR04", "soll"],
+  ] as const)
+    it(`${kontenrahmen}/${versteuerung}: Nach dem Update gesendet, fällt eine spätere Rechnung für den Monat auf (#1811)`, async () => {
+      await firma(kontenrahmen, versteuerung);
+      const entwurf = await vat.saveDraft(actor, september, { mode: "berechnet" });
+      expect(entwurf).toMatchObject({ kz48: 0, smallBusinessRule: "leistung" });
+      await senden(entwurf.id);
+      await rechnung();
+      expect(await vat.gesendeteAbweichungen([2026])).toEqual([nachher]);
+    });
+
+  it("Die Datenbank nimmt in small_business_rule nur „leistung“ oder nichts (#1811)", async () => {
+    await firma("SKR03", "ist");
+    const entwurf = await vat.saveDraft(actor, september, { mode: "berechnet" });
+    await expect(sql`update vat_returns set small_business_rule = 'zahlung' where id = ${entwurf.id}`).rejects.toThrow(/vat_returns_small_business_rule/);
+  });
+
+  it("SKR04/ist: Von Hand überschrieben, zählen die beim Speichern berechneten Werte samt Umsätzen als Kleinunternehmer (#1811)", async () => {
+    await firma("SKR04", "ist");
+    const entwurf = await vat.saveDraft(actor, september, { mode: "manuell", reason: "Werte aus der alten Buchhaltung", kz81: 0, kz86: 0, kz66: 0 });
+    expect(entwurf.smallBusinessRule).toBe("leistung");
+    await senden(entwurf.id);
+    await rechnung();
+    expect(await vat.gesendeteAbweichungen([2026])).toEqual([nachher]);
+  });
+
+  it("SKR03/soll: Die Berichtigung übernimmt mit den berechneten Werten deren Zuordnung (#1811)", async () => {
+    await firma("SKR03", "soll");
+    const erste = await vat.saveDraft(actor, september, { mode: "manuell", reason: "Werte aus der alten Buchhaltung", kz81: 0, kz86: 0, kz66: 0 });
+    await senden(erste.id);
+    const berichtigung = await vat.createCorrection(actor, september);
+    expect(berichtigung.smallBusinessRule).toBe("leistung");
+    await senden(berichtigung.id);
+    await rechnung();
+    expect(await vat.gesendeteAbweichungen([2026])).toEqual([nachher]);
+
+    // Eine Anmeldung von vor #1268 berichtigt, bleiben deren berechnete Werte und mit ihnen die Ausnahme
+    await sql`update vat_returns set small_business_rule = null where id = ${berichtigung.id}`;
+    const zweite = await vat.createCorrection(actor, september);
+    expect(zweite.smallBusinessRule).toBeNull();
+    await senden(zweite.id);
+    expect(await vat.gesendeteAbweichungen([2026])).toEqual([]);
   });
 });

@@ -8,7 +8,9 @@ import { berechnet } from "./vat.ts";
  * Haben den Zeitraum heute anders, hat eine Buchung oder eine Codeänderung ein angemeldetes Jahr still verändert. Je
  * Zeitraum zählt die zuletzt gesendete Anmeldung (auch eine Berichtigung). Bei von Hand überschriebenen Kennzahlen
  * (source „manuell“) wird mit den beim Speichern berechneten Werten verglichen (`computed`), nicht mit den gesendeten.
- * Kz 48 gilt auch ohne die Umsätze als Kleinunternehmer als gleich: So hat Haben sie vor #1268 gemeldet.
+ * Kz 48 gilt auch ohne die Umsätze als Kleinunternehmer als gleich, wenn die Anmeldung ohne `smallBusinessRule`
+ * gerechnet ist (vor #1811, ob mit oder ohne sie, ist unbekannt): So hat Haben sie vor #1268 gemeldet. Bei später
+ * gerechneten fällt jede Änderung auf.
  * Kz 50 (#1267) fehlt im Vergleich: Sie wiederholt nur, was Kz 81/86 schon mindern, ändert keine Steuer, und vor
  * #1267 gesendete Anmeldungen haben sie nicht.
  */
@@ -62,7 +64,7 @@ export async function gesendeteAbweichungen(years: readonly number[], q: Db | Tx
     const gespeichert: Partial<Record<(typeof FELDER)[number], number>> = row.source === "manuell" ? (row.computed ?? {}) : row;
     for (const feld of FELDER) {
       const gesendet = gespeichert[feld] ?? 0;
-      if (feld === "kz48" && gesendet === kz48OhneKleinunternehmer) continue;
+      if (feld === "kz48" && row.smallBusinessRule === null && gesendet === kz48OhneKleinunternehmer) continue;
       if (gesendet !== heute[feld]) result.push({ period, feld: `Kz ${feld.slice(2)}`, gesendet, journal: heute[feld] });
     }
   }

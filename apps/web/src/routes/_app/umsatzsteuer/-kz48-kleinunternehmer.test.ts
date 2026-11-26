@@ -38,11 +38,13 @@ vi.mock("../../../components/umsatzsteuer/VatFrequencyCard.tsx", () => ({ VatFre
 vi.mock("../../../components/umsatzsteuer/DauerfristCard.tsx", () => ({ DauerfristCard: () => null }));
 
 // #1268: Gesendete Voranmeldungen eines Kleinunternehmers von vor der Änderung haben Kz 48 ohne seine Umsätze. Wie der Abgleich
-// gesendeter Voranmeldungen (gesendet-pruefen.ts) meldet die Seite dafür keine Änderung seit der Übermittlung.
+// gesendeter Voranmeldungen (gesendet-pruefen.ts) meldet die Seite dafür keine Änderung seit der Übermittlung, aber nur bei
+// Anmeldungen ohne `smallBusinessRule` (#1811).
 describe("Gesendete Voranmeldung mit Kz 48 ohne die Umsätze als Kleinunternehmer", () => {
-  function seite(gesendet: ReturnType<typeof computeUstva>, figures: Record<string, unknown>) {
+  function seite(gesendet: ReturnType<typeof computeUstva>, figures: Record<string, unknown>, smallBusinessRule: "leistung" | null = null) {
     const current = {
       ...gesendet,
+      smallBusinessRule,
       id: "alte-anmeldung",
       source: "berechnet",
       computed: gesendet,
@@ -94,6 +96,16 @@ describe("Gesendete Voranmeldung mit Kz 48 ohne die Umsätze als Kleinunternehme
       ...computeUstva({ kz81: 0, kz86: 0, kz66: 0, kz46: 12_000, kz47: 2_280, kz67: 2_280, kz48: 80_000 }),
       kz48Kleinunternehmer: 80_000,
     });
+    expect(html).toContain("Seit der Übermittlung haben sich die Buchungen dieses Monats geändert");
+  });
+
+  it("nach dem Update gespeichert, fallen auch dazugekommene Umsätze als Kleinunternehmer auf (#1811)", () => {
+    const gesendet = computeUstva({ kz81: 0, kz86: 0, kz66: 0, kz46: 10_000, kz47: 1_900, kz67: 1_900 });
+    const html = seite(
+      gesendet,
+      { ...computeUstva({ kz81: 0, kz86: 0, kz66: 0, kz46: 10_000, kz47: 1_900, kz67: 1_900, kz48: 80_000 }), kz48Kleinunternehmer: 80_000 },
+      "leistung",
+    );
     expect(html).toContain("Seit der Übermittlung haben sich die Buchungen dieses Monats geändert");
   });
 });

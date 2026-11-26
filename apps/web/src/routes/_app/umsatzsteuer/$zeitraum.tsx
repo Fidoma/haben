@@ -66,12 +66,15 @@ function sameFigures(a: Figures, b: Figures, fields: readonly FieldKey[] = FIELD
 }
 
 /**
- * Weicht die heutige Rechnung von der gesendeten Anmeldung ab? Kz 48 gilt auch ohne die Umsätze als Kleinunternehmer als
- * gleich, so hat Haben sie vor #1268 gemeldet (wie gesendet-pruefen.ts)
+ * Weicht die heutige Rechnung von der gesendeten Anmeldung ab? Bei einer vor #1811 gerechneten Anmeldung (ohne
+ * `smallBusinessRule`) gilt Kz 48 auch ohne die Umsätze als Kleinunternehmer als gleich, so hat Haben sie vor #1268
+ * gemeldet (wie gesendet-pruefen.ts)
  */
 function seitGesendetGeaendert(gesendet: Figures, computed: Figures, data: PageData): boolean {
+  if (sameFigures(gesendet, computed, GESENDET_VERGLEICHEN)) return false;
+  if (data.current?.smallBusinessRule) return true;
   const vor1268 = computeUstva({ ...data.figures, kz48: data.figures.kz48 - data.figures.kz48Kleinunternehmer, kz39: data.kz39 });
-  return !sameFigures(gesendet, computed, GESENDET_VERGLEICHEN) && !sameFigures(gesendet, vor1268, GESENDET_VERGLEICHEN);
+  return !sameFigures(gesendet, vor1268, GESENDET_VERGLEICHEN);
 }
 
 /** „Kz 81 1.000,00 €, Kz 86 0,00 € und Kz 66 12,00 €“; Kz 21/45/48 nur, wenn belegt */

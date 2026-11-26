@@ -312,6 +312,14 @@ export const vatReturns = pgTable(
       .notNull()
       .default("manuell"),
     overrideReason: text("override_reason"),
+    /**
+     * „leistung“: Die berechneten Kennzahlen (die Anmeldung selbst bei „berechnet“, sonst `computed`) enthalten in Kz 48
+     * die Umsätze als Kleinunternehmer im Zeitraum der Leistung (#1268). Gesetzt beim Speichern des Entwurfs, bei einer
+     * Berichtigung von der berichtigten Anmeldung übernommen. Leer heißt gerechnet vor #1811, ob mit diesen Umsätzen (ab
+     * 0.13) oder ohne (bis 0.12), ist unbekannt: Nur dann gilt im Abgleich gesendeter Anmeldungen auch Kz 48 ohne sie als
+     * unverändert.
+     */
+    smallBusinessRule: text("small_business_rule", { enum: ["leistung"] }),
     /** Berechnete Werte zum Zeitpunkt des Speicherns, zum Nachvollziehen einer Überschreibung */
     computed: jsonb("computed").$type<{
       kz81: Cents;
@@ -345,6 +353,7 @@ export const vatReturns = pgTable(
   (t) => [
     // Zeitraum wie im ELSTER-Feld Zeitraum: 1–12 Monate, 41–44 Kalendervierteljahre
     check("vat_returns_month", sql`${t.month} between 1 and 12 or ${t.month} between 41 and 44`),
+    check("vat_returns_small_business_rule", sql`${t.smallBusinessRule} is null or ${t.smallBusinessRule} = 'leistung'`),
     foreignKey({ name: "vat_returns_corrects_fk", columns: [t.correctsId], foreignColumns: [t.id] }),
     // höchstens ein Entwurf je Zeitraum
     uniqueIndex("vat_returns_one_draft_per_period").on(t.year, t.month).where(sql`${t.status} = 'draft'`),

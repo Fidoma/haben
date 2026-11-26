@@ -47,6 +47,8 @@ describe.skipIf(!testDatabaseUrl)("Berichtigung in einem beim Update übernommen
         expect(correction.overrideReason).toContain("2026 beim Update auf das Journal übernommen");
         // Daneben die Rechnung aus dem Journal, damit die Seite je Kennzahl die Differenz zeigen kann
         expect(correction.computed).toMatchObject({ kz81: 0, kz83: 0 });
+        // Neu berechnet, also nach der heutigen Zuordnung samt Umsätzen als Kleinunternehmer in Kz 48 (#1811)
+        expect(correction.smallBusinessRule).toBe("leistung");
       });
 
       it(`nicht übernommenes Jahr: Berichtigung wie bisher aus den Buchungen (${kontenrahmen}, ${versteuerung})`, async () => {

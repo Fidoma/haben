@@ -104,7 +104,7 @@ export async function computedValues(period: VatPeriod, q: Db | Tx = db) {
 
 /**
  * Wie computedValues, dazu Kz 48 ohne die Umsätze als Kleinunternehmer, wie Haben sie vor #1268 gemeldet hat: Damit
- * erkennt der Abgleich gesendeter Voranmeldungen eine ältere Anmeldung als unverändert.
+ * erkennt der Abgleich gesendeter Voranmeldungen eine ältere Anmeldung (ohne `smallBusinessRule`) als unverändert.
  */
 export async function berechnet(period: VatPeriod, q: Db | Tx = db) {
   const [figures, kz39] = await Promise.all([computeVatFigures(period, q), kz39For(period, q)]);
@@ -121,6 +121,8 @@ export async function saveDraft(actor: string, period: VatPeriod, input: DraftIn
     source: draftInput.mode,
     overrideReason: draftInput.mode === "manuell" ? draftInput.reason?.trim() || null : null,
     computed,
+    // Nach welcher Zuordnung die berechneten Werte entstanden sind (#1811)
+    smallBusinessRule: "leistung" as const,
   };
   return withActor(actor, async (tx) => {
     const [draft] = await tx
@@ -207,6 +209,8 @@ export async function createCorrection(actor: string, period: VatPeriod): Promis
         source: uebernommen ? "manuell" : latest.source,
         overrideReason: uebernommen ? uebernommenBegruendung(period.year) : latest.overrideReason,
         computed: uebernommen ? await computedValues(period, tx) : latest.computed,
+        // Gehört zu den berechneten Werten: übernommen mit ihnen, neu mit neu berechneten (#1811)
+        smallBusinessRule: uebernommen ? "leistung" : latest.smallBusinessRule,
         berichtigt: true,
         correctsId: latest.id,
       })

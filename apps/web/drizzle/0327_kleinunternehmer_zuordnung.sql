@@ -1,0 +1,2 @@
+ALTER TABLE "vat_returns" ADD COLUMN "small_business_rule" text;--> statement-breakpoint
+ALTER TABLE "vat_returns" ADD CONSTRAINT "vat_returns_small_business_rule" CHECK ("vat_returns"."small_business_rule" is null or "vat_returns"."small_business_rule" = 'leistung');
