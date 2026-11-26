@@ -194,7 +194,7 @@
 .est-block[open] { padding-bottom: 16px; }
 .est-block > summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 48px; cursor: pointer; list-style: none; }
 .est-block > summary::-webkit-details-marker { display: none; }
-.est-block > summary::before { content: "›"; display: inline-block; width: 12px; color: var(--muted); transition: transform 0.15s; }
+.est-block > summary::before { content: "›"; content: "›" / ""; display: inline-block; width: 12px; color: var(--muted); transition: transform 0.15s; }
 .est-block[open] > summary::before { transform: rotate(90deg); }
 .est-block-title { flex: 1; font-weight: 600; }
 /* Schätzrechnung (Finanzamt): Titel, darunter der Kurzwert auf der Textkante des Titels (Pfeil 12px + Abstand 12px) */

@@ -900,6 +900,15 @@ test("Jahreserklärung: Summen stehen offen, die Einzelzeilen hinter „Zeilen a
   await expect(euer.getByRole("row", { name: /^Entnahmen einschließlich/ })).toBeVisible();
 });
 
+test("Jahreserklärung: der Name der Schalter zum Aufklappen enthält kein Pfeilzeichen (#1253)", async () => {
+  await go(`/jahreserklaerung/${YEAR - 1}`);
+  const cdp = await page.context().newCDPSession(page);
+  const { nodes } = await cdp.send("Accessibility.getFullAXTree");
+  const namen = nodes.filter((n) => n.role?.value === "DisclosureTriangle").map((n) => String(n.name?.value));
+  expect(namen.some((n) => n.includes("Zeilen anzeigen"))).toBe(true);
+  expect(namen.filter((n) => n.includes("›"))).toEqual([]);
+});
+
 test("Jahreserklärung: die Erklärungen stehen in einer nummerierten Reihenfolge, der nächste Schritt führt zum Abschnitt (#1253)", async () => {
   await go(`/jahreserklaerung/${YEAR - 1}`);
   const reihenfolge = page.getByRole("region", { name: "Reihenfolge der Erklärungen" });
