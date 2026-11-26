@@ -18,7 +18,7 @@ Die Schritte für ein Bankformat stehen in `docs/entwicklung.md`, „Neues Bankf
 | Stelle | Eintrag |
 | --- | --- |
 | `packages/import/src/types.ts` | `StatementFormat` und die Liste daneben |
-| `packages/import/src/format-namen.ts` | `FORMAT_NAMEN` (gleicher Name = gleiche Quelle beim Wechsel; steht auch in der Kontenliste) |
+| `packages/import/src/format-namen.ts` | `FORMAT_NAMEN` (gleicher Name = gleiche Quelle beim Wechsel) |
 | `packages/core/src/matching-direkt.ts` | `PAYMENT_PROVIDERS`, bei einem neuen Zahlungsdienstleister |
 
 ## Zahlungsdienstleister als Datei
