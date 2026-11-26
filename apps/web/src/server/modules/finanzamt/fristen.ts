@@ -1,10 +1,10 @@
 import type { Bundesland } from "@haben/core";
-import { and, eq, inArray, min } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { kleinunternehmerHistory, loadCompany } from "../stammdaten/index.ts";
 import { db, schema } from "../../db/index.ts";
 import { openAppealDeadlines } from "./postfach.ts";
 import { loadActiveCertificate } from "../elster/index.ts";
-import { loadDauerfrist, loadFrequencies } from "../umsatzsteuer/index.ts";
+import { ersterBuchungsmonat, loadDauerfrist, loadFrequencies } from "../umsatzsteuer/index.ts";
 import {
   type Kontext,
   erklaerungFristen,
@@ -41,11 +41,11 @@ const shift = (iso: string, days: number) => new Date(Date.parse(`${iso}T00:00:0
  * abgegeben und hier vermerkt ist.
  */
 export async function listFristen(today: string): Promise<Frist[]> {
-  const [company, certificate, appeals, [first], sentReturns, sentAnnual] = await Promise.all([
+  const [company, certificate, appeals, start, sentReturns, sentAnnual] = await Promise.all([
     loadCompany(),
     loadActiveCertificate(),
     openAppealDeadlines(today),
-    db.select({ date: min(schema.journalEntries.date) }).from(schema.journalEntries),
+    ersterBuchungsmonat(today),
     db.select({ year: schema.vatReturns.year, month: schema.vatReturns.month }).from(schema.vatReturns).where(eq(schema.vatReturns.status, "sent")),
     db
       .select({ form: schema.annualSubmissions.form, year: schema.annualSubmissions.year })
@@ -58,7 +58,7 @@ export async function listFristen(today: string): Promise<Frist[]> {
   const c: Kontext = {
     today,
     bis,
-    start: (first?.date ?? today).slice(0, 7),
+    start,
     bundesland: company.bundesland as Bundesland | null,
     company,
     relevant: (datum: string, offen: boolean) => (datum >= seit || offen) && datum <= bis,

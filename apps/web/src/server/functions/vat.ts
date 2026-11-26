@@ -22,6 +22,7 @@ import {
   computeVatFigures,
   dauerfristFor,
   dauerfristOverview,
+  ersterBuchungsmonat,
   abgegebeneZeitraeume,
   frequencyOverview,
   kz39For,
@@ -178,6 +179,8 @@ export const getOverview = createServerFn({ method: "GET" })
         .filter((p) => p.offen !== 0)
         .map((p) => ({ vatReturnId: p.vatReturnId, year: p.year, month: p.month, offen: p.offen, faellig: p.faellig, berichtigt: p.berichtigt })),
       dueDate: dueDate(period, company.bundesland, await dauerfristFor(period.year)),
+      /** Wie bei den Fristen: Was vor dem ersten Buchungsmonat endete, ist in der Übersicht nicht fällig */
+      ersterBuchungsmonat: await ersterBuchungsmonat(today(now)),
       /** Von der Voranmeldung befreit: keine Aufgabe zur Voranmeldung */
       exempt: ended === null || periodProblem(settings, period) !== null,
       /** Vormonat, für den Umsatz in der Übersicht */

@@ -30,6 +30,12 @@ export async function loadFrequencies(q: Db | Tx = db): Promise<VatFrequencySett
     .orderBy(schema.vatFrequencies.year, schema.vatFrequencies.fromMonth);
 }
 
+/** Erster Buchungsmonat (JJJJ-MM), ab dem Fristen zählen: davor war noch nichts in Haben; ohne Buchung der Monat von `today` (JJJJ-MM-TT) */
+export async function ersterBuchungsmonat(today: string, q: Db | Tx = db): Promise<string> {
+  const [first] = await q.select({ date: min(schema.journalEntries.date) }).from(schema.journalEntries);
+  return (first?.date ?? today).slice(0, 7);
+}
+
 export interface FrequencyInput {
   year: number;
   /** 1, 4, 7 oder 10: ein Wechsel im Jahr nur zu Beginn eines Quartals */

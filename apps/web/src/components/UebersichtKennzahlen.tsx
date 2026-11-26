@@ -7,13 +7,13 @@ import type { getOverview } from "../server/functions/vat.ts";
 type Rechnungen = Awaited<ReturnType<typeof getInvoiceSummary>>;
 export type UebersichtDaten = Awaited<ReturnType<typeof getOverview>> & { invoices: Rechnungen };
 
-/** Noch nichts erfasst: jede Karte zeigte 0,00 €. Dann entfällt die Reihe, bis es Zahlen gibt (#1253). */
-export const ohneKennzahlen = (data: UebersichtDaten) =>
+/** Noch nichts erfasst: jede Karte zeigte 0,00 €. Dann entfällt die Reihe, bis es Zahlen gibt (#1253). Vor dem Start zeigt keine Karte die Zahllast des Zeitraums. */
+export const ohneKennzahlen = (data: UebersichtDaten, vorStart: boolean) =>
   data.invoices.recent.length === 0 &&
   data.invoices.openCount === 0 &&
   data.invoices.payables.count === 0 &&
   data.invoices.revenuePreviousMonth === 0 &&
-  data.computedKz83 === 0 &&
+  (vorStart || data.computedKz83 === 0) &&
   data.current === null &&
   // Das Steuerkonto zeigt die Reihe beim Kleinunternehmer nicht
   data.invoices.bank.every((a) => a.balance === null || (data.kleinunternehmer && a.purpose === "steuer"));
