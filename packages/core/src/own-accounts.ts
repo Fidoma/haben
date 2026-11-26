@@ -6,7 +6,7 @@ import { GEWST_HINZURECHNUNG_KONTEN, KAPG_STEUER_KONTEN } from "./koerperschaft.
 import { LOHN_KONTEN } from "./lohn-buchung.ts";
 import { ledgerManagedAccounts, SACHENTNAHME_FRUEHERE_KONTEN, SACHENTNAHME_KONTEN } from "./manual.ts";
 import { PAUSCHALE_KONTEN } from "./pauschalen.ts";
-import { ACCOUNT_NAMES, ACCOUNTS, EXPENSE_CATEGORIES, type ExpenseCategory, type Kontenrahmen } from "./posting.ts";
+import { ACCOUNT_NAMES, ACCOUNTS, EXPENSE_CATEGORIES, kategorienMit, type ExpenseCategory, type Kontenrahmen } from "./posting.ts";
 import { PRIVATE_USE_ACCOUNT_NAMES, PRIVATE_USE_ACCOUNTS } from "./private-use.ts";
 import { STEUER_KONTEN } from "./steuerzahlung.ts";
 import { VORTRAG_ACCOUNTS } from "./vortrag.ts";
@@ -16,9 +16,6 @@ import { VORTRAG_ACCOUNTS } from "./vortrag.ts";
  * zählt es wie seine Elternkategorie; die Auswertungen nach Kontonummer lösen es vorher auf deren Konto auf. Nummer und
  * Elternkategorie prüft dieselbe Regel beim Anlegen, im Server und in der Oberfläche.
  */
-
-/** Kategorien, die kein Aufwand eines eigenen Kontos sein können: keine Aufwandsbuchung, eigene Behandlung oder Wareneinsatz */
-const EXCLUDED_PARENTS: readonly ExpenseCategory[] = ["anlage", "hardware", "einfuhrumsatzsteuer", "geldverkehr", "wareneinkauf", "fremdleistung", "kfzSteuer"];
 
 /**
  * Aufwandsklasse des Kontenrahmens: SKR03 4000 bis 4999 (betriebliche Aufwendungen), SKR04 6000 bis 6999. Im SKR04 liegen dort neben den sonstigen
@@ -30,9 +27,7 @@ const CLASS_RANGE: Record<Kontenrahmen, string> = { SKR03: "4000 bis 4999", SKR0
 
 /** Elternkategorien, die ein eigenes Konto im Kontenrahmen haben darf: Aufwand mit Konto in der Aufwandsklasse */
 export function ownAccountParents(kontenrahmen: Kontenrahmen): ExpenseCategory[] {
-  return (Object.keys(EXPENSE_CATEGORIES) as ExpenseCategory[]).filter(
-    (kategorie) => !EXCLUDED_PARENTS.includes(kategorie) && EXPENSE_CATEGORIES[kategorie][kontenrahmen].startsWith(CLASS_PREFIX[kontenrahmen]),
-  );
+  return kategorienMit("eigenesKonto").filter((kategorie) => EXPENSE_CATEGORIES[kategorie][kontenrahmen].startsWith(CLASS_PREFIX[kontenrahmen]));
 }
 
 /** Alle vierstelligen Nummern in Schlüsseln und Werten; unter einem Schlüssel SKR03 oder SKR04 nur für diesen Rahmen */

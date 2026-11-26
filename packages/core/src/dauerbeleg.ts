@@ -3,6 +3,7 @@
  * im Intervall Eingangsbelege an. Termine wie bei wiederkehrenden Rechnungen (recurring.ts): Ankertag, der 31. wird in
  * kürzeren Monaten zum Monatsende und springt danach zurück, verpasste Termine werden nachgeholt.
  */
+import { EXPENSE_CATEGORIES, hatEigenschaft } from "./kontenplan.ts";
 import type { BasisPoints, Cents } from "./money.ts";
 import { type Recurrence, recurrenceParts } from "./recurrence.ts";
 import { recurrenceDueDates, nextRecurrenceDate } from "./recurring.ts";
@@ -90,7 +91,14 @@ export function dauerbelegProbleme(vorlage: {
 }): string[] {
   const probleme: string[] = [];
   if (vorlage.endDate && vorlage.endDate < vorlage.nextDate) probleme.push("Das Ende liegt vor dem nächsten Termin.");
-  if (vorlage.category === "anlage") probleme.push("Anlagegüter werden nicht als Dauerbeleg erfasst, sondern einzeln mit Abschreibung.");
+  // Welche Kategorie kein Dauerbeleg sein kann, sagt der Steckbrief (kontenplan.ts); heute nur das Anlagegut
+  if (Object.hasOwn(EXPENSE_CATEGORIES, vorlage.category) && !hatEigenschaft(vorlage.category, "dauerbeleg")) {
+    probleme.push(
+      vorlage.category === "anlage"
+        ? "Anlagegüter werden nicht als Dauerbeleg erfasst, sondern einzeln mit Abschreibung."
+        : "Diese Kategorie lässt sich nicht als Dauerbeleg erfassen.",
+    );
+  }
   if (vorlage.amounts.length === 0 || vorlage.amounts.every((a) => a.net === 0 && a.tax === 0)) probleme.push("Beträge fehlen.");
   if (vorlage.amounts.some((a) => a.net < 0 || a.tax < 0)) probleme.push("Dauerbelege sind Ausgaben; Gutschriften erfasst du als einzelnen Beleg.");
   if (new Set(vorlage.amounts.map((a) => a.taxRate)).size !== vorlage.amounts.length) probleme.push("Jeder Steuersatz nur einmal.");

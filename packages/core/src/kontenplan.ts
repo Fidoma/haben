@@ -152,63 +152,104 @@ export function ownerAccount(kontenrahmen: Kontenrahmen, rechtsform: Rechtsform,
 }
 
 /**
- * Ausgabenkategorien für Belege mit Aufwandskonto je Kontenrahmen.
+ * Was eine Ausgabenkategorie kann. Jede Kategorie nennt unter `nicht`, was für sie nicht gilt; so beantwortet eine neue
+ * Kategorie jede Frage an einer Stelle, statt in verstreuten Listen zu fehlen (#1975):
+ *
+ * - `aufwand`: Betriebsausgabe in EÜR und BWA. Nicht beim Anlagegut (wirkt über die AfA) und bei der Einfuhrumsatzsteuer
+ *   (ist Vorsteuer, Kz 62).
+ * - `direkt`: unter „Direkt buchen“ ohne Beleg wählbar. Nicht, wo es den Beleg braucht: Anlagegut und geringwertiges
+ *   Wirtschaftsgut für das Anlagenverzeichnis, Einfuhrumsatzsteuer für den Bescheid des Zolls, Bewirtung für den
+ *   Bewirtungsbeleg (§ 4 Abs. 5 Satz 1 Nr. 2 Satz 2 EStG), Geschenke für die Empfänger (§ 4 Abs. 7 EStG); und nicht bei
+ *   Kontoführung und Gebühren, die „Direkt buchen“ schon als eigenen Eintrag hat.
+ * - `eigenesKonto`: Elternkategorie eines eigenen Sachkontos (#270). Nicht bei Kategorien ohne Aufwandsbuchung, mit eigener
+ *   Behandlung oder als Wareneinsatz: Anlagegut, Hardware, Einfuhrumsatzsteuer, Kontoführung, Wareneinkauf, Fremdleistungen
+ *   und Kfz-Steuer. Zusätzlich muss das Konto in der Aufwandsklasse liegen (ownAccountParents).
+ * - `dauerbeleg`: Vorlage für wiederkehrende Belege. Nicht beim Anlagegut, das je Anschaffung eine eigene Anlage wird.
+ */
+export type KategorieEigenschaft = "aufwand" | "direkt" | "eigenesKonto" | "dauerbeleg";
+
+interface Kategoriesteckbrief {
+  label: string;
+  SKR03: string;
+  SKR04: string;
+  /** Was für die Kategorie nicht gilt; leer = alles */
+  nicht: readonly KategorieEigenschaft[];
+}
+
+/**
+ * Ausgabenkategorien für Belege mit Aufwandskonto je Kontenrahmen und ihrem Steckbrief (KategorieEigenschaft).
  * Vor dem Echtbetrieb mit dem Steuerberater abgleichen.
  */
 export const EXPENSE_CATEGORIES = {
-  software: { label: "Software und Lizenzen", SKR03: "4964", SKR04: "6837" },
-  edv: { label: "Hosting und IT-Dienste", SKR03: "4806", SKR04: "6495" },
+  software: { label: "Software und Lizenzen", SKR03: "4964", SKR04: "6837", nicht: [] },
+  edv: { label: "Hosting und IT-Dienste", SKR03: "4806", SKR04: "6495", nicht: [] },
   // DATEV „Reparaturen und Instandhaltung von anderen Anlagen und Betriebs- und Geschäftsausstattung“ (#312); EDV und Kfz
   // haben eigene Kategorien
-  reparatur: { label: "Reparatur und Instandhaltung (Ausstattung, ohne EDV und Kfz)", SKR03: "4805", SKR04: "6470" },
+  reparatur: { label: "Reparatur und Instandhaltung (Ausstattung, ohne EDV und Kfz)", SKR03: "4805", SKR04: "6470", nicht: [] },
   // DATEV „Miete (unbewegliche Wirtschaftsgüter)“: Geschäftsräume und betrieblich genutzte Grundstücke (#312)
-  miete: { label: "Miete für Geschäftsräume", SKR03: "4210", SKR04: "6310" },
-  hardware: { label: "Hardware (GWG bis 800 € netto)", SKR03: "0480", SKR04: "0670" },
-  telefon: { label: "Telefon", SKR03: "4920", SKR04: "6805" },
-  internet: { label: "Internet", SKR03: "4925", SKR04: "6810" },
-  buero: { label: "Bürobedarf", SKR03: "4930", SKR04: "6815" },
+  miete: { label: "Miete für Geschäftsräume", SKR03: "4210", SKR04: "6310", nicht: [] },
+  hardware: { label: "Hardware (GWG bis 800 € netto)", SKR03: "0480", SKR04: "0670", nicht: ["direkt", "eigenesKonto"] },
+  telefon: { label: "Telefon", SKR03: "4920", SKR04: "6805", nicht: [] },
+  internet: { label: "Internet", SKR03: "4925", SKR04: "6810", nicht: [] },
+  buero: { label: "Bürobedarf", SKR03: "4930", SKR04: "6815", nicht: [] },
   // DATEV „Sonstiger Betriebsbedarf“: laufendes Verbrauchsmaterial außer Bürobedarf (#312)
-  betriebsbedarf: { label: "Sonstiger Betriebsbedarf", SKR03: "4980", SKR04: "6850" },
-  literatur: { label: "Fachliteratur", SKR03: "4940", SKR04: "6820" },
-  fortbildung: { label: "Fortbildung", SKR03: "4945", SKR04: "6821" },
-  fahrtkosten: { label: "Reisekosten: Fahrten", SKR03: "4673", SKR04: "6673" },
-  uebernachtung: { label: "Reisekosten: Übernachtung", SKR03: "4676", SKR04: "6680" },
-  porto: { label: "Porto", SKR03: "4910", SKR04: "6800" },
-  werbung: { label: "Werbung", SKR03: "4600", SKR04: "6600" },
+  betriebsbedarf: { label: "Sonstiger Betriebsbedarf", SKR03: "4980", SKR04: "6850", nicht: [] },
+  literatur: { label: "Fachliteratur", SKR03: "4940", SKR04: "6820", nicht: [] },
+  fortbildung: { label: "Fortbildung", SKR03: "4945", SKR04: "6821", nicht: [] },
+  fahrtkosten: { label: "Reisekosten: Fahrten", SKR03: "4673", SKR04: "6673", nicht: [] },
+  uebernachtung: { label: "Reisekosten: Übernachtung", SKR03: "4676", SKR04: "6680", nicht: [] },
+  porto: { label: "Porto", SKR03: "4910", SKR04: "6800", nicht: [] },
+  werbung: { label: "Werbung", SKR03: "4600", SKR04: "6600", nicht: [] },
   // Bewirtung: 70 % Betriebsausgabe, die Vorsteuer voll (§ 4 Abs. 5 Nr. 2 EStG); die Aufteilung macht die EÜR
-  bewirtung: { label: "Bewirtung von Geschäftspartnern (70 % abziehbar)", SKR03: "4650", SKR04: "6640" },
-  geschenke: { label: "Geschenke an Geschäftspartner (bis 50 € je Empfänger und Jahr)", SKR03: "4630", SKR04: "6610" },
-  beratung: { label: "Rechts- und Beratungskosten", SKR03: "4950", SKR04: "6825" },
-  buchfuehrung: { label: "Buchführung und Steuerberatung", SKR03: "4955", SKR04: "6830" },
+  bewirtung: { label: "Bewirtung von Geschäftspartnern (70 % abziehbar)", SKR03: "4650", SKR04: "6640", nicht: ["direkt"] },
+  geschenke: { label: "Geschenke an Geschäftspartner (bis 50 € je Empfänger und Jahr)", SKR03: "4630", SKR04: "6610", nicht: ["direkt"] },
+  beratung: { label: "Rechts- und Beratungskosten", SKR03: "4950", SKR04: "6825", nicht: [] },
+  buchfuehrung: { label: "Buchführung und Steuerberatung", SKR03: "4955", SKR04: "6830", nicht: [] },
   // Waren zum Weiterverkauf; DATEV „Wareneingang“, Vorsteuer je nach Beleg
-  wareneinkauf: { label: "Wareneinkauf (Handelsware)", SKR03: "3200", SKR04: "5200" },
-  fremdleistung: { label: "Fremdleistungen", SKR03: "3100", SKR04: "5900" },
-  geldverkehr: { label: "Kontoführung und Gebühren", SKR03: "4970", SKR04: "6855" },
-  kfzBetrieb: { label: "Kfz: Laden, Tanken, Wartung", SKR03: "4530", SKR04: "6530" },
-  kfzVersicherung: { label: "Kfz: Versicherung", SKR03: "4520", SKR04: "6520" },
-  kfzSteuer: { label: "Kfz: Steuer", SKR03: "4510", SKR04: "7685" },
-  kfzReparatur: { label: "Kfz: Reparaturen", SKR03: "4540", SKR04: "6540" },
-  kfzLeasing: { label: "Kfz: Leasing", SKR03: "4570", SKR04: "6560" },
+  wareneinkauf: { label: "Wareneinkauf (Handelsware)", SKR03: "3200", SKR04: "5200", nicht: ["eigenesKonto"] },
+  fremdleistung: { label: "Fremdleistungen", SKR03: "3100", SKR04: "5900", nicht: ["eigenesKonto"] },
+  geldverkehr: { label: "Kontoführung und Gebühren", SKR03: "4970", SKR04: "6855", nicht: ["direkt", "eigenesKonto"] },
+  kfzBetrieb: { label: "Kfz: Laden, Tanken, Wartung", SKR03: "4530", SKR04: "6530", nicht: [] },
+  kfzVersicherung: { label: "Kfz: Versicherung", SKR03: "4520", SKR04: "6520", nicht: [] },
+  kfzSteuer: { label: "Kfz: Steuer", SKR03: "4510", SKR04: "7685", nicht: ["eigenesKonto"] },
+  kfzReparatur: { label: "Kfz: Reparaturen", SKR03: "4540", SKR04: "6540", nicht: [] },
+  kfzLeasing: { label: "Kfz: Leasing", SKR03: "4570", SKR04: "6560", nicht: [] },
   // DATEV „Sonstige Fahrzeugkosten“: was nicht Laden/Tanken, Versicherung, Steuer, Reparatur oder Leasing ist (#312)
-  kfzSonstige: { label: "Kfz: sonstige Kosten", SKR03: "4580", SKR04: "6570" },
-  versicherung: { label: "Versicherungen", SKR03: "4360", SKR04: "6400" },
-  beitraege: { label: "Beiträge", SKR03: "4380", SKR04: "6420" },
+  kfzSonstige: { label: "Kfz: sonstige Kosten", SKR03: "4580", SKR04: "6570", nicht: [] },
+  versicherung: { label: "Versicherungen", SKR03: "4360", SKR04: "6400", nicht: [] },
+  beitraege: { label: "Beiträge", SKR03: "4380", SKR04: "6420", nicht: [] },
   // Personalaufwand (soziale Abgaben, § 275 Abs. 2 Nr. 6b HGB), DATEV „Beiträge zur Berufsgenossenschaft“ (#312)
-  berufsgenossenschaft: { label: "Beiträge zur Berufsgenossenschaft", SKR03: "4138", SKR04: "6120" },
+  berufsgenossenschaft: { label: "Beiträge zur Berufsgenossenschaft", SKR03: "4138", SKR04: "6120", nicht: [] },
   // DATEV „Versorgungskassen“: betriebliche Altersversorgung der Arbeitnehmer (§ 4c EStG). Die eigene Vorsorge des
   // Inhabers ist keine Betriebsausgabe (§ 12 Nr. 1 EStG), sie ist eine Entnahme (#312)
-  versorgungskassen: { label: "Versorgungskassen (Altersversorgung der Arbeitnehmer)", SKR03: "4160", SKR04: "6150" },
-  sonstiges: { label: "Sonstiger Aufwand", SKR03: "4900", SKR04: "6300" },
+  versorgungskassen: { label: "Versorgungskassen (Altersversorgung der Arbeitnehmer)", SKR03: "4160", SKR04: "6150", nicht: [] },
+  sonstiges: { label: "Sonstiger Aufwand", SKR03: "4900", SKR04: "6300", nicht: [] },
   // Kein Aufwand: gebucht wird auf das Anlagekonto der Anlage, abgeschrieben über das Anlagenverzeichnis
-  anlage: { label: "Anlagegut (wird abgeschrieben)", SKR03: "0490", SKR04: "0690" },
+  anlage: { label: "Anlagegut (wird abgeschrieben)", SKR03: "0490", SKR04: "0690", nicht: ["aufwand", "direkt", "eigenesKonto", "dauerbeleg"] },
   // Kein Aufwand: Bescheid des Zolls über die Einfuhrumsatzsteuer, der ganze Betrag ist Vorsteuer (§ 15 Abs. 1 Satz 1 Nr. 2
   // UStG, Kz 62); DATEV-Kontenrahmen 2026 „Entstandene Einfuhrumsatzsteuer“ (SKR03 1588, SKR04 1433)
-  einfuhrumsatzsteuer: { label: "Einfuhrumsatzsteuer (Bescheid des Zolls)", SKR03: "1588", SKR04: "1433" },
-} as const;
+  einfuhrumsatzsteuer: { label: "Einfuhrumsatzsteuer (Bescheid des Zolls)", SKR03: "1588", SKR04: "1433", nicht: ["aufwand", "direkt", "eigenesKonto"] },
+} as const satisfies Record<string, Kategoriesteckbrief>;
 
 export type ExpenseCategory = keyof typeof EXPENSE_CATEGORIES;
 
 export const EXPENSE_CATEGORY_KEYS = Object.keys(EXPENSE_CATEGORIES) as [ExpenseCategory, ...ExpenseCategory[]];
+
+/** Ob die Kategorie die Eigenschaft hat (KategorieEigenschaft); eine unbekannte Kategorie hat keine */
+export function hatEigenschaft(kategorie: string, eigenschaft: KategorieEigenschaft): boolean {
+  if (!Object.hasOwn(EXPENSE_CATEGORIES, kategorie)) return false;
+  return !(EXPENSE_CATEGORIES[kategorie as ExpenseCategory].nicht as readonly string[]).includes(eigenschaft);
+}
+
+/** Die Kategorien mit der Eigenschaft, in der Reihenfolge der Tabelle */
+export function kategorienMit(eigenschaft: KategorieEigenschaft): ExpenseCategory[] {
+  return EXPENSE_CATEGORY_KEYS.filter((kategorie) => hatEigenschaft(kategorie, eigenschaft));
+}
+
+/** Kategorie, die eine Betriebsausgabe ist; abgeleitet aus dem Steckbrief, damit ein Record je Aufwand vollständig sein muss */
+export type Aufwandskategorie = {
+  [K in ExpenseCategory]: "aufwand" extends (typeof EXPENSE_CATEGORIES)[K]["nicht"][number] ? never : K;
+}[ExpenseCategory];
 
 /**
  * Anzeige einer Ausgabekategorie mit der Nummer ihres Kontos im Kontenrahmen der Firma („6805 · Telefon“, #1438), nur für die

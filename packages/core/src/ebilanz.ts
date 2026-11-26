@@ -2,7 +2,7 @@ import { ASSET_ACCOUNTS } from "./afa.ts";
 import { postenForSaldo, type Posten } from "./hgb.ts";
 import { LOHN_KONTEN } from "./lohn-buchung.ts";
 import type { Cents } from "./money.ts";
-import { ACCOUNTS, EXPENSE_CATEGORIES, KLEINUNTERNEHMER_FRUEHERE_KONTEN, type ExpenseCategory, type Kontenrahmen } from "./posting.ts";
+import { ACCOUNTS, EXPENSE_CATEGORIES, KLEINUNTERNEHMER_FRUEHERE_KONTEN, type Aufwandskategorie, type Kontenrahmen } from "./posting.ts";
 import { STEUER_KONTEN } from "./steuerzahlung.ts";
 import { DARLEHEN_KONTEN } from "./darlehen.ts";
 import { hinzurechnungPositionen } from "./ebilanz-hinzurechnung.ts";
@@ -36,7 +36,7 @@ const UMSATZSTEUER: EbilanzZiel = [VAT_RECEIVABLE, TAX_LIABILITY];
 const GESELLSCHAFTER: EbilanzZiel = ["bs.ass.currAss.receiv.other.shareholders", "bs.eqLiab.liab.shareholders.gmbh"];
 
 /** Aufwand der Ausgabenkategorien; Anlagen (hardware, anlage) stehen bei den Anlagekonten */
-const KATEGORIEN: Record<Exclude<ExpenseCategory, "hardware" | "anlage" | "einfuhrumsatzsteuer">, string> = {
+const KATEGORIEN: Record<Exclude<Aufwandskategorie, "hardware">, string> = {
   // DATEV „Aufwendungen für die zeitlich befristete Überlassung von Rechten (Lizenzen)“; der Empfänger kann im Ausland sitzen
   software: `${OC}.concessLicenses.nonallocable`,
   // DATEV 4806/6495 „Wartungskosten für Hard- und Software“

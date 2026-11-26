@@ -1,4 +1,4 @@
-import { ACCOUNT_NAMES, ACCOUNTS, DARLEHEN_KONTEN, EXPENSE_CATEGORIES, KAPG_STEUER_KONTEN, type ExpenseCategory } from "@haben/core";
+import { ACCOUNT_NAMES, ACCOUNTS, DARLEHEN_KONTEN, EXPENSE_CATEGORIES, hatEigenschaft, KAPG_STEUER_KONTEN, type ExpenseCategory } from "@haben/core";
 import { RANGES, type Kontenrahmen } from "../datev.ts";
 
 /*
@@ -26,8 +26,6 @@ export type SevAccountCategory =
 
 /** Felder des Kontostamms, die zählen */
 export type SevAccountNumbers = { skr03?: string | null; skr04?: string | null };
-
-const SKIP: readonly ExpenseCategory[] = ["anlage", "einfuhrumsatzsteuer"];
 
 const NEUTRAL_NAMES = {
   gesellschafter: "Verbindlichkeiten gegenüber Gesellschaftern",
@@ -73,7 +71,7 @@ function numberKey(kr: Kontenrahmen, value: string | null | undefined): string |
   if (!/^[0-9]{1,4}$/.test(account)) return "?";
   const padded = account.padStart(4, "0");
   for (const [key, accounts] of Object.entries(EXPENSE_CATEGORIES) as [ExpenseCategory, (typeof EXPENSE_CATEGORIES)[ExpenseCategory]][]) {
-    if (!SKIP.includes(key) && accounts[kr] === padded) return `ausgabe:${key}`;
+    if (hatEigenschaft(key, "aufwand") && accounts[kr] === padded) return `ausgabe:${key}`;
   }
   const neutral = NEUTRAL[kr].get(padded);
   if (neutral) return `neutral:${neutral}`;

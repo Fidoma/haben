@@ -1,5 +1,5 @@
 import { notFound } from "@tanstack/react-router";
-import { EXPENSE_CATEGORIES, kategorieMitKonto, type Kontenrahmen } from "@haben/core";
+import { kategorieMitKonto, kategorienMit, type Kontenrahmen } from "@haben/core";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { UserError } from "../errors.ts";
@@ -24,9 +24,7 @@ import { detailId } from "./schemas.ts";
 
 /** Kategorien zur Auswahl, die Bezeichnung mit der Nummer des Kontos im Kontenrahmen der Firma (#1438) */
 const categoryOptions = (kontenrahmen: Kontenrahmen) =>
-  Object.keys(EXPENSE_CATEGORIES)
-    .filter((value) => value !== "anlage")
-    .map((value) => ({ value, label: kategorieMitKonto(kontenrahmen, value) }));
+  kategorienMit("dauerbeleg").map((value): { value: string; label: string } => ({ value, label: kategorieMitKonto(kontenrahmen, value) }));
 
 async function formContext() {
   const company = await loadCompany();

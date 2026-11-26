@@ -371,7 +371,14 @@ Ein Zahlungsdienstleister mit API läuft über die gemeinsame Anbindung im Modul
 
 ## Neue Ausgabenkategorie
 
-Die Kategorien stehen in `EXPENSE_CATEGORIES` in `packages/core/src/kontenplan.ts`, je mit Bezeichnung und Aufwandskonto für SKR03 und SKR04. Ein neuer Eintrag erscheint automatisch in der Auswahl am Beleg, in der Anweisung für die KI-Auslesung, im Journal und in der EÜR. Die Kategorie steht als Text am Beleg, eine Migration ist nicht nötig. Für übernommene Lexoffice-Belege kannst du in `apps/web/src/server/modules/archiv/legacy-open.ts` (`CATEGORY_HINTS`) ein Suchmuster ergänzen. Die Kontonummern stimmst du mit der Steuerberatung ab.
+Die Kategorien stehen in `EXPENSE_CATEGORIES` in `packages/core/src/kontenplan.ts`, je mit Bezeichnung, Aufwandskonto für SKR03 und SKR04 und unter `nicht` dem, was für sie nicht gilt (leer: alles gilt; die Gründe stehen bei `KategorieEigenschaft`):
+
+- `aufwand`: Betriebsausgabe in EÜR und BWA
+- `direkt`: unter „Direkt buchen“ ohne Beleg
+- `eigenesKonto`: Elternkategorie eines eigenen Kontos
+- `dauerbeleg`: Vorlage für Dauerbelege
+
+Ein neuer Eintrag erscheint automatisch in der Auswahl am Beleg, in der Anweisung für die KI-Auslesung, im Journal und in der EÜR. Ist er Aufwand, verlangt der Typecheck seine Zeile der Anlage EÜR (`EUER_CATEGORY_FIELDS` in `jahreserklaerung/annual.ts`) und seine Position in der E-Bilanz (`KATEGORIEN` in `ebilanz.ts`). Die Kategorie steht als Text am Beleg, eine Migration ist nicht nötig. Für übernommene Lexoffice-Belege kannst du in `apps/web/src/server/modules/archiv/legacy-open.ts` (`CATEGORY_HINTS`) ein Suchmuster ergänzen. Die Kontonummern stimmst du mit der Steuerberatung ab.
 
 ## Veröffentlichen
 

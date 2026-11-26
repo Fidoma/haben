@@ -3,8 +3,9 @@ import {
   ACCOUNT_NAMES,
   ACCOUNTS,
   EXPENSE_CATEGORIES,
-  EXPENSE_CATEGORY_KEYS,
+  hatEigenschaft,
   kategorieMitKonto,
+  kategorienMit,
   side,
   type ExpenseCategory,
   type Kontenrahmen,
@@ -40,17 +41,8 @@ export const EINNAHME_KATEGORIEN = {
 
 export type EinnahmeKategorie = keyof typeof EINNAHME_KATEGORIEN;
 
-/**
- * Ausgabekategorien, die ohne Beleg nicht gehen: Anlagen und geringwertige Wirtschaftsgüter brauchen das
- * Anlagenverzeichnis, die Einfuhrumsatzsteuer den Bescheid des Zolls, Bewirtung den Bewirtungsbeleg (§ 4 Abs. 5 Satz 1
- * Nr. 2 Satz 2 EStG), Geschenke die Empfänger (§ 4 Abs. 7 EStG). Bankgebühren gibt es unter „Direkt buchen“ schon.
- */
-const NUR_MIT_BELEG = ["anlage", "hardware", "einfuhrumsatzsteuer", "bewirtung", "geschenke"] as const satisfies readonly ExpenseCategory[];
-const SCHON_DIREKT = ["geldverkehr"] as const satisfies readonly ExpenseCategory[];
-
-export const DIREKT_AUSGABE_KATEGORIEN = EXPENSE_CATEGORY_KEYS.filter(
-  (k) => !(NUR_MIT_BELEG as readonly string[]).includes(k) && !(SCHON_DIREKT as readonly string[]).includes(k),
-);
+/** Ausgabekategorien unter „Direkt buchen“: alle mit der Eigenschaft `direkt` im Steckbrief (kontenplan.ts) */
+export const DIREKT_AUSGABE_KATEGORIEN = kategorienMit("direkt");
 
 export type DirektKategorie = EinnahmeKategorie | ExpenseCategory;
 
@@ -87,10 +79,11 @@ export function kategorieFehler(angabe: KategorieAngabe, kleinunternehmer: boole
   const art = kategorieArt(angabe.kategorie);
   if (art === null) return "Diese Kategorie gibt es nicht.";
   if (art === "ausgabe") {
-    if ((NUR_MIT_BELEG as readonly string[]).includes(angabe.kategorie)) {
+    // Kontoführung und Gebühren hat unter „Direkt buchen“ einen eigenen Eintrag, alle anderen ohne `direkt` brauchen den Beleg
+    if (angabe.kategorie === "geldverkehr") return "Bankgebühren bitte als „Kontoführung und Bankgebühren“ buchen.";
+    if (!hatEigenschaft(angabe.kategorie, "direkt")) {
       return `„${EXPENSE_CATEGORIES[angabe.kategorie as ExpenseCategory].label}“ geht nur mit Beleg; bitte unter Belege buchen.`;
     }
-    if ((SCHON_DIREKT as readonly string[]).includes(angabe.kategorie)) return "Bankgebühren bitte als „Kontoführung und Bankgebühren“ buchen.";
     if (angabe.steuersatz !== 0) {
       return "Ohne Rechnung gibt es keine Vorsteuer (§ 15 Abs. 1 Satz 1 Nr. 1 Satz 2 UStG). Mit Rechnung bitte den Beleg unter Belege buchen.";
     }

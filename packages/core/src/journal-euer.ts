@@ -7,7 +7,7 @@ import { isSachentnahmeKonto } from "./manual.ts";
 import { LOHN_KONTEN } from "./lohn-buchung.ts";
 import { roundHalfAwayFromZero, type Cents } from "./money.ts";
 import { PAUSCHALE_KONTEN, type PauschaleArt } from "./pauschalen.ts";
-import { ACCOUNTS, EXPENSE_CATEGORIES, KLEINUNTERNEHMER_FRUEHERE_KONTEN, type ExpenseCategory, type Kontenrahmen } from "./posting.ts";
+import { ACCOUNTS, EXPENSE_CATEGORIES, hatEigenschaft, KLEINUNTERNEHMER_FRUEHERE_KONTEN, type ExpenseCategory, type Kontenrahmen } from "./posting.ts";
 import { PRIVATE_USE_ACCOUNTS } from "./private-use.ts";
 import { abziehbareNebenleistungen, nichtAbziehbareNebenleistungen, STEUER_KONTEN } from "./steuerzahlung.ts";
 
@@ -118,7 +118,7 @@ export function euerZuordnung(kontenrahmen: Kontenrahmen, account: string, herku
   if (Object.values(lohn).includes(account as never)) return "personal";
   // Aufwand je Kategorie; Anlagegut und Einfuhrumsatzsteuer oben bzw. ohne Wirkung
   for (const [kategorie, konten] of Object.entries(EXPENSE_CATEGORIES) as [ExpenseCategory, (typeof EXPENSE_CATEGORIES)[ExpenseCategory]][]) {
-    if (kategorie === "anlage" || kategorie === "einfuhrumsatzsteuer") continue;
+    if (!hatEigenschaft(kategorie, "aufwand")) continue;
     if (konten[kontenrahmen] === account) return `ausgabe:${kategorie}`;
   }
   return null;

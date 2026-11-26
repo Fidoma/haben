@@ -10,6 +10,7 @@ import {
   type Cents,
   type Prognose,
   type EuerResult,
+  type Aufwandskategorie,
   type ExpenseCategory,
   type PauschaleArt,
   filingPeriodsOfYear,
@@ -231,7 +232,7 @@ export function ustIssues(kleinunternehmer: boolean, data: UstYear, year: number
 // ------------------------------------------------------------------ Anlage EÜR
 
 /** Kategorie der Belege → Zeile der Anlage EÜR; Anlagen über die AfA, die Einfuhrumsatzsteuer als gezahlte Vorsteuer */
-const EUER_CATEGORY_FIELDS: Record<Exclude<ExpenseCategory, "anlage" | "einfuhrumsatzsteuer">, EuerFigureKey> = {
+const EUER_CATEGORY_FIELDS: Record<Aufwandskategorie, EuerFigureKey> = {
   software: "edv",
   edv: "edv",
   // Anlage EÜR 2025: Erhaltungsaufwendungen (Zeile 48, Kz 225) und Miete/Pacht für Geschäftsräume (Zeile 39, Kz 150)
