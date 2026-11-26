@@ -1,13 +1,12 @@
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useId, useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { defaultFetchFrom, fetchFromForConnect } from "../lib/bank-connect.ts";
-import { errorMessage, formatDate, formatDateTime } from "../lib/format.ts";
+import { errorMessage, formatDate } from "../lib/format.ts";
 import { useSubmitCheck } from "../lib/use-submit-check.ts";
 import type { getBankOverview } from "../server/functions/bank.ts";
-import { cancelFints, connectFints, disconnectFints, syncFints } from "../server/functions/fints.ts";
+import { connectFints, disconnectFints, syncFints } from "../server/functions/fints.ts";
 import { today as todayInGermany } from "../server/today.ts";
-import { FintsStatus } from "./BankStatus.tsx";
 import { ConfirmDialog } from "./ConfirmDialog.tsx";
 import { Field } from "./Field.tsx";
 import { type Offen, type Schritt, SchrittForm, useAntwort } from "./FintsSchritt.tsx";
@@ -24,14 +23,24 @@ type Meldung = { tone: "ok" | "danger" | "info"; text: string };
 export type FintsOffen = { fuer: string; schritt: Offen } | null;
 
 /**
- * Was die Bankseite für FinTS führt, damit der Kopf des Bereichs es kennt: Formular „Über FinTS verbinden“ offen
- * (verbinden), offener Schritt der Bank und die Zeile mit laufender Anfrage (busy: ihre ID beim Abruf, `x-<ID>` beim Trennen)
+ * Was die Bankseite für FinTS führt, damit der Dialog „Wie verbinden?“ es kennt (#1951): Formular „Über FinTS verbinden“ offen
+ * (verbinden) samt Vorlage von „Zugang ändern“, offener Schritt der Bank und die Zeile mit laufender Anfrage (busy: ihre ID
+ * beim Abruf, `x-<ID>` beim Trennen). Zugeklappt und mit neuVerbinden („Bank hinzufügen › FinTS“) gilt keine Vorlage mehr
  */
 export function useFintsZustand() {
-  const [verbinden, setVerbinden] = useState(false);
+  const [verbinden, setFormular] = useState(false);
+  const [vorlage, setVorlage] = useState<Verbindung | null>(null);
   const [offen, setOffen] = useState<FintsOffen>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  return { verbinden, setVerbinden, offen, setOffen, busy, setBusy };
+  const setVerbinden = (v: boolean) => {
+    if (!v) setVorlage(null);
+    setFormular(v);
+  };
+  const neuVerbinden = () => {
+    setVorlage(null);
+    setFormular(true);
+  };
+  return { verbinden, setVerbinden, vorlage, setVorlage, neuVerbinden, offen, setOffen, busy, setBusy };
 }
 export type FintsZustand = ReturnType<typeof useFintsZustand>;
 
@@ -219,60 +228,26 @@ function TrennenDialog({ verbindung, onTrennen, onClose }: { verbindung: Verbind
   );
 }
 
-/** Angaben einer Verbindung links in ihrer Zeile; als letzte Zeile der Grund gesperrter Knöpfe (grundId für aria-describedby) */
-function Angaben({ c, grund, grundId }: { c: Verbindung; grund: string | undefined; grundId: string | undefined }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0, flex: "1 1 260px" }}>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <span style={{ fontWeight: 600 }}>{c.bankName}</span>
-        <FintsStatus status={c.status} />
-        <span className="small muted">FinTS</span>
-      </div>
-      <span className="small muted">{c.accounts.map(kontoName).join(" · ") || "Keine Konten"}</span>
-      <span className="small muted">{c.lastSyncAt ? `Zuletzt abgerufen ${formatDateTime(c.lastSyncAt)}` : "Noch nicht abgerufen"}</span>
-      {c.lastError && <span className="field-error">{c.lastError}</span>}
-      {grund && (
-        <span id={grundId} className="small muted">
-          {grund}
-        </span>
-      )}
-    </div>
-  );
-}
-
-/** FinTS im Bereich „Automatischer Abruf“: Formular zum Verbinden (verbinden), die Verbindungen und der offene Schritt der Bank */
-export function FintsAbruf({
-  fints,
-  verbinden,
-  setVerbinden,
-  offen,
-  setOffen,
-  busy,
-  setBusy,
-}: {
-  fints: Fints;
-  verbinden: boolean;
-  setVerbinden: (v: boolean) => void;
-  offen: FintsOffen;
-  setOffen: (o: FintsOffen) => void;
-  busy: string | null;
-  setBusy: (b: string | null) => void;
-}) {
+/**
+ * FinTS an den Zeilen der Konten (#1951): Abruf, „Zugang ändern“ und „Trennen“ für die Knöpfe einer Zeile, der Grund
+ * gesperrter Knöpfe je Verbindung und der Bereich mit Formular, offenem Schritt der Bank und Meldungen. Die Seite ruft
+ * den Hook einmal auf und stellt `bereich` dorthin, wo Schritte und Meldungen erscheinen sollen.
+ */
+export function useFintsAbruf(fints: Fints, z: FintsZustand) {
+  const { verbinden, setVerbinden, vorlage, setVorlage, offen, setOffen, busy, setBusy } = z;
   const router = useRouter();
   const sync = useServerFn(syncFints);
   const disconnect = useServerFn(disconnectFints);
-  const verwerfen = useServerFn(cancelFints);
-  const [vorlage, setVorlage] = useState<Verbindung | null>(null);
   const grundId = useId();
-  const grundVon = (c: Verbindung) => zeilenGrund(c, fints.connections, { verbinden, offen, busy }, fints.configured);
-  // ID des Grundes an der Zeile für aria-describedby; mitTrennen für „Trennen“, das nicht jeder Grund nennt
-  const grundZeile = (c: Verbindung, mitTrennen = false) => {
-    const grund = grundVon(c);
-    return grund && (grund.trennen || !mitTrennen) ? `${grundId}-${c.id}` : undefined;
-  };
-  const gesperrt = busy !== null || offen !== null;
   const [meldungen, setMeldungen] = useState<Meldung[]>([]);
   const [trennt, setTrennt] = useState<Verbindung | null>(null);
+  const gesperrt = busy !== null || offen !== null;
+
+  /** Grund gesperrter Knöpfe an der Zeile mit seiner ID für aria-describedby; mitTrennen, wenn er „Trennen“ nennen muss */
+  function grund(c: Verbindung, mitTrennen = false): { id: string; text: string } | null {
+    const g = zeilenGrund(c, fints.connections, { verbinden, offen, busy }, fints.configured);
+    return g && (g.trennen || !mitTrennen) ? { id: `${grundId}-${c.id}`, text: g.text } : null;
+  }
 
   async function ergebnis(fuer: string, s: Schritt) {
     if (s.art !== "fertig") {
@@ -311,85 +286,63 @@ export function FintsAbruf({
   };
 
   // „Abbrechen“ bei einem Schritt der Bank: Ab dem Abruf der Umsätze hat Verbinden den Zugang schon gespeichert, beim
-  // ersten Verbinden als neue Verbindung.
-  // Erst neu laden, dann schließen; solange ein Schritt offen ist, sind die Knöpfe an den Zeilen gesperrt
+  // ersten Verbinden als neue Verbindung. Erst neu laden, dann schließen; solange ein Schritt offen ist, sind die Knöpfe
+  // an den Zeilen gesperrt
   const schrittAbbrechen = () => void router.invalidate({ sync: true }).then(schliessen);
 
-  // Jedes Zuklappen des Formulars setzt hier die Vorlage zurück, auch oben über „Über FinTS verbinden“: Nach „Zugang ändern“
-  // öffnet der Knopf danach ein leeres Formular. Wartet die Bank beim Verbinden auf einen Schritt, gilt das Zuklappen oben
-  // wie „Abbrechen“ und verwirft den Vorgang; sonst blieben die Knöpfe an den Zeilen gesperrt, ohne dass ein Schritt zu
-  // sehen ist
-  // biome-ignore lint/correctness/useExhaustiveDependencies: nur, wenn das Formular zuklappt oder ein Schritt kommt
-  useEffect(() => {
-    if (!verbinden) setVorlage(null);
-    if (verbinden || offen?.fuer !== "neu") return;
-    void verwerfen({ data: offen.schritt.vorgang }).catch(() => undefined);
-    schrittAbbrechen();
-  }, [verbinden, offen]);
+  const zeile = offen && offen.fuer !== "neu" ? fints.connections.find((c) => c.id === offen.fuer) : undefined;
 
-  return (
+  // Ein offener Schritt beim Verbinden schließt nur über seine eigenen Knöpfe; kommt die Antwort der Bank erst nach dem
+  // Verlassen der Seite oder einem neuen Formular, verwirft useAntwort den Vorgang
+  const bereich = (
     <>
       {verbinden &&
         (offen?.fuer === "neu" ? (
           <SchrittForm key={offen.schritt.vorgang} schritt={offen.schritt} onSchritt={(s) => ergebnis("neu", s)} onAbbrechen={schrittAbbrechen} />
         ) : (
-          // Nicht die ID der Verbindung allein: Die trägt schon ihre Zeile unten, und mit demselben Schlüssel blieb das
-          // Formular nach „Zugang ändern“ im DOM stehen
+          // Nicht die ID der Verbindung allein: mit demselben Schlüssel blieb das Formular nach „Zugang ändern“ im DOM stehen
           <VerbindenForm key={vorlage ? `zugang-${vorlage.id}` : "neu"} vorlage={vorlage} onSchritt={(s) => ergebnis("neu", s)} onAbbrechen={schliessen} />
         ))}
-
+      {zeile && offen && (
+        <section className="stack" style={{ gap: 8 }} aria-label={`FinTS: ${zeile.bankName}`}>
+          <span className="small muted">
+            {zeile.bankName}: {zeile.accounts.map(kontoName).join(" · ")}
+          </span>
+          <SchrittForm key={offen.schritt.vorgang} schritt={offen.schritt} onSchritt={(s) => ergebnis(zeile.id, s)} onAbbrechen={() => setOffen(null)} />
+        </section>
+      )}
       <TrennenDialog verbindung={trennt} onTrennen={trennen} onClose={() => setTrennt(null)} />
-
-      {fints.connections.map((c) => (
-        <div key={c.id} className="history-row" style={{ alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
-          <Angaben c={c} grund={grundVon(c)?.text} grundId={grundZeile(c)} />
-          <div className="actions">
-            <button type="button" className="btn btn-danger" disabled={gesperrt} aria-describedby={grundZeile(c, true)} onClick={() => setTrennt(c)}>
-              {busy === `x-${c.id}` ? "Trenne …" : "Trennen"}
-            </button>
-            {fints.configured && (
-              <button
-                type="button"
-                className="btn"
-                disabled={gesperrt || verbinden}
-                aria-describedby={grundZeile(c)}
-                onClick={() => {
-                  setVorlage(c);
-                  setVerbinden(true);
-                }}
-              >
-                Zugang ändern
-              </button>
-            )}
-            {fints.configured && (
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={gesperrt || verbinden}
-                aria-describedby={grundZeile(c)}
-                onClick={() => void run(c.id, async () => ergebnis(c.id, await sync({ data: c.id })))}
-              >
-                {busy === c.id ? "Rufe ab …" : "Jetzt abrufen"}
-              </button>
-            )}
-          </div>
-          {offen?.fuer === c.id && (
-            <div style={{ flexBasis: "100%" }}>
-              <SchrittForm key={offen.schritt.vorgang} schritt={offen.schritt} onSchritt={(s) => ergebnis(c.id, s)} onAbbrechen={() => setOffen(null)} />
-            </div>
-          )}
-        </div>
-      ))}
-
       {meldungen.length > 0 && (
-        <ul className="upload-messages" role="status">
-          {meldungen.map((m, i) => (
-            <li key={i} className={`banner banner-${m.tone}`}>
-              {m.text}
-            </li>
-          ))}
-        </ul>
+        <div role="status">
+          <ul className="upload-messages">
+            {meldungen.map((m, i) => (
+              <li key={i} className={`banner banner-${m.tone}`}>
+                {m.text}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </>
   );
+
+  return {
+    configured: fints.configured,
+    gesperrt,
+    /** „Über FinTS verbinden“ ist offen: „Zugang ändern“ und „Jetzt abrufen“ warten */
+    verbinden,
+    grund,
+    /** Knöpfe der Zeile während einer Anfrage an diese Verbindung: „Rufe ab …“, „Trenne …“ */
+    laeuft: (c: Verbindung) => (busy === c.id ? "abruf" : busy === `x-${c.id}` ? "trennen" : null),
+    abrufen: (c: Verbindung) => run(c.id, async () => ergebnis(c.id, await sync({ data: c.id }))),
+    zugangAendern: (c: Verbindung) => {
+      setVorlage(c);
+      setVerbinden(true);
+    },
+    trennenFragen: (c: Verbindung) => setTrennt(c),
+    /** Der Bereich hat Inhalt: Formular, Schritt oder Meldungen */
+    sichtbar: verbinden || zeile !== undefined || meldungen.length > 0,
+    bereich,
+  };
 }
+export type FintsAbrufAktionen = ReturnType<typeof useFintsAbruf>;

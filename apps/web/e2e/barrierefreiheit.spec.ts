@@ -41,6 +41,9 @@ const PAGES = [
   "/anlagen/neu",
   "/csv-import?art=anlagen",
   "/bank",
+  // Geführte Einrichtung eines Zahlungsdienstleisters (#1951), Schritt 1
+  "/bank/verbinden/stripe",
+  "/bank/verbindungen",
   "/kasse",
   "/darlehen",
   "/umsatzsteuer",
@@ -100,6 +103,7 @@ const THEME_PAGES = [
   "/rechnungen",
   "/rechnungen/neu",
   "/bank",
+  "/bank/verbindungen",
   "/buchungen",
   `/konten/1200?jahr=${YEAR}`,
   "/fristen",
@@ -642,21 +646,19 @@ test("Rechnungsart: Der Hinweis erscheint nur bei Abschlags- und Schlussrechnung
   await expect(art).toHaveAccessibleDescription("");
 });
 
-test("Feld in einer Zeile: „Konto“ steht links neben der Auswahl, nicht darüber", async ({ page }) => {
-  await open(page, "/bank");
-  const feld = page.locator(".field-inline", { has: page.getByLabel("Konto", { exact: true }) });
-  const name = await feld.locator(".field-label").boundingBox();
-  const auswahl = await feld.locator("select").boundingBox();
-  if (!name || !auswahl) throw new Error("Feld „Konto“ ohne Fläche");
-  expect(name.x + name.width, "Name links vom Feld").toBeLessThanOrEqual(auswahl.x);
-  expect(Math.abs(name.y + name.height / 2 - (auswahl.y + auswahl.height / 2)), "auf einer Höhe").toBeLessThan(12);
-});
+/** Eingeklappte Abschnitte aufklappen, etwa „Google Play und App Store“ auf der Seite Verbindungen (#1951); ein offener fällt aus der Auswahl */
+async function alleAufklappen(page: Page) {
+  const zu = page.locator("details:not([open]) > summary");
+  while ((await zu.count()) > 0) await zu.first().click();
+}
 
 /** Seiten mit dem Dateiwähler `FilePicker`; der Knopf daneben ist nur ein `span`, der Klick muss den Dialog selbst öffnen */
 const FILE_PICKER_PAGES = [
   "/dauerbelege/neu",
   "/csv-import?art=kontakte",
   "/einstellungen?bereich=bank",
+  // Google Play und App Store (#1951 aus den Einstellungen hierher)
+  "/bank/verbindungen",
   "/einstellungen?bereich=elster",
   "/archiv",
   "/archiv/auftrag/723bf34b-f8ab-48f0-b391-656af4b72a96",
@@ -665,6 +667,7 @@ const FILE_PICKER_PAGES = [
 test("Dateiwähler: Ein Klick auf „Datei wählen“ öffnet an jeder Stelle den Dialog und der Feldname benennt das Feld", async ({ page }) => {
   for (const path of FILE_PICKER_PAGES) {
     await open(page, path);
+    await alleAufklappen(page);
     const pickers = page.locator(".file-picker");
     expect(await pickers.count(), `${path} hat einen Dateiwähler`).toBeGreaterThan(0);
     for (let i = 0; i < (await pickers.count()); i++) {
@@ -689,6 +692,7 @@ test("Dateiwähler: Der zugängliche Name enthält den sichtbaren Feldnamen (Lab
   };
   for (const path of FILE_PICKER_PAGES) {
     await open(page, path);
+    await alleAufklappen(page);
     await pruefen(path);
   }
   // Accountable hat einen eigenen Upload, den die Seite erst nach der Wahl der Quelle zeigt

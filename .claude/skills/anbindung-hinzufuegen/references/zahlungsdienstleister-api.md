@@ -17,7 +17,7 @@ Vorlagen: Stripe (ein Schlüssel, Fenster in UTC, keine Konfiguration) und PayPa
 Der Vertrag steht in `adapter.ts` mit Kommentar je Feld. Worauf es ankommt:
 
 - `provider`: Kleinbuchstaben und Ziffern, gleich dem Schlüssel in `PAYMENT_PROVIDERS` und dem `provider` des Kontos.
-- `felder`: Was der Nutzer einträgt. Geheimes mit `art: "geheim"` (bleibt beim Bearbeiten leer und behält den Wert), Einstellungen mit `config: true` und `standard`. Die Karte baut das Formular daraus; an der Oberfläche ist nichts zu ändern.
+- `felder`: Was der Nutzer einträgt. Geheimes mit `art: "geheim"` (bleibt beim Bearbeiten leer und behält den Wert), Einstellungen mit `config: true` und `standard`. Einrichtung und Bearbeiten bauen die Felder daraus; an der Oberfläche ist nichts zu ändern.
 - `beschreibung` und `link`: Was Haben holt und wo beim Anbieter der Zugang entsteht, mit den nötigen Rechten (nur lesen).
 - Zugang als Zod-Schema mit `art`, damit eine spätere zweite Form lesbar bleibt; `zugangLesen` liest jede Form, die je gespeichert wurde.
 - `zugangAusEingabe`: Format prüfen, Testschlüssel ablehnen, wenn sie nicht über `config` (Sandbox) gewählt sind; Meldung als `UserError`-Unterklasse `<Anbieter>Error`.
@@ -50,8 +50,8 @@ Vorbild sind die Tests von Stripe in `modules/zahlungsdienstleister/` und `packa
 - `<anbieter>.test.ts` mit Postgres über die Client-Factory: Speichern mit Prüfung, falscher und Test-Zugang abgelehnt, Abruf legt Umsätze an, zweiter Abruf keine Dubletten, Fehler des Anbieters landet in `last_error` ohne Geheimnis, Stand nach Fehler.
 - `<anbieter>-csv-zuerst.test.ts`, wenn es eine Datei gibt.
 - `<anbieter>-regeln.test.ts` für Fenster und nächsten Start.
-- `e2e/<anbieter>-abruf.spec.ts`: Verbindung über die Karte anlegen, abrufen, Umsatz auf der Bankseite, axe.
+- `e2e/<anbieter>-abruf.spec.ts`: über „Konto verbinden › Zahlungsdienstleister hinzufügen“ und die Schritte der Einrichtung verbinden, Zugang prüfen, erster Abruf, Umsatz auf der Bankseite, axe.
 
 ## 5. Oberfläche
 
-Die Karte **Zahlungsdienstleister** (`components/ZahlungsdienstleisterCard.tsx`, `ZahlungsdienstleisterFormular.tsx`) zeigt jeden Anbieter aus `ANBIETER` und baut das Formular aus `felder`. Ein Anbieter ändert dort nichts. Braucht er etwas, das `felder` nicht beschreiben kann, zuerst den Vertrag in `adapter.ts` erweitern, für alle Anbieter, nicht eine Ausnahme in der Karte. Gestaltung nach `DESIGN.md`.
+Der Dialog **Anbieter wählen** auf der Bankseite (`routes/_app/-bank-verbinden.tsx`) zeigt jeden Anbieter aus `ANBIETER`; die geführte Einrichtung (`routes/_app/bank_.verbinden.$anbieter.tsx`, `-bank-einrichtung.tsx`) baut die Schrittleiste aus `schritte` des Adapters (Standard: Zugang, Name und Zeitraum, erster Abruf) und den Schritt Zugang aus `felder`; „Zugang prüfen“ ruft `zugangPruefen`, Hinweise aus `Pruefung.hinweise` stehen unter der erkannten Kennung. Bearbeiten an der Bankseite nutzt dieselben Felder (`ZahlungsdienstleisterFormular.tsx`). Ein Anbieter ändert dort nichts. Braucht er etwas, das `felder` oder `schritte` nicht beschreiben können, etwa eine Anmeldung über Weiterleitung, zuerst den Vertrag in `adapter.ts` erweitern, für alle Anbieter, nicht eine Ausnahme in der Einrichtung. Ohne Adapter steht ein Anbieter im Dialog ausgegraut; seinen Grund nennt `ohneAdapter` in `-bank-verbinden.tsx`. Gestaltung nach `DESIGN.md`.

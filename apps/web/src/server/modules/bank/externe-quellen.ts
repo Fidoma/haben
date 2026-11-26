@@ -178,7 +178,7 @@ export async function importExternalBatch(actor: string, body: unknown): Promise
   if (offen && offen.n > 0) {
     return {
       status: "conflict",
-      message: `Die Quelle hat ${offen.n === 1 ? "einen offenen Konflikt" : `${offen.n} offene Konflikte`}. Bis er in Haben unter Bank am Konto mit „Konflikt klären“ geklärt ist, nimmt sie nichts an.`,
+      message: `Die Quelle hat ${offen.n === 1 ? "einen offenen Konflikt" : `${offen.n} offene Konflikte`}. Bis ${offen.n === 1 ? "er" : "sie"} in Haben unter Bank mit „Klären“ im Hinweis zum Konto geklärt ${offen.n === 1 ? "ist" : "sind"}, nimmt sie nichts an.`,
       conflicts: [],
     };
   }

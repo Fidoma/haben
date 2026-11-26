@@ -1,14 +1,11 @@
 import { currentFilingPeriod, isKapitalgesellschaft } from "@haben/core";
-import { redirect, createFileRoute } from "@tanstack/react-router";
+import { Link, redirect, createFileRoute } from "@tanstack/react-router";
 import { BackupCard } from "../../components/BackupCard.tsx";
 import { BereicheCard } from "../../components/BereicheCard.tsx";
 import { ArchiveSearchCard } from "../../components/ArchiveSearchCard.tsx";
 import { ArchiveTargetCard } from "../../components/ArchiveTargetCard.tsx";
 import { DatevCard } from "../../components/DatevCard.tsx";
-import { EtsyPaymentsCard } from "../../components/EtsyPaymentsCard.tsx";
-import { ZahlungsdienstleisterCard } from "../../components/ZahlungsdienstleisterCard.tsx";
 import { KontoabrufKarten } from "../../components/FintsCard.tsx";
-import { StoreReportsCard } from "../../components/StoreReportsCard.tsx";
 import { ExchangeRatesCard } from "../../components/ExchangeRatesCard.tsx";
 import { ExportCard } from "../../components/ExportCard.tsx";
 import { SettingsExportCard } from "../../components/SettingsExportCard.tsx";
@@ -41,9 +38,8 @@ import { SsoZugaengeCard } from "../../components/SsoZugaengeCard.tsx";
 import { ZugaengeCard } from "../../components/ZugaengeCard.tsx";
 import { getBackupStatus } from "../../server/functions/backup.ts";
 import { getEnableBankingSettings } from "../../server/functions/bank.ts";
-import { getStoreConnections } from "../../server/functions/stores.ts";
-import { getEtsySettings } from "../../server/functions/etsy.ts";
 import { getPspSettings } from "../../server/functions/zahlungsdienstleister.ts";
+import { anbieterAufzaehlung } from "../../lib/zahlungsdienstleister-text.ts";
 import { SETTINGS_AREAS, settingsAreas, type SettingsArea } from "../../lib/settings-areas.ts";
 import { getCompany, getExchangeRates } from "../../server/functions/company.ts";
 import reportStyles from "../../styles/auswertungen.css?url";
@@ -68,15 +64,10 @@ import { getUnits } from "../../server/functions/units.ts";
 import { TaxpayerForm } from "./-einstellungen-steuerpflichtige.tsx";
 import { CertificateForm, EricCard } from "./-einstellungen-elster.tsx";
 
-/** Anbindungen unter Bank: Kontoabruf über Enable Banking, Finanzberichte der Stores, Etsy Payments und die Zahlungsdienstleister */
+/** Anbindungen unter Bank: Zugang der Installation zu Enable Banking und FinTS; die Verbindungen selbst stehen unter Geld › Verbindungen */
 async function loadBankConnections() {
-  const [enableBanking, stores, etsy, zahlungsdienstleister] = await Promise.all([
-    getEnableBankingSettings(),
-    getStoreConnections(),
-    getEtsySettings(),
-    getPspSettings(),
-  ]);
-  return { enableBanking, stores, etsy, zahlungsdienstleister };
+  const [enableBanking, zahlungsdienstleister] = await Promise.all([getEnableBankingSettings(), getPspSettings()]);
+  return { enableBanking, zahlungsdienstleister };
 }
 
 /** Beleggestaltung: Logo, Briefpapier, Gestaltung, Layouts und Vorschau der Fußzeile */
@@ -194,8 +185,6 @@ function SettingsPage() {
     mcp,
     rates,
     enableBanking,
-    stores,
-    etsy,
     zahlungsdienstleister,
     customPages,
     zugaenge,
@@ -273,9 +262,13 @@ function SettingsPage() {
           {bereich === "bank" && (
             <>
               <KontoabrufKarten data={enableBanking} />
-              <StoreReportsCard connections={stores.connections} contacts={stores.contacts} />
-              <EtsyPaymentsCard data={etsy} />
-              <ZahlungsdienstleisterCard daten={zahlungsdienstleister} />
+              <section className="card" aria-labelledby="psp-heading">
+                <h2 id="psp-heading">Zahlungsdienstleister und Stores</h2>
+                <p className="small muted" style={{ margin: 0 }}>
+                  {anbieterAufzaehlung(zahlungsdienstleister.anbieter.map((a) => a.name))}, Etsy Payments und die Berichte von Google Play und App Store
+                  verbindest du unter <Link to="/bank/verbindungen">Geld › Verbindungen</Link>.
+                </p>
+              </section>
             </>
           )}
           {bereich === "zugaenge" && zugaenge.mode === "sso" && <SsoZugaengeCard accounts={zugaenge.ssoAccounts} providerName={oidc.name} />}

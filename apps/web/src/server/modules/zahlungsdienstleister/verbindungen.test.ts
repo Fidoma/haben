@@ -146,6 +146,24 @@ describe.skipIf(!testDatabaseUrl)("Verbindungen zu Zahlungsdienstleistern (Postg
     expect(await sql`select count(*)::int as n from psp_connections`).toEqual([{ n: 2 }]);
   });
 
+  it("prüft einen Zugang, ohne etwas zu speichern, und erkennt ein schon verbundenes Konto beim Anbieter (#1951)", async () => {
+    const zaehlen = async () =>
+      (
+        await sql`select (select count(*) from psp_connections)::int as v, (select count(*) from bank_accounts)::int as k, (select count(*) from audit_log)::int as a`
+      )[0];
+    const vorher = await zaehlen();
+    const schon = await psp.zugangPruefen("stripe", { apiKey: "rk_live_shopdeaaaaaaaa" }, {});
+    expect(schon.accountId).toBe("acct_shop");
+    expect(schon.schonVerbunden).toMatchObject({ name: "Shop DE", text: "Dieses Stripe-Konto ist schon als „Shop DE“ verbunden." });
+    expect(schon.konto).toBeNull();
+    // Ein neues Konto beim Anbieter: „Automatisch“ nimmt das freie Konto „Stripe drei“ aus dem Test davor
+    const neu = await psp.zugangPruefen("stripe", { apiKey: "rk_live_neuverbundenaa" }, {});
+    expect(neu).toMatchObject({ accountId: "acct_neuverbunden", keyHint: "enaa", schonVerbunden: null, gebunden: false, hinweise: [] });
+    expect(neu.konto?.name).toBe("Stripe drei");
+    await expect(psp.zugangPruefen("stripe", { apiKey: "rk_test_aaaaaaaaaaaaaa" }, {})).rejects.toThrow("Haben ruft nur Live-Umsätze ab");
+    expect(await zaehlen()).toEqual(vorher);
+  });
+
   it("zieht die Zugänge aus stripe_connections und paypal_connections mit Schlüssel, Abrufstand, Rhythmus und Konto um", async () => {
     await sql`delete from psp_connections`;
     const [stripeKonto] = await sql`select id from bank_accounts where name = 'Stripe Shop'`;

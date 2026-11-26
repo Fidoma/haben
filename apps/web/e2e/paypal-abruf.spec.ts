@@ -2,11 +2,12 @@ import { createServer, type Server } from "node:http";
 import { expect, type Page, test } from "@playwright/test";
 import postgres from "postgres";
 import { databaseUrlFuer, PAYPAL_PORT } from "./durchlaeufe.ts";
-import { durchlaufSeite, einrichten, gehe } from "./einrichtung.ts";
+import { durchlaufSeite, einrichten, gehe, kontoVerbinden } from "./einrichtung.ts";
 
 /**
  * PayPal über die Transaction Search (#1512) in eigener, leerer Datenbank (Projekt „paypal-abruf“, e2e/durchlaeufe.ts):
- * Zugang prüfen und speichern, abrufen, erneut abrufen ohne Dubletten, entfernen. Nur der Server dieses Durchlaufs fragt
+ * über die geführte Einrichtung (#1951) Zugang prüfen, speichern und zum ersten Mal abrufen, erneut abrufen ohne Dubletten,
+ * entfernen. Nur der Server dieses Durchlaufs fragt
  * die nachgebaute API unten (PAYPAL_API_URL in playwright.config.ts). Sie kennt nur die Client-ID unten und liefert eine
  * Zahlung mit Gebühr und eine Abbuchung per Hand (T0403).
  */
@@ -93,10 +94,10 @@ test.afterEach(() => {
   expect(pageErrors).toEqual([]);
 });
 
-const karte = () => page.getByRole("region", { name: "Zahlungsdienstleister", exact: true });
-const formular = () => karte().getByRole("form", { name: "Neue Verbindung" });
-/** Die Verbindung heißt wie vorgeschlagen nach dem Anbieter */
-const verbindung = () => karte().getByRole("region", { name: "PayPal", exact: true });
+const zugang = () => page.getByRole("form", { name: "Zugang" });
+/** Die Verbindung heißt wie vorgeschlagen nach dem Anbieter; ihre Zeile steht auf der Seite Verbindungen (#1951) */
+const verbindung = () => page.getByRole("region", { name: "Zahlungsdienstleister", exact: true }).getByRole("row").filter({ hasText: "PayPal" });
+const abrufBereich = () => page.getByRole("region", { name: "Automatischer Abruf" });
 
 async function mitDatenbank<T>(arbeit: (sql: postgres.Sql) => Promise<T>): Promise<T> {
   const sql = postgres(databaseUrlFuer("paypal-abruf"), { max: 1, onnotice: () => {} });
@@ -111,75 +112,90 @@ test("Einrichtung", async () => {
   await einrichten(page);
 });
 
-test("Falsche Zugangsdaten: PayPal lehnt ab, nichts wird gespeichert, das Secret steht in keiner Meldung", async () => {
-  await gehe(page, "/einstellungen?bereich=bank");
-  await expect(karte().getByText("Nicht eingerichtet.")).toBeVisible();
+test("Falsche Zugangsdaten: PayPal lehnt beim Prüfen ab, nichts wird gespeichert, das Secret steht in keiner Meldung", async () => {
+  await gehe(page, "/bank");
+  await kontoVerbinden(page, "Zahlungsdienstleister hinzufügen");
+  const dialog = page.getByRole("dialog", { name: "Anbieter wählen" });
+  await dialog.getByRole("radio", { name: "PayPal" }).check();
+  await expect(dialog.getByRole("radio", { name: "PayPal" })).toHaveAccessibleDescription("Client-ID und Secret · 3 Schritte · noch nicht verbunden");
+  await dialog.getByRole("button", { name: "Weiter" }).click();
+  await page.waitForURL(/\/bank\/verbinden\/paypal$/);
+  await expect(zugang().getByLabel("Umgebung")).toHaveValue("false");
+  await zugang().getByLabel("Client-ID", { exact: true }).fill(CLIENT_ID);
+  await zugang().getByLabel("Secret", { exact: true }).fill("falsches-geheimnis");
+  await zugang().getByRole("button", { name: "Zugang prüfen" }).click();
 
-  await karte().getByRole("button", { name: "Verbindung hinzufügen" }).click();
-  await formular().getByLabel("Anbieter").selectOption("paypal");
-  await expect(formular().getByLabel("Name")).toHaveValue("PayPal");
-  await formular().getByLabel("Client-ID", { exact: true }).fill(CLIENT_ID);
-  await formular().getByLabel("Secret", { exact: true }).fill("falsches-geheimnis");
-  await formular().getByRole("button", { name: "Speichern" }).click();
-
-  const meldung = formular().getByText(/PayPal nimmt die Zugangsdaten nicht an: Anmeldung abgelehnt/);
+  const meldung = zugang().getByText(/PayPal nimmt die Zugangsdaten nicht an: Anmeldung abgelehnt/);
   await expect(meldung).toBeVisible();
   await expect(meldung).not.toContainText("falsches-geheimnis");
-  await expect(verbindung()).toHaveCount(0);
+  await expect(zugang().getByRole("button", { name: "Weiter" })).toHaveCount(0);
   expect(await mitDatenbank((sql) => sql`select count(*)::int as n from psp_connections`)).toEqual([{ n: 0 }]);
 });
 
-test("Zugang speichern: Haben prüft ihn bei PayPal und nennt das Konto", async () => {
+test("Zugang prüfen, speichern und erster Abruf: Zahlung, Gebühr und Abbuchung per Hand kommen ins neue Konto", async () => {
   const abrufAb = new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10);
-  await formular().getByLabel("Client-ID", { exact: true }).fill(CLIENT_ID);
-  await formular().getByLabel("Secret", { exact: true }).fill(SECRET);
-  await formular().getByLabel("Abruf ab").fill(abrufAb);
-  await formular().getByRole("button", { name: "Speichern" }).click();
+  await zugang().getByLabel("Secret", { exact: true }).fill(SECRET);
+  await zugang().getByRole("button", { name: "Zugang prüfen" }).click();
+  await expect(page.getByRole("status", { name: "Zugang geprüft" })).toContainText(`PayPal-Konto ${KONTO} (Client-ID …AB12).`);
+  expect(anfragen).toContain("GET /v1/reporting/balances");
+  expect(await mitDatenbank((sql) => sql`select count(*)::int as n from psp_connections`)).toEqual([{ n: 0 }]);
+  await zugang().getByRole("button", { name: "Weiter" }).click();
 
-  await expect(karte().getByText("Verbindung gespeichert.")).toBeVisible();
-  await expect(verbindung().getByText(`PayPal: verbunden mit ${KONTO} (Client-ID …AB12).`)).toBeVisible();
-  await expect(verbindung().getByText(/Noch kein Abruf\./)).toBeVisible();
-  // Client-ID und Secret stehen nicht in den Feldern und nicht im Klartext in der Datenbank
-  await verbindung().getByRole("button", { name: "Bearbeiten" }).click();
-  await expect(verbindung().getByLabel("Secret (leer lassen zum Behalten)")).toHaveValue("");
-  await expect(verbindung().getByLabel("Client-ID (leer lassen zum Behalten)")).toHaveValue("");
-  await verbindung().getByRole("button", { name: "Abbrechen" }).click();
+  const einstellungen = page.getByRole("form", { name: "Name und Zeitraum" });
+  await expect(einstellungen.getByLabel("Name")).toHaveValue("PayPal");
+  await einstellungen.getByLabel("Abruf ab").fill(abrufAb);
+  await einstellungen.getByRole("button", { name: "Speichern und abrufen" }).click();
+  const ergebnis = page.getByRole("region", { name: "Erster Abruf" });
+  await expect(ergebnis.getByText("Fertig", { exact: true })).toBeVisible();
+  await expect(ergebnis).toContainText("2 Bewegungen beim Anbieter, 3 neue Umsätze im Konto „PayPal“.");
+  expect(anfragen).toContain("GET /v1/reporting/transactions");
+
+  // Client-ID und Secret stehen nicht im Klartext in der Datenbank
   const [zeile] = await mitDatenbank(
     (sql) =>
       sql`select account_id, key_hint, abruf_start::text, position(${SECRET} in encode(ciphertext, 'escape')) as secret, position(${CLIENT_ID} in encode(ciphertext, 'escape')) as client from psp_connections`,
   );
   expect(zeile).toEqual({ account_id: KONTO, key_hint: "AB12", abruf_start: abrufAb, secret: 0, client: 0 });
-  expect(anfragen).toContain("GET /v1/reporting/balances");
+  // Die Abbuchung per Hand (T0403) ist als Auszahlung eingeordnet: PayPal ist die Gegenseite, nicht leer wie bei einem unbekannten Code
+  expect(await umsaetze()).toEqual(ERWARTET);
+  await ergebnis.getByRole("link", { name: "Zum Konto" }).click();
+  await expect(page.getByRole("navigation", { name: "Konten" }).getByRole("link", { name: /^PayPal/ })).toHaveAttribute("aria-current", "page");
+  // „Alle Konten“ mit nur einem Konto (so verlinken Journal und Liquidität einen Umsatz): Haben zeigt das eine Konto, also ist
+  // seine Karte gewählt, auch wenn die Adresse „alle“ sagt (#1951)
+  await gehe(page, "/bank?konto=alle&filter=alle");
+  await expect(page.getByRole("navigation", { name: "Konten" }).getByRole("link", { name: /^PayPal/ })).toHaveAttribute("aria-current", "page");
+  await gehe(page, "/bank/verbindungen");
+  await expect(verbindung().getByText(`PayPal · ${KONTO}`)).toBeVisible();
 });
 
-test("Jetzt abrufen: Zahlung, Gebühr und Abbuchung per Hand kommen ins Konto des Zahlungsdienstleisters, ein zweiter Abruf legt nichts doppelt an", async () => {
-  await mitDatenbank((sql) => sql`insert into bank_accounts (name, purpose, provider, ledger_index) values ('PayPal', 'zahlungsdienstleister', 'paypal', 3)`);
-  await gehe(page, "/einstellungen?bereich=bank");
-  await verbindung().getByRole("button", { name: "Jetzt abrufen" }).click();
-  await expect(verbindung().getByText("Abruf durchgelaufen.")).toBeVisible();
-  await expect(verbindung().getByText(/Letzter Abruf: /)).toBeVisible();
-  expect(anfragen).toContain("GET /v1/reporting/transactions");
+const umsaetze = () => mitDatenbank((sql) => sql`select amount, counterparty_name from bank_transactions order by amount`);
+const ERWARTET = [
+  { amount: -5_000, counterparty_name: "PayPal" },
+  { amount: -300, counterparty_name: "PayPal" },
+  { amount: 10_000, counterparty_name: "Erika Beispiel" },
+];
 
-  const umsaetze = () => mitDatenbank((sql) => sql`select amount, counterparty_name from bank_transactions order by amount`);
-  // Die Abbuchung per Hand (T0403) ist als Auszahlung eingeordnet: PayPal ist die Gegenseite, nicht leer wie bei einem unbekannten Code
-  const erwartet = [
-    { amount: -5_000, counterparty_name: "PayPal" },
-    { amount: -300, counterparty_name: "PayPal" },
-    { amount: 10_000, counterparty_name: "Erika Beispiel" },
-  ];
-  expect(await umsaetze()).toEqual(erwartet);
-
-  await verbindung().getByRole("button", { name: "Jetzt abrufen" }).click();
-  await expect(verbindung().getByText("Abruf durchgelaufen.")).toBeVisible();
-  expect(await umsaetze()).toEqual(erwartet);
+test("Jetzt abrufen an der Verbindung legt nichts doppelt an; Bearbeiten zeigt Client-ID und Secret nicht", async () => {
+  await verbindung().getByRole("button", { name: "PayPal jetzt abrufen" }).click();
+  await expect(abrufBereich().getByText("PayPal: Abruf durchgelaufen.")).toBeVisible();
+  expect(await umsaetze()).toEqual(ERWARTET);
+  await verbindung().getByRole("button", { name: "Weitere Aktionen für PayPal" }).click();
+  await page.getByRole("menuitem", { name: "Bearbeiten …" }).click();
+  const dialog = page.getByRole("dialog", { name: "PayPal bearbeiten" });
+  await expect(dialog).toContainText(`PayPal: verbunden mit ${KONTO} (Client-ID …AB12).`);
+  await expect(dialog).toContainText(/Letzter Abruf: /);
+  await expect(dialog.getByLabel("Secret (leer lassen zum Behalten)")).toHaveValue("");
+  await expect(dialog.getByLabel("Client-ID (leer lassen zum Behalten)")).toHaveValue("");
+  await dialog.getByRole("button", { name: "Abbrechen" }).click();
 });
 
 test("Verbindung entfernen löscht Client-ID und Secret, die Umsätze bleiben", async () => {
-  await verbindung().getByRole("button", { name: "Verbindung entfernen" }).click();
+  await verbindung().getByRole("button", { name: "Weitere Aktionen für PayPal" }).click();
+  await page.getByRole("menuitem", { name: "Verbindung entfernen" }).click();
   const dialog = page.getByRole("dialog", { name: "Verbindung PayPal entfernen?" });
   await dialog.getByRole("button", { name: "Entfernen" }).click();
-  await expect(karte().getByText("Verbindung entfernt. Übernommene Umsätze bleiben im Konto stehen.")).toBeVisible();
-  await expect(karte().getByText("Nicht eingerichtet.")).toBeVisible();
+  await expect(abrufBereich().getByText("Verbindung entfernt. Übernommene Umsätze bleiben im Konto stehen.")).toBeVisible();
+  await expect(verbindung().getByRole("button", { name: "PayPal jetzt abrufen" })).toHaveCount(0);
   expect(await mitDatenbank((sql) => sql`select count(*)::int as n from psp_connections`)).toEqual([{ n: 0 }]);
   expect(await mitDatenbank((sql) => sql`select count(*)::int as n from bank_transactions`)).toEqual([{ n: 3 }]);
 });

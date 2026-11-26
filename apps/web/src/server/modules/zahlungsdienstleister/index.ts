@@ -18,4 +18,5 @@ export {
   verbindungenUebersicht,
   verbindungSchema,
   ZahlungsdienstleisterError,
+  zugangPruefen,
 } from "./verbindungen.ts";

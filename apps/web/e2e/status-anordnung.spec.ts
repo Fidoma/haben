@@ -18,6 +18,10 @@ test.describe.configure({ mode: "serial" });
 const HANDY = { width: 375, height: 812 };
 const DESKTOP = { width: 1440, height: 900 };
 const BANK = "Statusbank Musterstadt";
+/** Konto der Bankverbindung: Die Bankseite zeigt eine Verbindung über der Liste ihres Kontos (#1951) */
+const KONTO = "Statuskonto Musterstadt";
+const KONTO_IBAN = "DE89370400440532013000";
+let kontoId = "";
 const ARTIKEL = "Statusartikel Listenknopf";
 
 test.beforeAll(async () => {
@@ -25,9 +29,13 @@ test.beforeAll(async () => {
   await sql.begin(async (tx) => {
     await tx`select set_config('haben.actor', 'e2e', true)`;
     await tx`delete from bank_connections where aspsp_name = ${BANK}`;
+    const [konto] = await tx<{ id: string }[]>`insert into bank_accounts (name, iban) values (${KONTO}, ${KONTO_IBAN})
+      on conflict (iban) do update set name = excluded.name returning id`;
+    kontoId = konto!.id;
+    const konten = [{ uid: "u-status", iban: KONTO_IBAN, name: KONTO, bankAccountId: kontoId, identificationHash: "hash-status" }];
     // Läuft in 5 Tagen ab: dringend, mit langer Auskunft
     await tx`insert into bank_connections (aspsp_name, aspsp_country, psu_type, status, valid_until, accounts, last_sync_at)
-      values (${BANK}, 'DE', 'business', 'aktiv', now() + interval '5 days', '[]', now())`;
+      values (${BANK}, 'DE', 'business', 'aktiv', now() + interval '5 days', ${tx.json(konten)}, now())`;
     // Ein Artikel, damit die Liste unter /artikel eine Zeile mit kleinen Knöpfen hat
     await tx`delete from articles where description = ${ARTIKEL}`;
     await tx`insert into articles (description, unit, unit_price, tax_rate) values (${ARTIKEL}, 'Stück', 1000, 1900)`;
@@ -47,10 +55,11 @@ async function reihenfolge(status: Locator, zeile: Locator) {
   }, rand);
 }
 
+/** Zeile des Kontos auf der Seite Verbindungen (#1951): der Status steht in seiner Spalte vor den Knöpfen */
 async function bankZeile(page: Page) {
-  await page.goto("/bank");
+  await page.goto("/bank/verbindungen");
   await page.waitForLoadState("networkidle");
-  const zeile = page.getByRole("region", { name: "Automatischer Abruf" }).locator(".history-row", { hasText: BANK });
+  const zeile = page.getByRole("region", { name: "Banken", exact: true }).locator("tbody tr", { hasText: KONTO });
   return { zeile, status: zeile.locator(".status") };
 }
 
@@ -77,8 +86,9 @@ test("Handy: Statuswort rechts in der Zeile am Ende, neben dem Titel zuerst", as
   // Das Wort endet an der rechten Kante der Zeile
   expect(Math.abs(r.wortRechts)).toBeLessThanOrEqual(8);
 
+  // Auf der Seite Verbindungen steht der Status am Handy rechts an der Kante der Zeile (#1951): das Wort am Ende
   const bank = await bankZeile(page);
-  expect((await reihenfolge(bank.status, bank.zeile)).wortZuerst).toBe(true);
+  expect((await reihenfolge(bank.status, bank.zeile)).wortZuerst).toBe(false);
 
   const rechnung = await firstLink(page, "/rechnungen", /^\/rechnungen\/[0-9a-f-]{36}$/);
   await page.goto(rechnung ?? "");
@@ -100,10 +110,6 @@ async function knopfRaender(zeile: Locator) {
 
 test("Handy: Knöpfe in den Karten füllen die Zeile", async ({ page }) => {
   await page.setViewportSize(HANDY);
-  // Automatischer Abruf: „Trennen“ vorn an der linken, „Jetzt abrufen“ an der rechten Kante
-  const bank = await knopfRaender((await bankZeile(page)).zeile);
-  expect(Math.abs(bank.links)).toBeLessThanOrEqual(1);
-  expect(Math.abs(bank.rechts)).toBeLessThanOrEqual(1);
   // SEPA-Mandat: neben dem Link „Mandat als PDF“ reicht der kleine Knopf bis an die rechte Kante
   const mandat = await knopfRaender((await mandatZeile(page)).zeile);
   expect(Math.abs(mandat.rechts)).toBeLessThanOrEqual(1);
@@ -131,10 +137,17 @@ test("Handy: kleine Knöpfe in Listen wie Tabellen (div.table) bleiben so breit 
   expect(breite).toBeLessThanOrEqual(noetig + 2);
 });
 
-test("Desktop: Statuswort in Karten zuerst", async ({ page }) => {
+test("Desktop: Statuswort in Karten zuerst, in der Tabelle der Verbindungen über der Auskunft", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
-  for (const finden of [bankZeile, mandatZeile]) {
-    const { zeile, status } = await finden(page);
-    expect((await reihenfolge(status, zeile)).wortZuerst).toBe(true);
-  }
+  const mandat = await mandatZeile(page);
+  expect((await reihenfolge(mandat.status, mandat.zeile)).wortZuerst).toBe(true);
+  // In Tabellen Punkt über Punkt, die Auskunft darunter (DESIGN.md › Status › Anordnung)
+  const { status } = await bankZeile(page);
+  await expect(status.locator(".status-detail")).toBeVisible();
+  const lage = await status.evaluate((e) => {
+    const wort = e.querySelector(".status-label")!.getBoundingClientRect();
+    const auskunft = e.querySelector(".status-detail")!.getBoundingClientRect();
+    return { darunter: auskunft.top >= wort.bottom - 1, buendig: Math.abs(auskunft.left - wort.left) <= 1 };
+  });
+  expect(lage).toEqual({ darunter: true, buendig: true });
 });

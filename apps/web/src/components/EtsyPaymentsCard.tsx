@@ -53,8 +53,7 @@ export function EtsyPaymentsCard({ data }: { data: Data }) {
   }
 
   return (
-    <section className="card" aria-labelledby="etsy-heading">
-      <h2 id="etsy-heading">Etsy Payments</h2>
+    <div className="stack">
       <p className="small muted" style={{ margin: 0 }}>
         Haben holt den Zahlungsverlauf des Shops über die Etsy-API (Verkäufe, Erstattungen, Gebühren, Werbung, Steuer und Auszahlungen) und legt ihn im Konto
         des Zahlungsdienstleisters an. Dafür braucht es eine eigene App im{" "}
@@ -172,7 +171,7 @@ export function EtsyPaymentsCard({ data }: { data: Data }) {
           </p>
         </ConfirmDialog>
       </form>
-    </section>
+    </div>
   );
 }
 

@@ -4,11 +4,11 @@ import type { StoreBatchInput } from "../bank/index.ts";
 /*
  * Vertrag zwischen der gemeinsamen Anbindung und einem Zahlungsdienstleister (#1729). Die Anbindung kümmert sich um Tabelle,
  * Zeitplan, Fenster, Konto, Speichern nach dem Importvertrag und Meldungen; ein Adapter nur um das, was beim Anbieter anders ist.
- * Ein neuer Anbieter braucht keine Migration und keine Änderung an Tabelle, Zeitplan oder Karte; welche festen Listen er außer
+ * Ein neuer Anbieter braucht keine Migration und keine Änderung an Tabelle, Zeitplan oder Oberfläche; welche festen Listen er außer
  * anbieter.ts noch braucht, steht im Skill anbindung-hinzufuegen (references/zahlungsdienstleister-api.md).
  */
 
-/** Ein Feld der Einstellungen, das der Adapter beschreibt; die Karte baut daraus das Formular */
+/** Ein Feld des Zugangs, das der Adapter beschreibt; Einrichtung und Bearbeiten bauen daraus die Felder */
 export interface AdapterFeld {
   name: string;
   label: string;
@@ -23,6 +23,16 @@ export interface AdapterFeld {
   config?: true;
 }
 
+/**
+ * Ein Schritt der geführten Einrichtung (#1951): Zugang eingeben und prüfen, Name und Zeitraum, erster Abruf. Rahmen,
+ * Schrittleiste und Ergebnis sind für alle Anbieter gleich; ein Anbieter mit Anmeldung über Weiterleitung bringt hier
+ * einen weiteren Schritt mit.
+ */
+export type AdapterSchritt = "zugang" | "einstellungen" | "abruf";
+
+/** Die Schritte eines Anbieters, der nichts anderes sagt */
+export const STANDARD_SCHRITTE: readonly AdapterSchritt[] = ["zugang", "einstellungen", "abruf"];
+
 /** Ergebnis der Prüfung eines Zugangs beim Anbieter */
 export interface Pruefung {
   /** Kennung des Kontos beim Anbieter: Quelle des Abrufs */
@@ -31,6 +41,8 @@ export interface Pruefung {
   keyHint: string;
   /** Bis wann der Zugang gilt, wenn der Anbieter es sagt */
   gueltigBis?: Date | null;
+  /** Was beim Prüfen auffiel, etwa fehlende Rechte mit ihrer Folge; die Einrichtung zeigt es unter der Kennung */
+  hinweise?: string[];
 }
 
 /** Was ein Abruf liefert: alles für storeBatch außer Bindung und Dateiname, die die Anbindung setzt */
@@ -71,6 +83,8 @@ export interface PspAdapter<Zugang = unknown, Config = unknown> {
   /** Hinweis zur config, etwa dass ein Zugang nur Testdaten liefert; null ohne Hinweis */
   configHinweis?(config: Config): string | null;
   felder: AdapterFeld[];
+  /** Schritte der Einrichtung; fehlt: STANDARD_SCHRITTE */
+  schritte?: readonly AdapterSchritt[];
   /** Liest den entschlüsselten Zugang, auch in älteren Formen */
   zugangLesen(text: string): Zugang;
   configSchema: z.ZodType<Config>;

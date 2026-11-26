@@ -1,9 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { authMiddleware } from "../middleware.ts";
-import { abrufen, entferneVerbindung, speichereVerbindung, verbindungenUebersicht, verbindungSchema } from "../modules/zahlungsdienstleister/index.ts";
+import {
+  abrufen,
+  entferneVerbindung,
+  speichereVerbindung,
+  verbindungenUebersicht,
+  verbindungSchema,
+  zugangPruefen,
+} from "../modules/zahlungsdienstleister/index.ts";
 
-/** Verbindungen zu Zahlungsdienstleistern über ihre API (Einstellungen › Bank, #1729) */
+/** Verbindungen zu Zahlungsdienstleistern über ihre API (#1729), eingerichtet auf der Bankseite (#1951) */
 
 const idSchema = z.object({ id: z.uuid() });
 
@@ -28,3 +35,9 @@ export const syncPspNow = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator(idSchema)
   .handler(async ({ data, context }) => abrufen(context.user.id, data.id));
+
+/** Schritt „Zugang“ der Einrichtung: prüft den Zugang beim Anbieter, ohne etwas zu speichern */
+export const checkPspAccessFn = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator(verbindungSchema.pick({ provider: true, eingabe: true, config: true }))
+  .handler(async ({ data }) => zugangPruefen(data.provider, data.eingabe, data.config));

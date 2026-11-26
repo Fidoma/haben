@@ -1,5 +1,5 @@
 import { authorizationUrl, createEtsyClient, createPkce, exchangeCode, type EtsyClient, type EtsyClientOptions } from "@haben/import";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { decrypt, encrypt } from "../../crypto.ts";
 import { withActor } from "../../db/actor.ts";
@@ -7,7 +7,7 @@ import { db, schema } from "../../db/index.ts";
 import { env } from "../../env.ts";
 import { UserError } from "../../errors.ts";
 import { today } from "../../today.ts";
-import { keineExterneQuelleFuerAbruf, openConflicts } from "../bank/index.ts";
+import { keineExterneQuelleFuerAbruf, openConflicts, providerKontoAnlegen } from "../bank/index.ts";
 import { ETSY_RHYTHMEN, type EtsyRhythmus } from "./abruf-regeln.ts";
 
 /*
@@ -208,7 +208,22 @@ export async function completeEtsyConnection(
     return fehlschlag(`Freigegeben, aber der Shop ließ sich nicht ermitteln: ${message(error)}`);
   }
   await storeEtsySecret(actor, secret, { shopId: shop.shopId, shopName: shop.shopName, lastError: null });
+  await kontoFuerEtsy(actor);
   return { ok: true, message: `Verbunden mit ${shop.shopName || "dem Shop"} (${shop.shopId}).` };
+}
+
+/**
+ * Legt das Konto der Art Zahlungsdienstleister für Etsy an, wenn es keins gibt, wie die Verbindungen zu Stripe und PayPal
+ * (#1729, #1951). Ohne Konto übernähme der Abruf nichts; ältere Zugänge ohne Konto meldet importEtsyLedger.
+ */
+async function kontoFuerEtsy(actor: string) {
+  await withActor(actor, async (tx) => {
+    const [da] = await tx
+      .select({ id: schema.bankAccounts.id })
+      .from(schema.bankAccounts)
+      .where(and(eq(schema.bankAccounts.purpose, "zahlungsdienstleister"), eq(schema.bankAccounts.provider, "etsy")));
+    if (!da) await providerKontoAnlegen(tx, { name: "Etsy", provider: "etsy" });
+  });
 }
 
 /** Trennt die Verbindung: Token weg, Schlüssel und Geheimnis bleiben für einen neuen Anlauf */

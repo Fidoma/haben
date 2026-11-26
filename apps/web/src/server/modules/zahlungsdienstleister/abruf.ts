@@ -54,7 +54,7 @@ function update(actor: string, id: string, values: Partial<typeof schema.pspConn
 
 async function abrufenEinmal(actor: string, id: string, now: Date): Promise<AbrufErgebnis> {
   const verbindung = await ladeVerbindung(id);
-  if (!verbindung) throw new ZahlungsdienstleisterError("Die Verbindung ist nicht eingerichtet (Einstellungen › Bank).");
+  if (!verbindung) throw new ZahlungsdienstleisterError("Die Verbindung ist nicht eingerichtet (Bank › Konto verbinden).");
   const { row, adapter } = verbindung;
   const result: AbrufErgebnis = { entries: 0, added: 0, accountName: null, messages: [], error: null };
   const fenster = adapter.fenster(row.fetchFrom, now);

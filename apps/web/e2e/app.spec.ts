@@ -18,6 +18,7 @@ import {
   gehe,
   INVOICES,
   kontaktAnlegen,
+  kontoVerbinden,
   kundeWaehlen,
   rechnungFestschreiben,
   lieferantWaehlen,
@@ -585,12 +586,13 @@ test("Überweisung als SEPA-Datei: offenen Beleg wählen, Datei herunterladen, V
   // Ohne Bankkonto gibt es kein Auftraggeberkonto
   await expect(page.getByText(/braucht Haben das Konto, von dem sie abgeht/)).toBeVisible();
   await go("/bank");
-  await page.getByRole("button", { name: "Konto hinzufügen" }).click();
+  await kontoVerbinden(page, "Konto ohne Abruf anlegen");
   const accountForm = page.locator("form").filter({ has: page.getByRole("button", { name: "Konto anlegen" }) });
   await accountForm.getByRole("textbox", { name: "Name" }).fill("Girokonto");
   await accountForm.getByRole("textbox", { name: "IBAN" }).fill("DE45 1203 0000 1234 5678 90");
   await accountForm.getByRole("button", { name: "Konto anlegen" }).click();
-  await expect(page.getByRole("combobox", { name: "Konto" }).locator("option", { hasText: "Girokonto" })).toHaveCount(1);
+  // Das neue Konto ist gewählt: seine Karte steht in der Leiste (#1951)
+  await expect(page.getByRole("navigation", { name: "Konten" }).getByRole("link", { name: /^Girokonto/ })).toHaveAttribute("aria-current", "page");
 
   await go("/ueberweisungen");
   const form = page.getByRole("form", { name: "SEPA-Überweisung erzeugen" });

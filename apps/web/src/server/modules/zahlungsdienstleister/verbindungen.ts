@@ -7,12 +7,12 @@ import { db, schema, type Tx } from "../../db/index.ts";
 import { UserError } from "../../errors.ts";
 import { today } from "../../today.ts";
 import { keineExterneQuelle, openConflicts, providerKontoAnlegen } from "../bank/index.ts";
-import type { PspAdapter } from "./adapter.ts";
+import { type PspAdapter, STANDARD_SCHRITTE } from "./adapter.ts";
 import { ANBIETER, adapterFuer } from "./anbieter.ts";
 import { RHYTHMEN, type Rhythmus } from "./regeln.ts";
 
 /*
- * Verbindungen zu Zahlungsdienstleistern speichern, lesen und entfernen (Einstellungen › Bank, #1729). Eine Zeile in
+ * Verbindungen zu Zahlungsdienstleistern speichern, prüfen, lesen und entfernen (#1729; eingerichtet auf der Bankseite, #1951). Eine Zeile in
  * psp_connections je Verbindung; was beim Anbieter anders ist, entscheidet sein Adapter (anbieter.ts). Der Zugang liegt
  * AES-256-GCM-verschlüsselt in ciphertext, nie im Klartext in der Datenbank, im Protokoll oder in einer Meldung.
  */
@@ -142,10 +142,10 @@ async function gewaehltesKonto(bankAccountId: string, provider: string, id: stri
   return konto.id;
 }
 
-/** Fehler, wenn eine andere Verbindung schon dieses Konto beim Anbieter abruft */
-async function kontoBeimAnbieterFrei(adapter: PspAdapter, accountId: string, id: string | null) {
+/** Die Verbindung, die dieses Konto beim Anbieter schon abruft, außer der mit der Kennung id; null, wenn es keine gibt */
+async function verbindungZumKonto(adapter: PspAdapter, accountId: string, id: string | null) {
   const [andere] = await db
-    .select({ name: schema.pspConnections.name })
+    .select({ id: schema.pspConnections.id, name: schema.pspConnections.name, bankAccountId: schema.pspConnections.bankAccountId })
     .from(schema.pspConnections)
     .where(
       and(
@@ -154,7 +154,15 @@ async function kontoBeimAnbieterFrei(adapter: PspAdapter, accountId: string, id:
         id ? ne(schema.pspConnections.id, id) : sql`true`,
       ),
     );
-  if (andere) throw new ZahlungsdienstleisterError(`Dieses ${adapter.name}-Konto ist schon als „${andere.name}“ verbunden.`);
+  return andere ?? null;
+}
+
+const schonVerbundenText = (adapter: PspAdapter, name: string) => `Dieses ${adapter.name}-Konto ist schon als „${name}“ verbunden.`;
+
+/** Fehler, wenn eine andere Verbindung schon dieses Konto beim Anbieter abruft */
+async function kontoBeimAnbieterFrei(adapter: PspAdapter, accountId: string, id: string | null) {
+  const andere = await verbindungZumKonto(adapter, accountId, id);
+  if (andere) throw new ZahlungsdienstleisterError(schonVerbundenText(adapter, andere.name));
 }
 
 /**
@@ -248,6 +256,32 @@ export async function speichereVerbindung(actor: string, input: z.input<typeof v
   });
 }
 
+/**
+ * Prüft einen neuen Zugang beim Anbieter, ohne etwas zu speichern (Schritt „Zugang“ der Einrichtung, #1951): erkannte
+ * Kontokennung, ob dieses Konto beim Anbieter schon als Verbindung besteht, und das Konto in Haben, das „Automatisch“
+ * nähme. Hält die Quellenbindung (#306) das Konto beim Anbieter schon an einem Konto in Haben, ist es dieses (gebunden).
+ */
+export async function zugangPruefen(provider: string, eingabe: Record<string, string>, rohConfig: unknown) {
+  const adapter = adapterOderFehler(provider);
+  const config = configLesen(adapter, rohConfig);
+  const zugang = adapter.zugangAusEingabe(eingabe, config, null);
+  const pruefung = await adapter.pruefen(zugang, config);
+  const verbunden = await verbindungZumKonto(adapter, pruefung.accountId, null);
+  // Schon verbunden: Speichern lehnte ab, ein Konto in Haben gibt es dann nicht zu wählen
+  const gebunden = verbunden ? null : await gebundenesKonto(adapter, pruefung.accountId, null);
+  const frei = verbunden || gebunden ? null : await freiesKonto(db, adapter.provider, null, pruefung.accountId);
+  return {
+    accountId: pruefung.accountId,
+    keyHint: pruefung.keyHint,
+    gueltigBis: pruefung.gueltigBis ?? null,
+    hinweise: pruefung.hinweise ?? [],
+    schonVerbunden: verbunden && { ...verbunden, text: schonVerbundenText(adapter, verbunden.name) },
+    /** Konto in Haben, das „Automatisch“ nimmt; null: Speichern legt eines mit dem Namen der Verbindung an */
+    konto: gebunden ?? frei,
+    gebunden: gebunden !== null,
+  };
+}
+
 /** Entfernt die Verbindung ganz; übernommene Umsätze bleiben im Konto stehen */
 export async function entferneVerbindung(actor: string, id: string): Promise<void> {
   await withActor(actor, (tx) => tx.delete(schema.pspConnections).where(eq(schema.pspConnections.id, id)));
@@ -274,7 +308,7 @@ export async function kontoDerVerbindung(actor: string, row: Row) {
   return konto;
 }
 
-/** Was die Einstellungen von einem Anbieter brauchen, ohne Funktionen */
+/** Was die Oberfläche von einem Anbieter braucht, ohne Funktionen */
 const anbieterFuerOberflaeche = (a: PspAdapter) => ({
   provider: a.provider,
   name: a.name,
@@ -282,6 +316,7 @@ const anbieterFuerOberflaeche = (a: PspAdapter) => ({
   link: a.link,
   zugangName: a.zugangName,
   felder: a.felder,
+  schritte: a.schritte ?? STANDARD_SCHRITTE,
 });
 
 /** Hinweis des Adapters zur gespeicherten config; eine ungültige zeigt keinen */
@@ -291,7 +326,7 @@ function configHinweis(row: Row): string | null {
   return adapter && parsed?.success ? (adapter.configHinweis?.(parsed.data) ?? null) : null;
 }
 
-/** Für die Einstellungen: alle Verbindungen ohne Zugang, die Anbieter mit ihren Feldern und die Konten zur Auswahl */
+/** Für Bankseite und Einrichtung: alle Verbindungen ohne Zugang, die Anbieter mit ihren Feldern und die Konten zur Auswahl */
 export async function verbindungenUebersicht() {
   const [rows, konten, konflikte] = await Promise.all([
     alleVerbindungen(),

@@ -1,10 +1,7 @@
 import {
-  ACCOUNT_PURPOSES,
   direktBuchungenFuerKonto,
   direktKategorienFuerKonto,
-  PAYMENT_PROVIDERS,
   directBookingLabel,
-  paymentProviderAccount,
   STEUER_POSTEN,
   STEUER_POSTEN_KEYS,
   DARLEHEN_TEILE,
@@ -29,6 +26,7 @@ import {
   allocateSplit,
   allocationSchema,
   BankError,
+  KontoWaehlenError,
   gemeldeteVoranmeldungen,
   createAccount,
   createProviderAccount,
@@ -64,9 +62,10 @@ import {
   reverseNeutralization,
 } from "../modules/bank/index.ts";
 import { deleteEnableBankingSettings, enableBankingSettingsSchema, enableBankingSettingsSummary, saveEnableBankingSettings } from "../modules/bank/index.ts";
-import { callbackUrl, enableBankingConfigured, listBanks, listConnections, removeConnection, startConnection, syncConnection } from "../modules/bank/index.ts";
-import { fintsConfigured, listFintsConnections } from "../modules/bank/index.ts";
-import { cutoverDates, klaerungView, openConflicts, resolveConflict, resolveConflictSchema } from "../modules/bank/index.ts";
+import { listBanks, removeConnection, startConnection, syncConnection } from "../modules/bank/index.ts";
+import { fintsConfigured } from "../modules/bank/index.ts";
+import { klaerungView, resolveConflict, resolveConflictSchema } from "../modules/bank/index.ts";
+import { abrufUndKarten, kontenAngaben } from "./bank-karten.ts";
 import { authMiddleware } from "../middleware.ts";
 import { today } from "../today.ts";
 import { UserError } from "../errors.ts";
@@ -132,25 +131,9 @@ export const getBankOverview = createServerFn({ method: "GET" })
       /** Darlehen mit Bestand und die Teile einer Rate */
       loans: (await listLoans()).map((l) => ({ value: l.id, label: `${l.name} · Bestand ${formatEuro(l.balance)}` })),
       loanParts: DARLEHEN_TEIL_KEYS.map((value) => ({ value, label: DARLEHEN_TEILE[value] })),
-      purposes: Object.entries(ACCOUNT_PURPOSES).map(([value, label]) => ({ value, label })),
-      providers: Object.entries(PAYMENT_PROVIDERS).map(([value, p]) => ({ value, label: p.label })),
-      /** Sachkonto je Zahlungsdienstleister, zur Anzeige */
-      ledgers: Object.fromEntries(
-        await Promise.all(
-          accounts
-            .filter((a) => a.ledgerIndex !== null)
-            .map(async (a) => [a.id, paymentProviderAccount((await loadCompany()).kontenrahmen, a.ledgerIndex!)] as const),
-        ),
-      ),
-      sync: {
-        configured: await enableBankingConfigured(),
-        callbackUrl: callbackUrl(),
-        connections: await listConnections(),
-        /** Offene Konflikte im Abruf und Stichtag je Konto (#306) */
-        konflikte: await openConflicts(),
-        stichtage: await cutoverDates(),
-      },
-      fints: { configured: fintsConfigured(), connections: await listFintsConnections() },
+      ...(await kontenAngaben(accounts)),
+      /** Kontoabruf (Enable Banking, FinTS) und die Karten der Konten mit ihrem Stand (#1951) */
+      ...(await abrufUndKarten(accounts)),
     };
   });
 
@@ -176,7 +159,13 @@ export const importStatements = createServerFn({ method: "POST" })
         results.push({ filename: file.name, ...result });
       } catch (error) {
         if (!(error instanceof BankError)) throw error;
-        results.push({ filename: file.name, error: error.message, zuordnen: error instanceof UnbekannteCsvError });
+        // zuordnen: Spalten einer unbekannten Bank zuordnen; kontoWaehlen: die Datei nennt kein Konto, das Haben findet
+        results.push({
+          filename: file.name,
+          error: error.message,
+          zuordnen: error instanceof UnbekannteCsvError,
+          kontoWaehlen: error instanceof KontoWaehlenError,
+        });
       }
     }
     return results;

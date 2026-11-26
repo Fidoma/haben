@@ -82,7 +82,7 @@ test("Upload-Knöpfe: Klick und Tastatur öffnen an jeder Stelle genau einen Dia
   await uploadButtonPruefen(page, page.getByRole("button", { name: "Dateien auswählen" }), "Belege");
 
   await oeffnen(page, "/bank");
-  await uploadButtonPruefen(page, page.getByRole("button", { name: "CSV / CAMT importieren" }), "Bank");
+  await uploadButtonPruefen(page, page.locator(".page-head").getByRole("button", { name: "Datei importieren" }), "Bank");
 
   await oeffnen(page, "/einstellungen?bereich=rechnungen");
   await uploadButtonPruefen(page, page.getByRole("button", { name: "PDF anhängen" }).first(), "Standardanhänge");

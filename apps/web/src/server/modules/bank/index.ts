@@ -14,6 +14,7 @@ export {
   listBanks,
   listConnections,
   removeConnection,
+  RENEW_WARNING_DAYS,
   runDueBankSyncs,
   saveEnableBankingSettings,
   startConnection,
@@ -23,7 +24,7 @@ export { fintsVerbinden, fintsVerbindenSchema, listFintsConnections, removeFints
 export { fintsAbrufen, runDueFintsSyncs } from "./fints-abruf.ts";
 export { fintsConfigured } from "./fints-produkt.ts";
 export { type FintsSchritt, vorgangFortsetzen as fintsFortsetzen, vorgangVerwerfen as fintsVerwerfen } from "./fints-vorgang.ts";
-export { BankError } from "./bank-error.ts";
+export { BankError, KontoWaehlenError } from "./bank-error.ts";
 export {
   accountSchema,
   accountSettingsSchema,

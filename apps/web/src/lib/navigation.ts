@@ -97,6 +97,8 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     hinweis: "Wo dein Geld liegt, auf der Bank und in der Kasse, und was du als Darlehen schuldest",
     links: [
       { to: "/bank", icon: "bank", label: "Bank" },
+      // Abruf, Zugänge und Konten der Banken und Zahlungsdienstleister (#1951)
+      { to: "/bank/verbindungen", icon: "link", label: "Verbindungen" },
       { to: "/kasse", icon: "cash", label: "Kasse" },
       { to: "/darlehen", icon: "loan", label: "Darlehen" },
     ],

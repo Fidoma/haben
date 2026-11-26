@@ -168,8 +168,10 @@ test("Konflikt im Abruf klären: als weiteren Umsatz übernehmen, mit Hinweis an
   const iban = "DE02120300000000202051";
   const sql = postgres(databaseUrlFuer("verrechnung"), { max: 1, onnotice: () => {} });
   let bisher: string;
+  let kontoId: string;
   try {
     const [konto] = await sql<{ id: string }[]>`insert into bank_accounts (name, iban) values ('Geschäftskonto', ${iban}) returning id`;
+    kontoId = konto!.id;
     const [abruf] = await sql<{ id: string }[]>`insert into bank_imports (bank_account_id, filename, sha256, format, period_from, period_to, added, skipped)
       values (${konto!.id}, 'Abruf Testbank', ${"a".repeat(64)}, 'enablebanking', ${day(-10)}, ${day(-1)}, 1, 0) returning id`;
     const [umsatz] = await sql<
@@ -198,10 +200,14 @@ test("Konflikt im Abruf klären: als weiteren Umsatz übernehmen, mit Hinweis an
     await sql.end();
   }
 
-  await gehe(page, "/bank");
-  const abruf = page.getByRole("region", { name: "Automatischer Abruf" });
-  await expect(abruf).toContainText(`Bankabruf seit ${deutsch(day(-10))}`);
-  await abruf.getByRole("button", { name: "Konflikt klären" }).click();
+  // Die Seite Verbindungen nennt den Stichtag an der Zeile des Kontos (#1951)
+  await gehe(page, "/bank/verbindungen");
+  await expect(page.getByRole("row").filter({ hasText: "Geschäftskonto" })).toContainText(`Bankabruf seit ${deutsch(day(-10))}`);
+  // Auf der Bankseite steht der Konflikt im Hinweis unter der Leiste, „Klären“ rechts daneben
+  await gehe(page, `/bank?konto=${kontoId!}`);
+  const abruf = page.locator(".konto-hinweis");
+  await expect(abruf).toContainText("Geschäftskonto: Der Abruf liefert 1 Umsatz anders als beim ersten Mal.");
+  await abruf.getByRole("button", { name: "Klären" }).click();
   const dialog = page.getByRole("dialog", { name: "Konflikt klären" });
   await expect(dialog).toContainText("−89,00 €");
   await expect(dialog).toContainText("−98,00 €");
@@ -210,7 +216,7 @@ test("Konflikt im Abruf klären: als weiteren Umsatz übernehmen, mit Hinweis an
   await dialog.getByLabel("Als weiteren Umsatz übernehmen").check();
   await dialog.getByRole("button", { name: "Klären" }).click();
   await expect(dialog).toBeHidden();
-  await expect(abruf.getByRole("button", { name: /Konflikt/ })).toHaveCount(0);
+  await expect(abruf).toHaveCount(0);
 
   // Am bisherigen Umsatz der Verweis auf den neuen, dort zurück auf den bisherigen
   await gehe(page, `/bank?umsatz=${bisher!}`);
@@ -236,8 +242,11 @@ test("Externe Quelle am Konto freigeben, danach Konflikt dieser Quelle klären (
     await sql.end();
   }
 
-  await gehe(page, `/bank?konto=${konto}`);
-  await page.getByRole("button", { name: "Externe Quelle hinzufügen" }).click();
+  // Freigegeben wird an der Zeile des Kontos auf der Seite Verbindungen (#1951)
+  await gehe(page, "/bank/verbindungen");
+  const zeile = page.getByRole("row").filter({ hasText: "eBay" });
+  await zeile.getByRole("button", { name: "Weitere Aktionen für eBay" }).click();
+  await page.getByRole("menuitem", { name: "Externe Quelle hinzufügen …" }).click();
   const dialog = page.getByRole("dialog", { name: "Externe Quelle hinzufügen" });
   await dialog.getByLabel("Anbieter", { exact: true }).fill("haben-ebay");
   await dialog.getByLabel("Kennung des Kontos beim Anbieter").fill("verkaeufer-beispiel");
@@ -245,8 +254,11 @@ test("Externe Quelle am Konto freigeben, danach Konflikt dieser Quelle klären (
   expect(await axeVerstoesse(page), "Dialog „Externe Quelle hinzufügen“").toEqual([]);
   await dialog.getByRole("button", { name: "Freigeben" }).click();
   await expect(dialog).toBeHidden();
-  await expect(page.getByText(`Externe Quelle: haben-ebay · verkaeufer-beispiel · seit ${deutsch(day(-10))} · noch keine Lieferung`)).toBeVisible();
-  await expect(page.getByRole("button", { name: "Externe Quelle hinzufügen" })).toHaveCount(0);
+  await expect(zeile).toContainText("Externe Quelle · haben-ebay");
+  await expect(zeile).toContainText(`haben-ebay · verkaeufer-beispiel · seit ${deutsch(day(-10))} · noch keine Lieferung`);
+  await zeile.getByRole("button", { name: "Weitere Aktionen für eBay" }).click();
+  await expect(page.getByRole("menuitem", { name: "Externe Quelle hinzufügen …" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
 
   const db = postgres(databaseUrlFuer("verrechnung"), { max: 1, onnotice: () => {} });
   try {
@@ -279,16 +291,18 @@ test("Externe Quelle am Konto freigeben, danach Konflikt dieser Quelle klären (
     await db.end();
   }
 
+  await gehe(page, "/bank/verbindungen");
+  await expect(zeile).toContainText(/haben-ebay · verkaeufer-beispiel · .* geliefert bis/);
   await gehe(page, `/bank?konto=${konto}`);
-  await expect(page.getByText(/Externe Quelle: haben-ebay · verkaeufer-beispiel · .* geliefert bis/)).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Konten" }).getByRole("link", { name: /eBay/ })).toContainText("REST-Import · zuletzt");
-  await page.getByRole("button", { name: "Konflikt klären" }).click();
+  // Der offene Konflikt steht als Status auf der Karte des Kontos statt Weg und Zeit, „Klären“ im Hinweis darunter (#1951)
+  await expect(page.getByRole("navigation", { name: "Konten" }).getByRole("link", { name: /eBay/ })).toContainText("Konflikt 1 Umsatz");
+  await page.locator(".konto-hinweis").getByRole("button", { name: "Klären" }).click();
   const klaeren = page.getByRole("dialog", { name: "Konflikt klären" });
   await expect(klaeren).toContainText("Der Dienst liefert diesen Umsatz (SALE-0001)");
   await expect(klaeren).toContainText("Jetzt vom Dienst");
   await klaeren.getByRole("button", { name: "Klären" }).click();
   await expect(klaeren).toBeHidden();
-  await expect(page.getByRole("button", { name: "Konflikt klären" })).toHaveCount(0);
+  await expect(page.locator(".konto-hinweis")).toHaveCount(0);
 });
 
 test("Keine Fehler im Browser", () => {

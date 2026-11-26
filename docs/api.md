@@ -386,7 +386,7 @@ Verwende beim Nachversand dieselben Werte für `externalSource` und `externalId`
 
 Ein eigener Dienst, der Zahlungen bei einem Anbieter abholt, liefert sie mit `POST /bankimporte` als Umsätze an Haben. Die Lieferung folgt dem Importvertrag aus [#306](https://github.com/Speicherstadt/haben/issues/306) (Schema `BankImport` in der OpenAPI-Beschreibung). Haben legt die Umsätze an; zugeordnet wird wie bei jedem Import im Bankabgleich.
 
-1. **Quelle freigeben:** in Haben unter **Bank** das Konto wählen und [Externe Quelle hinzufügen](bank.md#externe-quelle). Anbieter und Kennung dort sind `provider` und `externalAccountId` jeder Lieferung. Ein Token allein legt keine Quelle an; ohne Freigabe antwortet die API mit `404`.
+1. **Quelle freigeben:** in Haben unter **Geld › Verbindungen** an der Zeile des Kontos [Externe Quelle hinzufügen](bank.md#externe-quelle). Anbieter und Kennung dort sind `provider` und `externalAccountId` jeder Lieferung. Ein Token allein legt keine Quelle an; ohne Freigabe antwortet die API mit `404`.
 2. **Token** mit dem Recht „Bankumsätze in freigegebene Quellen liefern“ (`bank:importieren`).
 3. **Liefern** wie unten.
 
@@ -395,7 +395,7 @@ Jede Bewegung hat eine feste Kennung beim Anbieter (`sourceEventId`) und eine Ko
 - **Gebühren und Auszahlungen:** Die Gebühr wird ein eigener Umsatz mit „Gebühr“ vorn im Verwendungszweck, eine Auszahlung (`kind: "payout"`) schlägt der Abgleich als Geldtransit zum Eingang auf der Bank vor. Bezug einer Erstattung (`relatedEventId`) und Bestellung (`orderId`) stehen im Verwendungszweck.
 - **Wiederholen:** Dieselbe Lieferung (gleicher `idempotencyKey`, gleicher Inhalt) noch einmal gibt das bisherige Ergebnis mit `200` zurück, ohne etwas anzulegen; derselbe Schlüssel mit anderem Inhalt ist ein Konflikt. Bekannte Bewegungen in einem überlappenden Fenster überspringt Haben.
 - **Seiten:** höchstens 1.000 Bewegungen je Lieferung. Mehr kommen als Teile desselben Abrufs: gleiche `part.fetchId`, `part.index` ab 0, beim letzten `part.last: true`. Erst mit allen Teilen gilt der Zeitraum als vollständig; Ereignisse unter `unsupported` halten ihn offen, außer mit `final: true` (Endzustand wie storniert oder abgelehnt).
-- **Konflikt:** Kommt eine schon übernommene Bewegung mit anderem Betrag, Tag oder anderer Art, überschreibt Haben nichts, antwortet mit `409` und nimmt aus der Quelle nichts mehr an, bis du am Konto **Konflikt klären** wählst.
+- **Konflikt:** Kommt eine schon übernommene Bewegung mit anderem Betrag, Tag oder anderer Art, überschreibt Haben nichts, antwortet mit `409` und nimmt aus der Quelle nichts mehr an, bis du ihn am Konto mit **Klären** löst ([Externe Quelle](bank.md#externe-quelle)).
 - **Stand:** `GET /bankquellen` nennt je Quelle Stichtag, bis wann vollständig geliefert ist (`checkpoint`) und offene Konflikte.
 
 Eine Zahlung mit Gebühr liefern (erfundene Daten):

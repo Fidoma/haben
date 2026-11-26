@@ -1,5 +1,7 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { wartetAuf, zeilenGrund } from "./FintsAbruf.tsx";
+import { useFintsAbruf, wartetAuf, zeilenGrund } from "./FintsAbruf.tsx";
 
 // Die Server-Funktionen brauchen die Umgebung der App; geprüft werden hier nur die Sätze
 vi.mock("../server/functions/fints.ts", () => ({ cancelFints: {}, connectFints: {}, continueFints: {}, disconnectFints: {}, syncFints: {} }));
@@ -70,23 +72,26 @@ describe("Grund gesperrter FinTS-Knöpfe beim Trennen (#1677)", () => {
 
 describe("Grund beim Trennen ohne FINTS_PRODUKT_ID (Review #1693)", () => {
   // Ohne Registrierungsnummer zeigt eine Zeile nur „Trennen“; der Grund darf keine Knöpfe nennen, die es nicht gibt
-  it("nennt an den übrigen Zeilen nur „Trennen“", async () => {
-    const { createElement } = await import("react");
-    const { renderToStaticMarkup } = await import("react-dom/server");
-    const { FintsAbruf } = await import("./FintsAbruf.tsx");
-    const html = renderToStaticMarkup(
-      createElement(FintsAbruf, {
-        fints: { configured: false, connections: [zweiterZugang, zweitbank, giro] } as never,
-        verbinden: false,
-        setVerbinden: () => {},
-        offen: null,
-        setOffen: () => {},
-        busy: "x-b",
-        setBusy: () => {},
-      }),
-    );
-    expect(html).not.toContain(">Jetzt abrufen<");
+  it("nennt an den übrigen Zeilen nur „Trennen“", () => {
+    const html = renderToStaticMarkup(createElement(Gruende, { connections: [zweiterZugang, zweitbank, giro], busy: "x-b" }));
     expect(html).toContain("„Trennen“ geht wieder, sobald die Verbindung zu Testbank …3001 getrennt ist.");
     expect(html).not.toContain("„Jetzt abrufen“");
+    expect(html).not.toContain("„Zugang ändern“");
   });
 });
+
+/** Gründe aller Zeilen ohne FINTS_PRODUKT_ID, wie die Seite Verbindungen sie aus dem Hook liest (#1951) */
+function Gruende({ connections, busy }: { connections: Verbindung[]; busy: string }) {
+  const f = useFintsAbruf({ configured: false, connections } as never, {
+    verbinden: false,
+    setVerbinden: () => {},
+    vorlage: null,
+    setVorlage: () => {},
+    neuVerbinden: () => {},
+    offen: null,
+    setOffen: () => {},
+    busy,
+    setBusy: () => {},
+  });
+  return createElement("p", null, connections.map((c) => f.grund(c)?.text ?? "").join(" | "));
+}

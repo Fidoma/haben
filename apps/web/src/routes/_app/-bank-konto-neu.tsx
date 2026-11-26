@@ -10,17 +10,20 @@ import { addBankAccount, addProviderAccount } from "../../server/functions/bank.
 import { hatMarktplatzKonto, type Data } from "./-bank-daten.ts";
 
 /**
- * Formular „Konto hinzufügen“: Bankkonto oder Zahlungsdienstleister. Für einen Marktplatz, für den es schon ein Amazon-
+ * Formular „Konto hinzufügen“: Bankkonto oder Zahlungsdienstleister, ohne Abruf; über „Bank hinzufügen › Kontoauszüge als
+ * Datei“ (datei) mit dem Hinweis auf den Import. Für einen Marktplatz, für den es schon ein Amazon-
  * Konto gibt, fragt es vorher nach (zwei Verkäuferkonten am selben Marktplatz sind möglich, aber dann sieht die
  * Marktplatzprüfung beide als passend an).
  */
 export function NeuesKontoForm({
   data,
+  datei = false,
   onClose,
   onCreated,
   onMessage,
 }: {
-  data: Data;
+  data: Pick<Data, "accounts" | "providers">;
+  datei?: boolean;
   onClose: () => void;
   onCreated: (id: string) => void;
   onMessage: (messages: ImportMessage[]) => void;
@@ -77,7 +80,13 @@ export function NeuesKontoForm({
 
   return (
     <>
-      <form className="card" onSubmit={onAddAccount} style={{ width: "100%", maxWidth: 420 }}>
+      <form className="card" onSubmit={onAddAccount} style={{ width: "100%", maxWidth: 420 }} aria-label="Konto hinzufügen">
+        {datei && (
+          <p className="small muted" style={{ margin: 0 }}>
+            Danach importierst du die Kontoauszüge mit „CSV / CAMT importieren“. DKB-Dateien und CAMT nennen die IBAN; dafür legt der Import das Konto auch
+            selbst an.
+          </p>
+        )}
         <Field label="Art">
           {(control) => (
             <select
@@ -92,42 +101,13 @@ export function NeuesKontoForm({
           )}
         </Field>
         {accountType === "provider" && (
-          <>
-            <Field label="Dienstleister">
-              {(control) => (
-                <select {...control} style={{ width: "100%", minWidth: 0 }} name="provider" value={provider} onChange={(e) => setProvider(e.target.value)}>
-                  {data.providers.map((p) => (
-                    <option key={p.value} value={p.value}>
-                      {p.label}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </Field>
-            {provider === "amazon" && (
-              <Field label="Marktplatz">
-                {(control) => (
-                  <select
-                    {...control}
-                    style={{ width: "100%", minWidth: 0 }}
-                    name="marketplace"
-                    required
-                    value={marketplace}
-                    onChange={(e) => setMarketplace(e.target.value)}
-                  >
-                    <option value="" disabled>
-                      Marktplatz wählen
-                    </option>
-                    {AMAZON_MARKETPLACES.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </Field>
-            )}
-          </>
+          <DienstleisterFelder
+            providers={data.providers}
+            provider={provider}
+            setProvider={setProvider}
+            marketplace={marketplace}
+            setMarketplace={setMarketplace}
+          />
         )}
         <Field label="Name">
           {(control) => (
@@ -148,9 +128,14 @@ export function NeuesKontoForm({
             „Konto“.
           </span>
         )}
-        <button type="submit" className="btn btn-primary" disabled={busy}>
-          Konto anlegen
-        </button>
+        <div className="actions">
+          <button type="button" className="btn" onClick={onClose} disabled={busy}>
+            Abbrechen
+          </button>
+          <button type="submit" className="btn btn-primary" disabled={busy}>
+            Konto anlegen
+          </button>
+        </div>
       </form>
       <MarktplatzRueckfrage
         marketplace={pending?.marketplace}
@@ -161,6 +146,60 @@ export function NeuesKontoForm({
         }}
         onClose={() => setPending(null)}
       />
+    </>
+  );
+}
+
+/** Anbieter und, bei Amazon, Marktplatz eines Kontos der Art Zahlungsdienstleister */
+function DienstleisterFelder({
+  providers,
+  provider,
+  setProvider,
+  marketplace,
+  setMarketplace,
+}: {
+  providers: Data["providers"];
+  provider: string;
+  setProvider: (p: string) => void;
+  marketplace: string;
+  setMarketplace: (m: string) => void;
+}) {
+  return (
+    <>
+      <Field label="Dienstleister">
+        {(control) => (
+          <select {...control} style={{ width: "100%", minWidth: 0 }} name="provider" value={provider} onChange={(e) => setProvider(e.target.value)}>
+            {providers.map((p) => (
+              <option key={p.value} value={p.value}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+        )}
+      </Field>
+      {provider === "amazon" && (
+        <Field label="Marktplatz">
+          {(control) => (
+            <select
+              {...control}
+              style={{ width: "100%", minWidth: 0 }}
+              name="marketplace"
+              required
+              value={marketplace}
+              onChange={(e) => setMarketplace(e.target.value)}
+            >
+              <option value="" disabled>
+                Marktplatz wählen
+              </option>
+              {AMAZON_MARKETPLACES.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          )}
+        </Field>
+      )}
     </>
   );
 }

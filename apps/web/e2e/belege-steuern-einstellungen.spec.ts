@@ -6,7 +6,19 @@ import { expect, type Page, test } from "@playwright/test";
 import postgres from "postgres";
 import { currentYear, YEAR } from "./daten.ts";
 import { appDatabaseUrlFuer, type Durchlauf, databaseUrlFuer, ENABLE_BANKING_PORT } from "./durchlaeufe.ts";
-import { bestaetigen, faktenZeigen, durchlaufSeite, gehe, kontrasteInThemes, neuenLieferantenOeffnen, ohneAxeVerstoesse, randImDialog } from "./einrichtung.ts";
+import {
+  axeVerstoesse,
+  bankVerbinden,
+  bestaetigen,
+  faktenZeigen,
+  kontoVerbinden,
+  durchlaufSeite,
+  gehe,
+  kontrasteInThemes,
+  neuenLieferantenOeffnen,
+  ohneAxeVerstoesse,
+  randImDialog,
+} from "./einrichtung.ts";
 import { LAPTOP } from "./kopfzeile.ts";
 import { abzugEinspielen } from "./abzug.ts";
 
@@ -476,7 +488,18 @@ test("Belege per E-Mail: Postfach einrichten, Fehler beim Abruf sichtbar", async
 
 test("Kontoabruf: Enable Banking in den Einstellungen, ein falscher Schlüssel wird abgelehnt", async () => {
   await go("/bank");
-  await page.getByRole("link", { name: "Einstellungen › Bank" }).click();
+  // Ohne Zugang zu Enable Banking steht der Weg im Dialog ausgegraut, mit Grund und Link zu den Einstellungen (#1951)
+  await kontoVerbinden(page, "Bank hinzufügen");
+  const wie = page.getByRole("dialog", { name: "Wie verbinden?" });
+  const enableBanking = wie.getByRole("radio", { name: "Online-Banking über Enable Banking (PSD2)" });
+  await expect(enableBanking).toBeDisabled();
+  await expect(enableBanking).toHaveAccessibleDescription(/Braucht einen Zugang zu Enable Banking; einrichten unter Einstellungen › Bank\.$/);
+  // Vorgewählt ist der erste Weg, der geht
+  await expect(wie.getByRole("radio", { name: "Kontoauszüge als Datei (CSV/CAMT)" })).toBeChecked();
+  expect(await axeVerstoesse(page), "Dialog „Wie verbinden?“").toEqual([]);
+  // Der Link im Grund führt zur Einrichtung
+  await wie.getByRole("link", { name: "Einstellungen › Bank" }).click();
+
   await page.waitForURL("**/einstellungen?bereich=bank");
   const card = page.getByRole("form", { name: "Automatischer Kontoabruf" });
   await expect(card.getByText("/api/bank/callback")).toBeVisible();
@@ -504,7 +527,7 @@ test("Bank verbinden: die markierte Bank ist gewählt, auch als einziger Treffer
     await expect(card.getByText("Zugang geprüft und verschlüsselt gespeichert")).toBeVisible();
 
     await go("/bank");
-    await page.getByRole("button", { name: "Bank verbinden" }).click();
+    await bankVerbinden(page, "Online-Banking über Enable Banking (PSD2)");
     const banken = page.getByRole("listbox");
     const weiter = page.getByRole("button", { name: "Weiter zur Bank" });
     // Markiert und gewählt ist dasselbe: zu Beginn die erste Bank der Liste

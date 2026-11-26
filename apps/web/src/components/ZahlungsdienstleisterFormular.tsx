@@ -9,109 +9,65 @@ import { type getPspSettings, savePspConnectionFn } from "../server/functions/za
 
 export type PspDaten = Awaited<ReturnType<typeof getPspSettings>>;
 export type PspVerbindung = PspDaten["verbindungen"][number];
-type Anbieter = PspDaten["anbieter"][number];
-type Rhythmus = PspVerbindung["rhythmus"];
-type Config = Record<string, string | number | boolean | null>;
+export type PspAnbieter = PspDaten["anbieter"][number];
+export type Rhythmus = PspVerbindung["rhythmus"];
+export type Config = Record<string, string | number | boolean | null>;
 
 /** Die Werte der config, mit denen eine neue Verbindung beginnt */
-const standardConfig = (anbieter: Anbieter | undefined): Config =>
+export const standardConfig = (anbieter: PspAnbieter | undefined): Config =>
   Object.fromEntries((anbieter?.felder ?? []).filter((f) => f.config && f.standard !== undefined).map((f) => [f.name, f.standard ?? null]));
 
+/** Die geheimen Felder des Adapters aus dem Formular; leer heißt beim Bearbeiten „behalten“ */
+export const geheimeEingabe = (anbieter: PspAnbieter | undefined, form: HTMLFormElement): Record<string, string> => {
+  const formData = new FormData(form);
+  return Object.fromEntries((anbieter?.felder ?? []).filter((f) => f.art === "geheim").map((f) => [f.name, String(formData.get(f.name) ?? "")]));
+};
+
 /** Auswahl für den automatischen Abruf; die Werte prüft der Server (RHYTHMEN in zahlungsdienstleister/regeln.ts) */
-const RHYTHMUS_LABELS: Record<Rhythmus, string> = {
+export const RHYTHMUS_LABELS: Record<Rhythmus, string> = {
   stuendlich: "Stündlich",
   taeglich: "Täglich",
   woechentlich: "Wöchentlich",
 };
 
+/** Was Formular und Einrichtung für Name, Konto, Start und Rhythmus halten */
+export type Einstellungen = { name: string; bankAccountId: string; fetchFrom: string; rhythmus: Rhythmus };
+
+/** Fehler der Einstellungen für useSubmitCheck */
+export const einstellungFehler = (e: Einstellungen, heute: string) => ({
+  name: e.name.trim() ? null : "Gib der Verbindung einen Namen.",
+  fetchFrom: datumFehler(e.fetchFrom, "2000-01-01", heute),
+});
+
 /**
- * Formular einer Verbindung zu einem Zahlungsdienstleister (#1729): neu oder bearbeiten. Die Felder des Zugangs kommen aus dem
- * Adapter des Anbieters; geheime Felder bleiben leer und behalten beim Bearbeiten den gespeicherten Wert, wenn sie leer bleiben.
+ * Name, Konto in Haben, erster Tag und Rhythmus einer Verbindung, im Formular und in der Einrichtung (#1951). `konten` sind
+ * die wählbaren Konten des Anbieters; `automatisch` sagt, was „Automatisch“ tut.
  */
-export function VerbindungFormular({
-  daten,
-  verbindung,
-  onFertig,
+export function EinstellungFelder({
+  werte,
+  setWerte,
+  konten,
+  automatisch,
+  heute,
+  fehler,
 }: {
-  daten: PspDaten;
-  /** fehlt: neue Verbindung */
-  verbindung?: PspVerbindung;
-  /** Geschlossen: nach dem Speichern mit true, nach „Abbrechen“ ohne */
-  onFertig: (gespeichert?: boolean) => void;
+  werte: Einstellungen;
+  setWerte: (werte: Einstellungen) => void;
+  konten: { id: string; name: string }[];
+  automatisch: string;
+  heute: string;
+  fehler: (feld: "name" | "fetchFrom") => string | undefined;
 }) {
-  const router = useRouter();
-  const save = useServerFn(savePspConnectionFn);
-  const [provider, setProvider] = useState(verbindung?.provider ?? daten.anbieter[0]?.provider ?? "");
-  const anbieter = daten.anbieter.find((a) => a.provider === provider);
-  const [name, setName] = useState(verbindung?.name ?? anbieter?.name ?? "");
-  const [bankAccountId, setBankAccountId] = useState(verbindung?.bankAccountId ?? "");
-  const [config, setConfig] = useState<Config>(verbindung?.config ?? standardConfig(anbieter));
-  const [fetchFrom, setFetchFrom] = useState(verbindung?.fetchFrom ?? daten.heute);
-  const [rhythmus, setRhythmus] = useState<Rhythmus>(verbindung?.rhythmus ?? "taeglich");
-  const { busy, notice, run } = useAction();
-  const neu = !verbindung;
-  const belegt = new Set(daten.verbindungen.filter((v) => v.id !== verbindung?.id).map((v) => v.bankAccountId));
-  const konten = daten.konten.filter((k) => k.provider === provider && !belegt.has(k.id));
-  const pruefung = useSubmitCheck({
-    name: name.trim() ? null : "Gib der Verbindung einen Namen.",
-    fetchFrom: datumFehler(fetchFrom, "2000-01-01", daten.heute),
-  });
-
-  function anbieterWechseln(wert: string) {
-    const bisher = daten.anbieter.find((a) => a.provider === provider);
-    const naechster = daten.anbieter.find((a) => a.provider === wert);
-    // Der vorgeschlagene Name folgt dem Anbieter, solange niemand ihn geändert hat
-    if (!name || name === bisher?.name) setName(naechster?.name ?? "");
-    setProvider(wert);
-    setConfig(standardConfig(naechster));
-    setBankAccountId("");
-  }
-
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!pruefung.check()) return;
-    const form = event.currentTarget;
-    const formData = new FormData(form);
-    const eingabe = Object.fromEntries((anbieter?.felder ?? []).filter((f) => f.art === "geheim").map((f) => [f.name, String(formData.get(f.name) ?? "")]));
-    void run(async () => {
-      await save({ data: { id: verbindung?.id, provider, name, bankAccountId: bankAccountId || null, eingabe, config, fetchFrom, rhythmus } });
-      form.reset();
-      await router.invalidate();
-      // Die Meldung zeigt, wer das Formular geöffnet hat: es schließt sich gleich
-      onFertig(true);
-    });
-  }
-
+  const setze = (teil: Partial<Einstellungen>) => setWerte({ ...werte, ...teil });
   return (
-    <form
-      ref={pruefung.form}
-      className="stack"
-      onSubmit={onSubmit}
-      noValidate
-      aria-label={neu ? "Neue Verbindung" : `Verbindung ${verbindung.name} bearbeiten`}
-    >
-      {neu && (
-        <Field label="Anbieter">
-          {(control) => (
-            <select {...control} name="provider" value={provider} onChange={(event) => anbieterWechseln(event.target.value)}>
-              {daten.anbieter.map((a) => (
-                <option key={a.provider} value={a.provider}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </Field>
-      )}
-      {neu && anbieter && <AnbieterHinweis anbieter={anbieter} />}
-      <Field label="Name" hint="Frei wählbar, etwa „Shop DE“; so heißt die Verbindung in Haben" error={pruefung.error("name")}>
-        {(control) => <input {...control} name="name" required value={name} onChange={(event) => setName(event.target.value)} />}
+    <>
+      <Field label="Name" hint="Frei wählbar, etwa „Shop DE“; so heißt die Verbindung in Haben" error={fehler("name")}>
+        {(control) => <input {...control} name="name" required value={werte.name} onChange={(event) => setze({ name: event.target.value })} />}
       </Field>
-      {anbieter && <ZugangFelder anbieter={anbieter} gespeichert={!neu} config={config} setConfig={setConfig} />}
       <Field label="Konto in Haben" hint="Konto der Art Zahlungsdienstleister, in das der Abruf schreibt; ein neues bekommt den Namen der Verbindung">
         {(control) => (
-          <select {...control} name="bankAccountId" value={bankAccountId} onChange={(event) => setBankAccountId(event.target.value)}>
-            <option value="">Automatisch: ein freies Konto des Anbieters, sonst ein neues</option>
+          <select {...control} name="bankAccountId" value={werte.bankAccountId} onChange={(event) => setze({ bankAccountId: event.target.value })}>
+            <option value="">{automatisch}</option>
             {konten.map((k) => (
               <option key={k.id} value={k.id}>
                 {k.name}
@@ -120,22 +76,22 @@ export function VerbindungFormular({
           </select>
         )}
       </Field>
-      <Field label="Abruf ab" hint="Erster Tag, den Haben holt; davor gilt der Export des Anbieters" error={pruefung.error("fetchFrom")}>
+      <Field label="Abruf ab" hint="Erster Tag, den Haben holt; davor gilt der Export des Anbieters" error={fehler("fetchFrom")}>
         {(control) => (
           <input
             {...control}
             name="fetchFrom"
             type="date"
             required
-            max={daten.heute}
-            value={fetchFrom}
-            onChange={(event) => setFetchFrom(event.target.value)}
+            max={heute}
+            value={werte.fetchFrom}
+            onChange={(event) => setze({ fetchFrom: event.target.value })}
           />
         )}
       </Field>
       <Field label="Automatischer Abruf">
         {(control) => (
-          <select {...control} name="rhythmus" value={rhythmus} onChange={(event) => setRhythmus(event.target.value as Rhythmus)}>
+          <select {...control} name="rhythmus" value={werte.rhythmus} onChange={(event) => setze({ rhythmus: event.target.value as Rhythmus })}>
             {Object.entries(RHYTHMUS_LABELS).map(([schluessel, label]) => (
               <option key={schluessel} value={schluessel}>
                 {label}
@@ -144,6 +100,67 @@ export function VerbindungFormular({
           </select>
         )}
       </Field>
+    </>
+  );
+}
+
+/**
+ * Bearbeiten einer Verbindung zu einem Zahlungsdienstleister (#1729) an ihrer Zeile auf der Bankseite. Die Felder des
+ * Zugangs kommen aus dem Adapter; geheime Felder bleiben leer und behalten den gespeicherten Wert, wenn sie leer bleiben.
+ * Neue Verbindungen entstehen in der geführten Einrichtung (#1951).
+ */
+export function VerbindungFormular({
+  daten,
+  verbindung,
+  onFertig,
+}: {
+  daten: PspDaten;
+  verbindung: PspVerbindung;
+  /** Geschlossen: nach dem Speichern mit true, nach „Abbrechen“ ohne */
+  onFertig: (gespeichert?: boolean) => void;
+}) {
+  const router = useRouter();
+  const save = useServerFn(savePspConnectionFn);
+  const anbieter = daten.anbieter.find((a) => a.provider === verbindung.provider);
+  const [werte, setWerte] = useState<Einstellungen>({
+    name: verbindung.name,
+    bankAccountId: verbindung.bankAccountId ?? "",
+    fetchFrom: verbindung.fetchFrom,
+    rhythmus: verbindung.rhythmus,
+  });
+  const [config, setConfig] = useState<Config>(verbindung.config);
+  const { busy, notice, run } = useAction();
+  const belegt = new Set(daten.verbindungen.filter((v) => v.id !== verbindung.id).map((v) => v.bankAccountId));
+  const konten = daten.konten.filter((k) => k.provider === verbindung.provider && !belegt.has(k.id));
+  const pruefung = useSubmitCheck(einstellungFehler(werte, daten.heute));
+
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!pruefung.check()) return;
+    const form = event.currentTarget;
+    const eingabe = geheimeEingabe(anbieter, form);
+    void run(async () => {
+      await save({
+        data: { id: verbindung.id, provider: verbindung.provider, ...werte, bankAccountId: werte.bankAccountId || null, eingabe, config },
+      });
+      form.reset();
+      await router.invalidate();
+      // Die Meldung zeigt, wer das Formular geöffnet hat: es schließt sich gleich
+      onFertig(true);
+    });
+  }
+
+  return (
+    <form ref={pruefung.form} className="stack" onSubmit={onSubmit} noValidate aria-label={`Verbindung ${verbindung.name} bearbeiten`}>
+      <EinstellungFelder
+        werte={werte}
+        setWerte={setWerte}
+        konten={konten}
+        automatisch="Automatisch: ein freies Konto des Anbieters, sonst ein neues"
+        heute={daten.heute}
+        fehler={pruefung.error}
+      />
+      {anbieter && <ZugangFelder anbieter={anbieter} gespeichert config={config} setConfig={setConfig} />}
       <div className="actions">
         <button type="button" className="btn" disabled={busy} onClick={() => onFertig()}>
           Abbrechen
@@ -158,7 +175,7 @@ export function VerbindungFormular({
 }
 
 /** Was der Anbieter liefert und woher der Zugang kommt */
-export function AnbieterHinweis({ anbieter }: { anbieter: Anbieter }) {
+export function AnbieterHinweis({ anbieter }: { anbieter: PspAnbieter }) {
   return (
     <p className="small muted" style={{ margin: 0 }}>
       {anbieter.beschreibung}{" "}
@@ -170,13 +187,13 @@ export function AnbieterHinweis({ anbieter }: { anbieter: Anbieter }) {
 }
 
 /** Die Felder des Zugangs und der config, wie der Adapter sie beschreibt */
-function ZugangFelder({
+export function ZugangFelder({
   anbieter,
   gespeichert,
   config,
   setConfig,
 }: {
-  anbieter: Anbieter;
+  anbieter: PspAnbieter;
   gespeichert: boolean;
   config: Config;
   setConfig: (config: Config) => void;

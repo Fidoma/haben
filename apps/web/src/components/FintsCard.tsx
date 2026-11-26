@@ -19,7 +19,7 @@ export function FintsCard({ configured }: { configured: boolean }) {
       </p>
       {configured ? (
         <div className="banner banner-ok" role="status">
-          Eingerichtet. Unter Bank verbindest du deine Bank mit „Über FinTS verbinden“.
+          Eingerichtet. Unter Bank verbindest du deine Bank mit „Konto verbinden › Bank hinzufügen“.
         </div>
       ) : (
         <div className="banner banner-info" role="status">

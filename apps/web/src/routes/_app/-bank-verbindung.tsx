@@ -1,47 +1,46 @@
-import { Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { useNavigate, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import { ConnectionStatus } from "../../components/BankStatus.tsx";
-import { FintsAbruf, useFintsZustand } from "../../components/FintsAbruf.tsx";
 import { defaultFetchFrom, fetchFromForConnect } from "../../lib/bank-connect.ts";
-import { errorMessage, formatDate, formatDateTime } from "../../lib/format.ts";
+import { errorMessage, formatDate } from "../../lib/format.ts";
 import { useSubmitCheck } from "../../lib/use-submit-check.ts";
 import { connectBank, disconnectBank, getEnableBanks, syncBankConnection } from "../../server/functions/bank.ts";
 import { today as todayInGermany } from "../../server/today.ts";
 import { ConfirmDialog } from "../../components/ConfirmDialog.tsx";
-import { KonfliktKlaeren, stichtagText } from "../../components/ImportKonflikt.tsx";
 import { Field } from "../../components/Field.tsx";
-import { AbrufKopf } from "./-bank-abruf-kopf.tsx";
 import type { Data } from "./-bank-daten.ts";
 
 export type Sync = Data["sync"];
+type Verbindung = Sync["connections"][number];
+type Meldung = { tone: "ok" | "danger" | "info"; text: string };
 
-/** Automatischer Abruf über Enable Banking und FinTS (#654): verbundene Banken, Abruf, Erneuern und Trennen */
-export function BankSync({ sync, fints, result }: { sync: Sync; fints: Data["fints"]; result: { ok: boolean; message: string } | null }) {
+/**
+ * Abruf über Enable Banking an den Zeilen der Konten (#1951): „Jetzt abrufen“, „Neu anmelden“ (Zustimmung erneuern) und
+ * „Trennen“, dazu der Bereich mit dem Formular „Bank verbinden“, der Rückmeldung der Bank nach der Anmeldung und den
+ * Meldungen. Die Seite ruft den Hook einmal auf und stellt `bereich` dorthin, wo Formular und Meldungen erscheinen.
+ */
+export function useEnableBankingAbruf({
+  sync,
+  connecting,
+  setConnecting,
+  result,
+  von,
+}: {
+  sync: Sync;
+  connecting: boolean;
+  setConnecting: (v: boolean) => void;
+  /** Rückmeldung nach der Anmeldung bei der Bank aus der Adresse (abruf, meldung) */
+  result: { ok: boolean; message: string } | null;
+  von: "/bank" | "/bank/verbindungen";
+}) {
   const router = useRouter();
-  const navigate = useNavigate({ from: "/bank" });
+  const navigate = useNavigate({ from: von });
   const syncFn = useServerFn(syncBankConnection);
   const disconnectFn = useServerFn(disconnectBank);
   const connectFn = useServerFn(connectBank);
-  const [connecting, setConnecting] = useState(false);
-  const fintsZustand = useFintsZustand();
-  const [disconnecting, setDisconnecting] = useState<Sync["connections"][number] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [messages, setMessages] = useState<{ tone: "ok" | "danger" | "info"; text: string }[]>([]);
-
-  if (!sync.configured && sync.connections.length === 0 && !fints.configured && fints.connections.length === 0) {
-    return (
-      <section className="card">
-        <p className="small muted" style={{ margin: 0 }}>
-          Automatischer Abruf: mit einer Enable-Banking-Anwendung oder über FinTS holt Haben die Umsätze täglich selbst. Einrichten unter{" "}
-          <Link to="/einstellungen" search={{ bereich: "bank" }}>
-            Einstellungen › Bank
-          </Link>
-          .
-        </p>
-      </section>
-    );
-  }
+  const [trennt, setTrennt] = useState<Verbindung | null>(null);
+  const [messages, setMessages] = useState<Meldung[]>([]);
 
   async function run(id: string, work: () => Promise<void>) {
     setBusy(id);
@@ -56,19 +55,25 @@ export function BankSync({ sync, fints, result }: { sync: Sync; fints: Data["fin
     }
   }
 
-  async function renew(aspspName: string, psuType: "personal" | "business") {
-    await run("renew", async () => {
-      const { url } = await connectFn({ data: { aspspName, psuType } });
+  const abrufen = (c: Verbindung) =>
+    run(c.id, async () => {
+      const r = await syncFn({ data: c.id });
+      setMessages([
+        r.error ? { tone: "danger", text: r.error } : { tone: "ok", text: `${c.aspspName}: ${r.added} neue Umsätze.` },
+        ...r.gaps.map((g) => ({ tone: "danger" as const, text: g })),
+      ]);
+    });
+
+  const erneuern = (c: Verbindung) =>
+    run(`renew-${c.id}`, async () => {
+      const { url } = await connectFn({ data: { aspspName: c.aspspName, psuType: c.psuType } });
       window.location.assign(url);
     });
-  }
 
-  return (
-    <section className="card" aria-label="Automatischer Abruf" style={{ marginBottom: 16, gap: 12 }}>
-      <AbrufKopf sync={sync} fints={fints} busy={busy !== null} fintsZustand={fintsZustand} setConnecting={setConnecting} />
-
+  const bereich = (
+    <>
       {result && (
-        <div className={`banner banner-${result.ok ? "ok" : "danger"}`} role="status" style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+        <div className={`banner banner-${result.ok ? "ok" : "danger"} banner-aktion`} role="status">
           <span>{result.message || (result.ok ? "Bank verbunden." : "Die Verbindung ist fehlgeschlagen.")}</span>
           <button
             type="button"
@@ -79,98 +84,49 @@ export function BankSync({ sync, fints, result }: { sync: Sync; fints: Data["fin
           </button>
         </div>
       )}
-
       {connecting && <ConnectForm onCancel={() => setConnecting(false)} callbackUrl={sync.callbackUrl} connect={connectFn} />}
-
       <ConfirmDialog
-        open={disconnecting !== null}
-        title={`Verbindung zu ${disconnecting?.aspspName} trennen?`}
+        open={trennt !== null}
+        title={`Verbindung zu ${trennt?.aspspName} trennen?`}
         confirmLabel="Trennen"
         danger
         onConfirm={() => {
-          if (!disconnecting) return;
-          const { id } = disconnecting;
-          void run(`x-${id}`, async () => {
-            await disconnectFn({ data: id });
-          });
+          const c = trennt;
+          if (c)
+            void run(`x-${c.id}`, async () => {
+              await disconnectFn({ data: c.id });
+            });
         }}
-        onClose={() => setDisconnecting(null)}
+        onClose={() => setTrennt(null)}
       >
         <p>Die abgerufenen Umsätze bleiben erhalten.</p>
       </ConfirmDialog>
-
-      {sync.connections.length === 0 && fints.connections.length === 0 && !connecting && !fintsZustand.verbinden && (
-        <p className="small muted" style={{ margin: 0 }}>
-          Noch keine Bank verbunden. Nach der Freigabe bei deiner Bank holt Haben die Umsätze einmal täglich; der Import per CSV oder CAMT bleibt daneben
-          möglich.
-        </p>
-      )}
-
-      {sync.connections.map((c) => {
-        const canSync = c.status === "aktiv";
-        return (
-          <div key={c.id} className="history-row" style={{ alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0, flex: "1 1 260px" }}>
-              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                <span style={{ fontWeight: 600 }}>{c.aspspName}</span>
-                <ConnectionStatus connection={c} />
-              </div>
-              <span className="small muted">
-                {c.accounts.map((a) => `${a.name} …${a.iban.slice(-4)}${stichtagText(sync.stichtage, a.bankAccountId)}`).join(" · ") || "Keine Konten"}
-              </span>
-              <span className="small muted">
-                {c.lastSyncAt ? `Zuletzt abgerufen ${formatDateTime(c.lastSyncAt)}` : "Noch nicht abgerufen"}
-                {c.validUntil ? ` · Zustimmung bis ${formatDate(c.validUntil)}` : ""}
-              </span>
-              {c.lastError && <span className="field-error">{c.lastError}</span>}
-            </div>
-            <div className="actions">
-              <button type="button" className="btn" disabled={busy !== null} onClick={() => setDisconnecting(c)}>
-                Trennen
-              </button>
-              {sync.configured && (c.status !== "aktiv" || c.renewSoon) && (
-                <button type="button" className="btn" disabled={busy !== null} onClick={() => void renew(c.aspspName, c.psuType)}>
-                  Zustimmung erneuern
-                </button>
-              )}
-              <KonfliktKlaeren konflikte={sync.konflikte.filter((k) => c.accounts.some((a) => a.bankAccountId === k.bankAccountId))} disabled={busy !== null} />
-              {canSync && (
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  disabled={busy !== null}
-                  onClick={() =>
-                    void run(c.id, async () => {
-                      const r = await syncFn({ data: c.id });
-                      setMessages([
-                        r.error ? { tone: "danger", text: r.error } : { tone: "ok", text: `${c.aspspName}: ${r.added} neue Umsätze.` },
-                        ...r.gaps.map((g) => ({ tone: "danger" as const, text: g })),
-                      ]);
-                    })
-                  }
-                >
-                  {busy === c.id ? "Rufe ab …" : "Jetzt abrufen"}
-                </button>
-              )}
-            </div>
-          </div>
-        );
-      })}
-
-      <FintsAbruf fints={fints} {...fintsZustand} />
-
       {messages.length > 0 && (
-        <ul className="upload-messages" role="status">
-          {messages.map((m, i) => (
-            <li key={i} className={`banner banner-${m.tone}`}>
-              {m.text}
-            </li>
-          ))}
-        </ul>
+        <div role="status">
+          <ul className="upload-messages">
+            {messages.map((m, i) => (
+              <li key={i} className={`banner banner-${m.tone}`}>
+                {m.text}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
-    </section>
+    </>
   );
+
+  return {
+    configured: sync.configured,
+    gesperrt: busy !== null,
+    laeuft: (c: Verbindung) => (busy === c.id ? "abruf" : busy === `x-${c.id}` ? "trennen" : null),
+    abrufen,
+    erneuern,
+    trennenFragen: (c: Verbindung) => setTrennt(c),
+    sichtbar: result !== null || connecting || messages.length > 0,
+    bereich,
+  };
 }
+export type EnableBankingAktionen = ReturnType<typeof useEnableBankingAbruf>;
 
 /** Höchstens so viele Banken stehen in der Auswahl; mehr findet die Suche */
 export const MAX_BANK_OPTIONS = 300;

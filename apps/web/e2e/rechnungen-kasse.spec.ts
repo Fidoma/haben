@@ -4,7 +4,17 @@ import postgres from "postgres";
 import { day } from "./daten.ts";
 import { type Durchlauf, databaseUrlFuer } from "./durchlaeufe.ts";
 import { LAPTOP, sichtbar, zumEnde } from "./kopfzeile.ts";
-import { axeVerstoesse, bestaetigen, faktenZeigen, durchlaufSeite, gehe, kundeWaehlen, ohneAxeVerstoesse, rechnungFestschreiben } from "./einrichtung.ts";
+import {
+  axeVerstoesse,
+  kontoVerbinden,
+  bestaetigen,
+  faktenZeigen,
+  durchlaufSeite,
+  gehe,
+  kundeWaehlen,
+  ohneAxeVerstoesse,
+  rechnungFestschreiben,
+} from "./einrichtung.ts";
 import { abzugEinspielen } from "./abzug.ts";
 
 /**
@@ -420,12 +430,13 @@ test("Lastschriftdatei: fällige Rechnung wählen, pain.008 herunterladen, danac
   // Ohne Bankkonto gibt es kein Gläubigerkonto, auf dem der Betrag eingeht
   await expect(page.getByText(/braucht Haben das Konto, auf dem der Betrag eingeht/)).toBeVisible();
   await go("/bank");
-  await page.getByRole("button", { name: "Konto hinzufügen" }).click();
+  await kontoVerbinden(page, "Konto ohne Abruf anlegen");
   const kontoForm = page.locator("form").filter({ has: page.getByRole("button", { name: "Konto anlegen" }) });
   await kontoForm.getByRole("textbox", { name: "Name" }).fill("Girokonto");
   await kontoForm.getByRole("textbox", { name: "IBAN" }).fill("DE89 3704 0044 0532 0130 00");
   await kontoForm.getByRole("button", { name: "Konto anlegen" }).click();
-  await expect(page.getByRole("combobox", { name: "Konto" }).locator("option", { hasText: "Girokonto" })).toHaveCount(1);
+  // Das neue Konto ist gewählt: seine Karte steht in der Leiste (#1951)
+  await expect(page.getByRole("navigation", { name: "Konten" }).getByRole("link", { name: /^Girokonto/ })).toHaveAttribute("aria-current", "page");
 
   await go("/lastschriften");
   const form = page.getByRole("form", { name: "SEPA-Lastschrift erzeugen" });

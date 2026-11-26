@@ -63,12 +63,17 @@ export function KonfliktKlaeren({
   disabled,
   quelle = "bank",
   onGeklaert,
+  label,
+  className = "btn",
 }: {
   konflikte: ImportKonfliktDaten[];
   disabled: boolean;
   quelle?: Quelle;
   /** Der letzte offene Konflikt ist geklärt; die Etsy-Karte behält dann die Zeile für die Bestätigung */
   onGeklaert?: () => void;
+  /** Text des Knopfs, etwa „Klären“ an der Zeile eines Kontos (#1951); sonst „Konflikt klären“ mit Zahl */
+  label?: string;
+  className?: string;
 }) {
   const router = useRouter();
   const resolve = useServerFn(resolveBankConflict);
@@ -111,8 +116,8 @@ export function KonfliktKlaeren({
 
   return (
     <>
-      <button type="button" className="btn" disabled={disabled || busy || !konflikt} onClick={() => setOpen(true)}>
-        {konflikte.length > 1 ? `Konflikte klären (${konflikte.length})` : "Konflikt klären"}
+      <button type="button" className={className} disabled={disabled || busy || !konflikt} onClick={() => setOpen(true)}>
+        {label ?? (konflikte.length > 1 ? `Konflikte klären (${konflikte.length})` : "Konflikt klären")}
       </button>
       <FormDialog
         open={open && konflikt !== undefined}

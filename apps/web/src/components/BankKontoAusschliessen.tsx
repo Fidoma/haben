@@ -1,6 +1,5 @@
-import { useNavigate, useRouter } from "@tanstack/react-router";
+import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
 import { useAction } from "../lib/use-action.ts";
 import { formatDate } from "../lib/format.ts";
 import { excludeBankAccount, includeBankAccount } from "../server/functions/bank.ts";
@@ -15,65 +14,35 @@ import { NoticeBanner } from "./NoticeBanner.tsx";
 
 const iban = (value: string | null) => (value ? value.replace(/(.{4})/g, "$1 ").trim() : "");
 
-/** Knopf neben „Name und Zweck“: nur bei einem Bankkonto; bei einem Hindernis steht der Grund daneben */
-export function ExcludeAccountButton({
-  account,
-  blockedBy,
-}: {
-  account: { id: string; name: string; iban: string | null; purpose: string };
-  blockedBy: string | null;
-}) {
+/** Rückfrage vor dem Ausschluss, aus `⋯` an der Zeile des Kontos auf der Seite Verbindungen (#1951) */
+export function KontoAusschliessenDialog({ account, onClose }: { account: { id: string; name: string; iban: string | null }; onClose: () => void }) {
   const router = useRouter();
-  const navigate = useNavigate({ from: "/bank" });
   const excludeFn = useServerFn(excludeBankAccount);
-  const [asking, setAsking] = useState(false);
-  const { busy, notice, run } = useAction();
-
-  if (account.purpose === "zahlungsdienstleister") return null;
-
+  const { run } = useAction();
   return (
-    <>
-      <button
-        type="button"
-        className="btn btn-sm"
-        onClick={() => setAsking(true)}
-        disabled={busy || blockedBy !== null}
-        aria-describedby={blockedBy ? `ausschluss-grund-${account.id}` : undefined}
-      >
-        Gehört nicht zu dieser Firma
-      </button>
-      {blockedBy && (
-        <span id={`ausschluss-grund-${account.id}`} className="small muted">
-          {blockedBy}
-        </span>
-      )}
-      <NoticeBanner notice={notice} />
-      <ConfirmDialog
-        open={asking}
-        title={`Konto „${account.name}“ ausschließen?`}
-        confirmLabel="Konto ausschließen"
-        onConfirm={() => {
-          void run(async () => {
-            await excludeFn({ data: { id: account.id } });
-            // Das Konto ist weg: die Adresse nennt es nicht mehr, sonst bliebe die Seite beim ersten Konto der Liste hängen
-            await navigate({ search: (prev) => ({ ...prev, konto: undefined }), replace: true });
-            await router.invalidate();
-          });
-        }}
-        onClose={() => setAsking(false)}
-      >
-        <p>
-          {account.name}
-          {account.iban ? ` (${iban(account.iban)})` : ""} gehört nicht zu dieser Firma, etwa weil es zum Konto einer zweiten Firma aus demselben Bankzugang
-          gehört. Das Konto verschwindet aus Bankabgleich, Vorschlägen, Übersicht und Export und wird nicht mehr abgerufen. Ein Import in dieses Konto wird
-          abgelehnt.
-        </p>
-        <p>
-          Gelöscht wird nichts: Die Umsätze bleiben in der Datenbank, der Schritt steht im Änderungsprotokoll, und unter „Ausgeschlossene Konten“ nimmst du das
-          Konto wieder auf.
-        </p>
-      </ConfirmDialog>
-    </>
+    <ConfirmDialog
+      open
+      title={`Konto „${account.name}“ ausschließen?`}
+      confirmLabel="Konto ausschließen"
+      onConfirm={() => {
+        void run(async () => {
+          await excludeFn({ data: { id: account.id } });
+          await router.invalidate();
+        });
+      }}
+      onClose={onClose}
+    >
+      <p>
+        {account.name}
+        {account.iban ? ` (${iban(account.iban)})` : ""} gehört nicht zu dieser Firma, etwa weil es zum Konto einer zweiten Firma aus demselben Bankzugang
+        gehört. Das Konto verschwindet aus Bankabgleich, Vorschlägen, Übersicht und Export und wird nicht mehr abgerufen. Ein Import in dieses Konto wird
+        abgelehnt.
+      </p>
+      <p>
+        Gelöscht wird nichts: Die Umsätze bleiben in der Datenbank, der Schritt steht im Änderungsprotokoll, und unter „Ausgeschlossene Konten“ nimmst du das
+        Konto wieder auf.
+      </p>
+    </ConfirmDialog>
   );
 }
 

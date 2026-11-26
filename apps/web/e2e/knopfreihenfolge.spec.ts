@@ -142,6 +142,7 @@ test("Knopfzeilen auf den Seiten mit Formularen und Rückfragen", async ({ page 
     "/umsatzsteuer",
     "/einstellungen?bereich=email",
     "/einstellungen?bereich=bank",
+    "/bank/verbindungen",
     "/einstellungen?bereich=seiten",
     "/einstellungen?bereich=export",
   ]) {

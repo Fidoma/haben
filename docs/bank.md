@@ -7,24 +7,38 @@ description: >-
 
 # Bankimport und Abgleich
 
-Unter **Bank** holst du die Umsätze automatisch über Enable Banking oder FinTS ab oder importierst Kontoauszüge als Datei, und ordnest jeden Umsatz einer Rechnung, einem Beleg oder einer direkten Buchung zu. Haben schlägt passende offene Posten mit Begründung vor. Jede Zuordnung erzeugt sofort eine festgeschriebene Buchung.
+Unter **Bank** holst du die Umsätze automatisch über Enable Banking oder FinTS ab oder importierst Kontoauszüge als Datei, und ordnest jeden Umsatz einer Rechnung, einem Beleg oder einer direkten Buchung zu. Haben schlägt passende offene Posten mit Begründung vor. Jede Zuordnung erzeugt sofort eine festgeschriebene Buchung. Die Zugänge zu Banken und Zahlungsdienstleistern verwaltest du unter **Geld › Verbindungen** (siehe [Verbindungen](#verbindungen)).
+
+## Konten und Verbindungen
+
+Oben stehen alle Konten als Karten: Name, Saldo, offene Umsätze und Weg mit Zeit („FinTS · heute 06:00“) oder ein Status wie **Fehlgeschlagen**, **Konflikt** oder **Läuft ab**. Ein Klick wählt das Konto. **⋯** auf der Karte bietet **Jetzt abrufen** (ohne Verbindung **Datei importieren**), **Name und Zweck …**, **Verbindung bearbeiten** und **Alle Verbindungen**. Ein negativer Saldo steht rot. Hat das gewählte Konto einen Status, steht darunter ein Hinweis mit dem vollen Text und dem Knopf, der ihn löst (**Klären**, **Neu anmelden**, **Zugang ändern**, **Jetzt abrufen**, **Datei importieren**). Die erste Zeile der Liste nennt Weg und Stand des Kontos, rechts daneben **Jetzt abrufen**; darunter stehen die Filter und die Suche. Im schmalen Fenster und am Handy werden die Karten zu einer Zeile kleiner Karten, die beim Rollen unter dem Kopf stehen bleibt: Name und darunter der Status mit Punkt in seiner Farbe, ohne Status die Zahl offener Umsätze.
+
+### Verbindungen
+
+**Geld › Verbindungen** zeigt je Gruppe, erst Banken, dann Zahlungsdienstleister, eine Tabelle: Konto mit Weg und Kennung, Abruf, Saldo, offene Umsätze und Status. Konten mit Problem stehen oben. Am Ende der Zeile stehen der Knopf zum Status, **Jetzt abrufen** (Pfeil) und **⋯** mit **Name und Zweck …**, **Zugang ändern** (FinTS), **Neu anmelden** (Enable Banking) bzw. **Bearbeiten …** (Zahlungsdienstleister), **Externe Quelle hinzufügen …**, **Gehört nicht zu dieser Firma …** und **Trennen** bzw. **Verbindung entfernen**. Ein Klick auf den Namen öffnet Zugang und Einstellungen der Verbindung, bei Enable Banking und ohne Verbindung **Name und Zweck**. **Alle abrufen** im Kopf ruft alle Verbindungen nacheinander ab. Darunter stehen unter **Stores und Marktplätze** Google Play und App Store sowie Etsy Payments, eingeklappt mit dem Stand in der Überschrift, und die ausgeschlossenen Konten. Unter **Einstellungen › Bank** bleibt nur der Zugang der Installation zu Enable Banking und FinTS.
 
 <img src="screenshot-bank.png#only-light" alt="Bankabgleich mit Umsatzliste links und rechts dem ausgewählten Zahlungseingang, dem besten Treffer Rechnung 2026-034 und den Gründen Betrag stimmt exakt und Rechnungsnummer im Verwendungszweck" width="900">
 <img src="screenshot-bank-dunkel.png#only-dark" alt="Bankabgleich mit Umsatzliste links und rechts dem ausgewählten Zahlungseingang, dem besten Treffer Rechnung 2026-034 und den Gründen Betrag stimmt exakt und Rechnungsnummer im Verwendungszweck" width="900">
 
 ## Automatischer Abruf
 
-Ist Enable Banking eingerichtet (unter **Einstellungen › Bank**, siehe [Anbindungen](installation-anbindungen.md#kontoabruf-enable-banking)), steht unter **Bank** der Bereich **Automatischer Abruf** mit dem Knopf **Bank verbinden**. Mit FinTS steht dort **Über FinTS verbinden**, siehe [Abruf über FinTS](#abruf-über-fints).
+Im Kopf der Seiten **Bank** und **Verbindungen** öffnet **Konto verbinden** ein Menü: **Bank hinzufügen**, **Zahlungsdienstleister hinzufügen** ([geführte Einrichtung](bank-zahlungsdienstleister.md#verbindungen-über-die-api)) und **Konto ohne Abruf anlegen**. **Bank hinzufügen** fragt **Wie verbinden?**:
 
-1. **Bank verbinden** klicken, die Bank suchen und auswählen. Gewählt ist die markierte Bank; bleibt nach der Suche nur eine übrig, ist sie schon gewählt. Unter der Liste steht, zu welcher Bank es weitergeht. Bietet die Bank beides an, wählst du Geschäfts- oder Privatkonto; das entscheidet, mit welchem Online-Banking-Zugang du dich gleich anmeldest. Unter **Umsätze abrufen ab** steht der Jahresbeginn; beginnt deine Buchhaltung in Haben später im Jahr, etwa nach einem Umzug, trägst du hier diesen Tag ein (siehe [Welche Umsätze abgerufen werden](#welche-umsätze-abgerufen-werden)).
+- **Online-Banking über Enable Banking (PSD2):** für die meisten Banken in Europa; braucht den Zugang zu Enable Banking unter **Einstellungen › Bank** ([Anbindungen](installation-anbindungen.md#kontoabruf-enable-banking)).
+- **FinTS (PIN/TAN):** vor allem für Sparkassen, Volks- und Raiffeisenbanken; braucht die Produktnummer der Installation, siehe [Abruf über FinTS](#abruf-über-fints).
+- **Kontoauszüge als Datei (CSV/CAMT):** geht immer; **Weiter** öffnet das Formular für ein Konto ohne Abruf, die Umsätze importierst du danach ([So gehst du vor](#so-gehst-du-vor)).
+
+Was auf deiner Installation nicht eingerichtet ist, steht ausgegraut mit dem, was fehlt. Das Formular des gewählten Wegs erscheint unter den Karten bzw. dem Kopf; dort stehen auch Schritte der Bank (TAN) und Meldungen nach einem Abruf.
+
+1. **Online-Banking über Enable Banking** wählen, **Weiter**, dann die Bank suchen und auswählen. Gewählt ist die markierte Bank; bleibt nach der Suche nur eine übrig, ist sie schon gewählt. Unter der Liste steht, zu welcher Bank es weitergeht. Bietet die Bank beides an, wählst du Geschäfts- oder Privatkonto; das entscheidet, mit welchem Online-Banking-Zugang du dich gleich anmeldest. Unter **Umsätze abrufen ab** steht der Jahresbeginn; beginnt deine Buchhaltung in Haben später im Jahr, etwa nach einem Umzug, trägst du hier diesen Tag ein (siehe [Welche Umsätze abgerufen werden](#welche-umsätze-abgerufen-werden)).
 2. **Weiter zur Bank** führt zur Anmeldeseite deiner Bank. Dort meldest du dich an, bestätigst mit TAN und wählst die Konten aus.
-3. Die Bank leitet zurück zu Haben. Haben ordnet die freigegebenen Konten über die IBAN zu, legt fehlende an und holt sofort die ersten Umsätze. Neue Konten heißen nach Bank, Kontoname der Bank und den letzten vier Ziffern der IBAN, z. B. „Finom Geschäftskonto …7890“; die Meldung nach der Rückkehr nennt sie. Name und Zweck legst du danach mit **Name und Zweck** fest (siehe [Konto](#konto)).
+3. Die Bank leitet zurück zu Haben. Haben ordnet die freigegebenen Konten über die IBAN zu, legt fehlende an und holt sofort die ersten Umsätze. Neue Konten heißen nach Bank, Kontoname der Bank und den letzten vier Ziffern der IBAN, z. B. „Finom Geschäftskonto …7890“; die Meldung nach der Rückkehr nennt sie. Name und Zweck legst du danach mit **⋯ › Name und Zweck …** fest (siehe [Konto](#konto)).
 
-Danach ruft Haben jede Verbindung einmal täglich ab, im Hintergrund und ohne dass du angemeldet sein musst. **Jetzt abrufen** holt die Umsätze sofort. Die Konten erscheinen als Reiter, mit „Abruf“ statt „CSV“ und dem Kontostand der Bank.
+Danach ruft Haben jede Verbindung einmal täglich ab, im Hintergrund und ohne dass du angemeldet sein musst. **Jetzt abrufen** holt die Umsätze sofort. Die Konten erscheinen als Karten mit dem Kontostand der Bank, darunter „Abruf“ und die Zeit des letzten Abrufs.
 
 ### Zustimmung
 
-Die Freigabe gilt nach PSD2 höchstens 180 Tage, bei manchen Banken weniger; das Datum steht an der Verbindung. Zwei Wochen vor Ablauf erscheint **Läuft bald ab** und der Knopf **Zustimmung erneuern**. Erneuern heißt: dieselbe Anmeldung bei der Bank noch einmal. Die neue Zustimmung löst die alte ab, und der Abruf macht dort weiter, wo er aufgehört hat. Lehnt die Bank den Zugriff ab, etwa weil du die Freigabe im Online-Banking widerrufen hast, steht die Verbindung auf **Abgelaufen**.
+Die Freigabe gilt nach PSD2 höchstens 180 Tage, bei manchen Banken weniger; das Datum steht an der Verbindung. Zwei Wochen vor Ablauf steht **Läuft ab** an Karte und Zeile, dazu der Knopf **Neu anmelden**. Erneuern heißt: dieselbe Anmeldung bei der Bank noch einmal. Die neue Zustimmung löst die alte ab, und der Abruf macht dort weiter, wo er aufgehört hat. Lehnt die Bank den Zugriff ab, etwa weil du die Freigabe im Online-Banking widerrufen hast, steht die Verbindung auf **Abgelaufen**.
 
 **Trennen** beendet die Zustimmung auch bei Enable Banking. Die schon abgerufenen Umsätze bleiben.
 
@@ -38,7 +52,7 @@ Die Freigabe gilt nach PSD2 höchstens 180 Tage, bei manchen Banken weniger; das
 - **Stichtag:** Mit dem ersten Abruf, den Haben mit Kennung des Kontos übernimmt, merkt es sich einen Stichtag: den späteren von zwei Tagen, dem Tag nach dem letzten Umsatz aus einer Datei oder einem FinTS-Abruf und dem Tag unter **Umsätze abrufen ab**, aber nie nach dem Beginn dieses Abrufs; ohne beides den Beginn dieses Abrufs. Die Zeit davor decken Dateien oder frühere Abrufe ab: Liefert die Bank einen Umsatz vor dem Stichtag, übernimmt Haben ihn nicht und nennt ihn im Importprotokoll. Fehlt er in der Datei, etwa weil die Bank ihn nach dem Export noch am selben Tag gebucht hat, exportiere bei der Bank eine neue Datei mit diesem Tag und importiere sie; die schon vorhandenen Umsätze überspringt Haben ([Dubletten](#dubletten)). Den Stichtag zeigt **Automatischer Abruf** hinter dem Konto („Bankabruf seit …“, mit „davor Dateien oder FinTS“, wenn es die gibt); der Datenexport nennt ihn in `bank/quellen.csv`.
 - **Umsätze außerhalb des Zeitraums:** Einen gebuchten Umsatz mit einem Buchungstag vor dem abgefragten Zeitraum, aber ab dem Stichtag übernimmt Haben mit, etwa von Banken, die nach Valuta filtern. Steht aus einer Datei oder einem FinTS-Abruf, die erst nach dem ersten übernommenen Abruf dazukamen, schon ein Umsatz mit diesem Tag und Betrag da, legt Haben keinen zweiten an, sondern verbindet den abgerufenen mit ihm und nennt das im Importprotokoll; jeder Umsatz der Datei gehört so höchstens einem abgerufenen. Einen mit einem Tag nach dem Abruf holt der nächste Abruf.
 - **Geänderter Umsatz:** Liefert die Bank eine bisher eindeutige Referenz mit anderem Betrag oder Buchungstag, ändert Haben den gespeicherten Umsatz nicht und speichert aus diesem Abruf keine neuen Umsätze für das betroffene Konto. Die Meldung steht unter **Automatischer Abruf**. Der abgelehnte Abruf erscheint im Importprotokoll und im Export `bank/importe.csv`. Ist die Kennung eines bereits gebundenen Kontos gerade nicht abrufbar, wartet der Abruf dieses Kontos. Die anderen Konten laufen weiter.
-- **Konflikt klären:** Bei einem geänderten Umsatz steht an der Verbindung **Konflikt klären**. Der Dialog zeigt den bisherigen Umsatz mit seiner Zuordnung neben dem, den die Bank jetzt liefert, und bietet zwei Wege; überschrieben wird nie, und zurücknehmen lässt sich die Entscheidung nicht.
+- **Konflikt klären:** Bei einem geänderten Umsatz steht **Konflikt** an Karte und Zeile des Kontos; **Klären** im Hinweis über der Liste oder an der Zeile unter **Verbindungen** öffnet den Dialog. Er zeigt den bisherigen Umsatz mit seiner Zuordnung neben dem, den die Bank jetzt liefert, und bietet zwei Wege; überschrieben wird nie, und zurücknehmen lässt sich die Entscheidung nicht.
     - **Bisherigen Umsatz behalten:** Haben merkt sich die neuen Angaben und legt nichts an.
     - **Als weiteren Umsatz übernehmen:** Haben legt den gelieferten Umsatz zusätzlich an, mit eigenem Eintrag im Importprotokoll. Der bisherige bleibt mit seinen Zuordnungen stehen; beide zeigen einen Hinweis auf den anderen.
 
@@ -59,9 +73,9 @@ Mit einer eigenen Registrierungsnummer für FinTS holt Haben die Umsätze direkt
 
 ### Externe Quelle
 
-Ein eigener Dienst, der Zahlungen bei einem Anbieter abholt, etwa Verkäufe, Gebühren und Auszahlungen eines Marktplatzes, liefert sie über die [REST-API](api.md#bankumsätze) als Umsätze in ein Konto. Dafür gibst du die Quelle am Konto frei: Konto wählen, **Externe Quelle hinzufügen**, dann Anbieter und Kennung des Kontos beim Anbieter eintragen, so wie der Dienst sie liefert. Der Stichtag ist der erste Tag, den die Quelle liefert, frühestens der Tag nach dem letzten Umsatz des Kontos; leer gilt dieser Tag, bei einem Konto ohne Umsätze der heutige. Davor nimmt Haben nichts an; soll der Dienst in ein Konto ohne Umsätze auch ältere Zahlungen liefern, trag den ersten Tag ein. Ein Konto hat höchstens eine Quelle; ein Konto mit Bankabruf (Enable Banking oder FinTS), Etsy-, PayPal- oder Stripe-Abruf bekommt keine externe, auch vor dem ersten Abruf. Umgekehrt lässt sich ein Konto mit externer Quelle nicht für einen Abruf verbinden.
+Ein eigener Dienst, der Zahlungen bei einem Anbieter abholt, etwa Verkäufe, Gebühren und Auszahlungen eines Marktplatzes, liefert sie über die [REST-API](api.md#bankumsätze) als Umsätze in ein Konto. Dafür gibst du die Quelle am Konto frei: unter **Verbindungen** an der Zeile des Kontos **⋯ › Externe Quelle hinzufügen …**, dann Anbieter und Kennung des Kontos beim Anbieter eintragen, so wie der Dienst sie liefert. Der Stichtag ist der erste Tag, den die Quelle liefert, frühestens der Tag nach dem letzten Umsatz des Kontos; leer gilt dieser Tag, bei einem Konto ohne Umsätze der heutige. Davor nimmt Haben nichts an; soll der Dienst in ein Konto ohne Umsätze auch ältere Zahlungen liefern, trag den ersten Tag ein. Ein Konto hat höchstens eine Quelle; ein Konto mit Bankabruf (Enable Banking oder FinTS), Etsy-, PayPal- oder Stripe-Abruf bekommt keine externe, auch vor dem ersten Abruf. Umgekehrt lässt sich ein Konto mit externer Quelle nicht für einen Abruf verbinden.
 
-Danach steht unter dem Konto die Quelle mit Stichtag und bis wann geliefert ist; nach einer Lieferung zeigt der Reiter des Kontos „REST-Import“. Liefert der Dienst einen schon übernommenen Umsatz anders, steht dort **Konflikt klären**, mit denselben zwei Wegen wie beim [Bankabruf](#welche-umsätze-abgerufen-werden).
+Danach steht an der Zeile die Quelle mit Stichtag und bis wann geliefert ist; nach einer Lieferung zeigt die Karte des Kontos „REST-Import“. Liefert der Dienst einen schon übernommenen Umsatz anders, steht **Konflikt** an der Karte und **Klären** im Hinweis darunter, mit denselben zwei Wegen wie beim [Bankabruf](#welche-umsätze-abgerufen-werden).
 
 ## Unterstützte Formate
 
@@ -105,7 +119,7 @@ Beim Lesen gilt außerdem:
 ## So gehst du vor
 
 1. Bei deiner Bank die Umsätze als CSV oder CAMT.053 exportieren.
-2. Unter **Bank** auf **CSV / CAMT importieren** klicken und eine oder mehrere Dateien wählen (bis 50 Dateien auf einmal, bis 20 MB je Datei).
+2. Unter **Bank** auf **Datei importieren** klicken und eine oder mehrere Dateien wählen (bis 50 Dateien auf einmal, bis 20 MB je Datei). Haben nimmt das Konto aus der Datei. Nennt sie keins, etwa N26 oder der Export eines Zahlungsdienstleisters, fragt die Meldung nach dem Konto, vorgewählt ist das gewählte. Direkt in ein Konto importierst du über **⋯ › Datei importieren** auf seiner Karte oder **Datei importieren** über der Liste eines Kontos ohne Verbindung; so gilt auch eine gespeicherte [Spaltenzuordnung](bank-spaltenzuordnung.md).
 3. Haben meldet je Datei „… neue Umsätze für …“ und wie viele schon vorhanden waren, dazu Hinweise und eine eventuelle Lücke.
    Kennt Haben die Bank nicht, ordnest du die Spalten einmal zu ([Andere Banken](bank-spaltenzuordnung.md)).
 4. Links die offenen Umsätze durchgehen, rechts zuordnen.
@@ -116,7 +130,7 @@ Nennt die Datei eine IBAN (DKB, CAMT), legt Haben das Konto beim ersten Import a
 
 ### Name und Zweck
 
-Unter den Reitern stehen Name, Zweck und IBAN des gewählten Kontos. Mit **Name und Zweck** änderst du beides, auch für Konten aus dem automatischen Abruf oder dem Dateiimport. Der Name ist nur Anzeige: Umsätze bleiben am Konto, und spätere Importe findet Haben weiter über die IBAN. Die Änderung steht im Änderungsprotokoll.
+**⋯ › Name und Zweck …** auf der Karte oder an der Zeile unter **Verbindungen** zeigt Zweck und IBAN des Kontos und ändert Name und Zweck, auch für Konten aus dem automatischen Abruf oder dem Dateiimport. Der Name ist nur Anzeige: Umsätze bleiben am Konto, und spätere Importe findet Haben weiter über die IBAN. Die Änderung steht im Änderungsprotokoll.
 
 Viele Selbständige haben bei derselben Bank mehrere Konten, etwa ein Geschäftskonto und ein Steuerkonto, auf das sie die Umsatzsteuer zurücklegen und von dem das Finanzamt per Lastschrift einzieht. Der Zweck sagt Haben, wofür ein Konto dient:
 
@@ -125,17 +139,25 @@ Viele Selbständige haben bei derselben Bank mehrere Konten, etwa ein Geschäfts
 | Geschäftskonto (Standard) | wie bisher; sein Kontostand steht in der Übersicht |
 | Steuerkonto | Vorbelegung für [Bankverbindung ändern](finanzamt.md#bankverbindung-ändern); Lastschriften und Erstattungen der Umsatzsteuer auf diesem Konto bekommen „Umsatzsteuer an das Finanzamt“ als Vorschlag; die Übersicht zeigt den Stand neben der noch offenen Zahllast (abzüglich schon zugeordneter Zahlungen an das Finanzamt nach Ende des Zeitraums) und warnt, wenn er nicht reicht |
 | Rücklagen- oder Sparkonto | Überträge zu und von eigenen Konten bekommen „Geldtransit“ als Vorschlag |
-| Privatkonto | Umsätze dort bleiben zuordenbar; Geschäftsvorfälle bucht Haben gegen Entnahme bzw. Einlage, in GmbH und UG gegen das Gesellschafter-Verrechnungskonto ([Privates Konto](#privates-konto-geschäftsvorfälle-gegen-entnahme-und-einlage)). Auf deinen anderen Konten bekommen Überweisungen dorthin oder von dort „Privat“ als Vorschlag. Das Konto legst du mit **Konto hinzufügen** an; Umsätze importierst du nur, wenn du sie buchen willst, denn ungebuchte stehen unter „offen“, bis du sie [kennzeichnest](#privates-konto-umsätze-ohne-buchungsart). |
+| Privatkonto | Umsätze dort bleiben zuordenbar; Geschäftsvorfälle bucht Haben gegen Entnahme bzw. Einlage, in GmbH und UG gegen das Gesellschafter-Verrechnungskonto ([Privates Konto](#privates-konto-geschäftsvorfälle-gegen-entnahme-und-einlage)). Auf deinen anderen Konten bekommen Überweisungen dorthin oder von dort „Privat“ als Vorschlag. Das Konto legst du mit **Konto verbinden › Konto ohne Abruf anlegen** an; Umsätze importierst du nur, wenn du sie buchen willst, denn ungebuchte stehen unter „offen“, bis du sie [kennzeichnest](#privates-konto-umsätze-ohne-buchungsart). |
 
 Auf einem Privatkonto bietet der Abgleich Kontoführung und Bankgebühren, Zinserträge, Privat, Spende und Geldtransit nicht an, schlägt sie nicht vor und lehnt sie ab. Gebühren und Zinsen eines privaten Kontos sind privat: kein Betriebsaufwand (§ 12 Nr. 1 EStG) und keine Betriebseinnahme (§ 20 EStG); „Privat“ und „Spende“ buchten privat gegen privat, und Geldtransit wäre Entnahme gegen Entnahme. Alle anderen Arten sind dort erlaubt und laufen über Entnahme und Einlage, in GmbH und UG über das Gesellschafter-Verrechnungskonto ([unten](#privates-konto-geschäftsvorfälle-gegen-entnahme-und-einlage)). Schon gebuchte Zuordnungen bleiben sichtbar und lassen sich aufheben.
 
 Jedes Konto hat einen Zweck. Außer auf einem privaten Konto bucht Haben auf das eine Bankkonto (1200 bzw. 1800); welche IBAN auf Rechnungen steht, bestimmen die Firmendaten.
 
-N26-Exporte enthalten keine eigene IBAN. Dafür legst du das Konto vorher mit **Konto hinzufügen** an (Name und IBAN) und wählst es vor dem Import in der Auswahl **Konto** aus. Steht die Auswahl auf „aus der Datei“, lehnt Haben eine Datei ohne IBAN ab.
+N26-Exporte enthalten keine eigene IBAN. Dafür legst du das Konto vorher mit **Konto verbinden › Konto ohne Abruf anlegen** an (Name und IBAN) und importierst die Datei in dieses Konto ([So gehst du vor](#so-gehst-du-vor)).
 
 Wählst du ein Konto aus und die Datei nennt eine andere IBAN, bricht der Import mit einer Meldung ab.
 
-Über der Liste steht je Konto ein Reiter mit Format und Datum des letzten Imports und dem Endsaldo. Ist der letzte Import älter als sieben Tage, ist die Angabe hervorgehoben.
+Über der Liste stehen die Konten als Karten in einer Zeile, getrennt in Banken und Zahlungsdienstleister; die Pfeile links und rechts rollen weiter. Jede Karte zeigt den Namen, den Saldo (Endsaldo des letzten Imports, beim Dienstleister das Guthaben) mit der Zahl offener Umsätze und darunter, woher der letzte Stand kommt und wann, etwa „FinTS · heute 06:00“ oder „Datei · 13.11.“. Nur wenn etwas nicht stimmt, steht dort ein Status:
+
+| Status | Wann |
+| --- | --- |
+| Fehlgeschlagen | Der letzte Abruf über FinTS, Enable Banking, Stripe oder PayPal ist fehlgeschlagen. |
+| Abgelaufen, Läuft ab | Die Zustimmung bei der Bank ist abgelaufen oder läuft in den nächsten 14 Tagen ab, ab 7 Tagen vorher hervorgehoben. |
+| Freigabe nötig | Die Bank wartet bei FinTS auf eine TAN oder Freigabe in der App. |
+| Konflikt | Der Abruf hat [Konflikte](#welche-umsätze-abgerufen-werden), die auf deine Entscheidung warten. |
+| Veraltet | Der letzte Import oder Abruf ist älter als sieben Tage. |
 
 ### Privates Konto: Geschäftsvorfälle gegen Entnahme und Einlage
 
@@ -151,17 +173,17 @@ Kennzeichnen lässt sich nur ein ganz offener Umsatz. Zuordnen, Direkt buchen, A
 
 ### Fremdes Konto ausschließen
 
-Manchmal gehört ein Konto nicht zu dieser Firma, etwa wenn der Bankzugang auch das Konto einer zweiten Firma freigibt. Löschen geht nicht: Importierte Umsätze sind gesperrt. Stattdessen schließt du das Konto aus: Wähle es und klicke neben **Name und Zweck** auf **Gehört nicht zu dieser Firma**; nach einer Rückfrage ist es erledigt. Beim [Abruf über FinTS](bank-fints.md) lässt du ein solches Konto schon beim Verbinden weg; dann legt Haben es gar nicht an.
+Manchmal gehört ein Konto nicht zu dieser Firma, etwa wenn der Bankzugang auch das Konto einer zweiten Firma freigibt. Löschen geht nicht: Importierte Umsätze sind gesperrt. Stattdessen schließt du das Konto aus: unter **Verbindungen** an seiner Zeile **⋯ › Gehört nicht zu dieser Firma …**; nach einer Rückfrage ist es erledigt. Beim [Abruf über FinTS](bank-fints.md) lässt du ein solches Konto schon beim Verbinden weg; dann legt Haben es gar nicht an.
 
-Das geht nur, **solange kein Umsatz des Kontos zugeordnet, verrechnet oder ausgebucht ist**, denn dann gehört das Konto zu dieser Firma. Hat das gewählte Konto schon eine Zuordnung, ist der Knopf gesperrt und nennt den Grund. Ein Zahlungsdienstleister lässt sich nicht ausschließen.
+Das geht nur, **solange kein Umsatz des Kontos zugeordnet, verrechnet oder ausgebucht ist**, denn dann gehört das Konto zu dieser Firma. Hat das Konto schon eine Zuordnung, nennt Haben statt der Rückfrage den Grund. Ein Zahlungsdienstleister lässt sich nicht ausschließen.
 
 Ein ausgeschlossenes Konto:
 
-- steht nicht mehr unter den Reitern und fehlt in Bankabgleich, Vorschlägen, Übersicht, Überweisungen und Lastschriften, in der Vorprüfung der Voranmeldung, in der Jahresauswahl und im [Jahresarchiv](auswertungen.md#jahresexport);
+- steht nicht mehr unter den Karten und fehlt in Bankabgleich, Vorschlägen, Übersicht, Überweisungen und Lastschriften, in der Vorprüfung der Voranmeldung, in der Jahresauswahl und im [Jahresarchiv](auswertungen.md#jahresexport);
 - wird beim automatischen Abruf übersprungen; die Verbindung selbst läuft für die anderen Konten weiter;
 - nimmt keinen Import an: Eine Datei mit seiner IBAN oder mit diesem Konto als Ziel lehnt Haben mit einer Meldung ab.
 
-Gelöscht wird nichts. Die Umsätze bleiben in der Datenbank, und der Schritt steht im [Änderungsprotokoll](buchhaltung.md#änderungsprotokoll). Unter **Ausgeschlossene Konten** am Ende der Seite siehst du die ausgeschlossenen Konten mit der Zahl ihrer Umsätze und nimmst ein Konto mit **… wieder aufnehmen** (mit dem Namen des Kontos) zurück; dann ist alles wie vorher da.
+Gelöscht wird nichts. Die Umsätze bleiben in der Datenbank, und der Schritt steht im [Änderungsprotokoll](buchhaltung.md#änderungsprotokoll). Unter **Ausgeschlossene Konten** am Ende der Seite **Verbindungen** siehst du die ausgeschlossenen Konten mit der Zahl ihrer Umsätze und nimmst ein Konto mit **… wieder aufnehmen** (mit dem Namen des Kontos) zurück; dann ist alles wie vorher da.
 
 ## Was beim Import passiert
 
@@ -191,7 +213,7 @@ Importe, Umsätze, Zuordnungen und [Verrechnungen](#gegenläufige-umsätze-verre
 
 ## Umsatzliste
 
-Ab zwei Konten zeigt der erste Reiter, **Alle Konten**, die Umsätze aller Konten in einer Liste, unter der Gegenpartei mit dem Namen des Kontos. Dorthin führt auch **Alle anzeigen** bei den Bankumsätzen der [Schnellsuche](suche.md).
+Ab zwei Konten zeigt die erste Karte, **Alle Konten**, die Umsätze aller Konten in einer Liste, unter der Gegenpartei mit dem Namen des Kontos. Die Karte nennt die Zahl der Konten und offenen Umsätze und mit „Prüfen“, wie viele Konten einen Status haben, sonst „Alles aktuell“. Dorthin führt auch **Alle anzeigen** bei den Bankumsätzen der [Schnellsuche](suche.md).
 
 Die Filter **Alle**, **Offen** (mit Anzahl), **Zugeordnet** (auch verrechnete Umsätze) und **Vorschlag** schränken die Liste ein. **Vorschlag** zeigt nur Umsätze mit dem gleichnamigen Status. Das Suchfeld findet dieselben Umsätze wie die [Schnellsuche](suche.md#was-sie-findet), dazu Beträge, deren Zahl die Eingabe enthält: `19.9` findet 19,90 €. Angezeigt werden höchstens 500 Treffer.
 

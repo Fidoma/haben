@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { day } from "./daten.ts";
-import { axeVerstoesse, CUSTOMERS, durchlaufSeite, einrichten, gehe, INVOICES, kontaktAnlegen, rechnungFestschreiben } from "./einrichtung.ts";
+import { axeVerstoesse, kontoVerbinden, CUSTOMERS, durchlaufSeite, einrichten, gehe, INVOICES, kontaktAnlegen, rechnungFestschreiben } from "./einrichtung.ts";
 
 /**
  * Eigener Durchlauf zu #1417: Zahlung und Gebühr eines Zahlungsdienstleisters stehen in der Bankliste in einer Zeile und
@@ -33,7 +33,7 @@ test("Einrichtung mit einer festgeschriebenen Rechnung und einem Stripe-Konto mi
   rechnungPfad = new URL(page.url()).pathname;
 
   await gehe(page, "/bank");
-  await page.getByRole("button", { name: "Konto hinzufügen" }).click();
+  await kontoVerbinden(page, "Konto ohne Abruf anlegen");
   const neuesKonto = page.locator("form", { has: page.getByRole("button", { name: "Konto anlegen" }) });
   await neuesKonto.getByLabel("Art", { exact: true }).selectOption("provider");
   await neuesKonto.getByLabel("Dienstleister", { exact: true }).selectOption("stripe");
@@ -49,6 +49,12 @@ test("Einrichtung mit einer festgeschriebenen Rechnung und einem Stripe-Konto mi
   await page
     .locator('input[type=file][aria-label="Kontoauszugsdateien"]')
     .setInputFiles([{ name: "stripe.csv", mimeType: "text/csv", buffer: Buffer.from(csv) }]);
+  // Der Export nennt kein Konto: die Meldung fragt danach, vorgewählt ist das eben angelegte (#1951)
+  const nachfrage = page.getByRole("form", { name: "Konto für stripe.csv" });
+  await expect(page.getByText("stripe.csv: Export eines Zahlungsdienstleisters. Wähle das Konto des Dienstleisters.")).toBeVisible({ timeout: 30_000 });
+  await expect(nachfrage.getByLabel("Konto")).toHaveValue(/.+/);
+  await expect(nachfrage.getByLabel("Konto").locator("option:checked")).toHaveText("Stripe");
+  await nachfrage.getByRole("button", { name: "Importieren" }).click();
   await expect(page.getByText(/4 neue Umsätze für Stripe/)).toBeVisible({ timeout: 30_000 });
 });
 

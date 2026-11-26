@@ -190,17 +190,17 @@ podman secret create haben-enablebanking-key ~/Downloads/<Application ID>.pem
 systemctl --user daemon-reload && systemctl --user restart haben-app
 ```
 
-Danach erscheint unter **Bank** der Knopf **Bank verbinden**. Ablauf, Zustimmung und Dubletten stehen in [Bankimport und Abgleich](bank.md#automatischer-abruf).
+Danach bietet **Konto verbinden › Bank hinzufügen** unter **Bank** den Weg **Online-Banking über Enable Banking (PSD2)** an. Ablauf, Zustimmung und Dubletten stehen in [Bankimport und Abgleich](bank.md#automatischer-abruf).
 
 Was an Enable Banking geht: beim Verbinden die gewählte Bank und die Rückleitungsadresse, danach nur Abrufe von Umsätzen und Kontoständen der freigegebenen Konten. Die Anmeldung bei der Bank geschieht auf deren Seite; Haben sieht weder Zugangsdaten noch TAN. Zahlungen auslösen kann Haben nicht.
 
 ## PayPal-Abruf
 
-Der Abruf der PayPal-Umsätze braucht auf dem Server nichts Eigenes: keine Umgebungsvariable und kein Secret für PayPal. Die Zugangsdaten verschlüsselt Haben wie alle anderen mit dem vorhandenen Schlüssel der Installation; wechselst du ihn, musst du sie neu eintragen. Client-ID und Secret der PayPal-App trägst du in Haben ein (Einstellungen › Bank › Zahlungsdienstleister, siehe [PayPal-Umsätze über die API](bank-zahlungsdienstleister.md#paypal-umsätze-über-die-api)); sie liegen verschlüsselt in der Datenbank. Der Server muss `api-m.paypal.com` (Sandbox: `api-m.sandbox.paypal.com`) auf Port 443 erreichen.
+Der Abruf der PayPal-Umsätze braucht auf dem Server nichts Eigenes: keine Umgebungsvariable und kein Secret für PayPal. Die Zugangsdaten verschlüsselt Haben wie alle anderen mit dem vorhandenen Schlüssel der Installation; wechselst du ihn, musst du sie neu eintragen. Client-ID und Secret der PayPal-App trägst du in Haben ein (Bank › Konto verbinden › Zahlungsdienstleister hinzufügen, siehe [PayPal-Umsätze über die API](bank-zahlungsdienstleister.md#paypal-umsätze-über-die-api)); sie liegen verschlüsselt in der Datenbank. Der Server muss `api-m.paypal.com` (Sandbox: `api-m.sandbox.paypal.com`) auf Port 443 erreichen.
 
 ## Stripe-Abruf
 
-Wie bei PayPal braucht der Abruf der Stripe-Umsätze keine Umgebungsvariable und kein Secret auf dem Server. Den API-Schlüssel trägst du in Haben ein (Einstellungen › Bank › Zahlungsdienstleister, siehe [Stripe-Umsätze über die API](bank-zahlungsdienstleister.md#stripe-umsätze-über-die-api)); er liegt verschlüsselt in der Datenbank. Der Server muss `api.stripe.com` auf Port 443 erreichen.
+Wie bei PayPal braucht der Abruf der Stripe-Umsätze keine Umgebungsvariable und kein Secret auf dem Server. Den API-Schlüssel trägst du in Haben ein (Bank › Konto verbinden › Zahlungsdienstleister hinzufügen, siehe [Stripe-Umsätze über die API](bank-zahlungsdienstleister.md#stripe-umsätze-über-die-api)); er liegt verschlüsselt in der Datenbank. Der Server muss `api.stripe.com` auf Port 443 erreichen.
 
 ## Kontoabruf über FinTS
 
@@ -222,7 +222,7 @@ FinTS-Zugang gibt es nur für Software, die bei der Deutschen Kreditwirtschaft (
     systemctl --user restart haben-app
     ```
 
-3. Unter **Einstellungen › Bank** steht dann bei **Kontoabruf über FinTS** „Eingerichtet“ (die Nummer zeigt Haben nicht), unter **Bank** der Knopf **Über FinTS verbinden**. Ablauf, TAN und Fehler stehen in [Abruf über FinTS](bank-fints.md).
+3. Unter **Einstellungen › Bank** steht dann bei **Kontoabruf über FinTS** „Eingerichtet“ (die Nummer zeigt Haben nicht), unter **Bank** bietet **Konto verbinden › Bank hinzufügen** den Weg **FinTS (PIN/TAN)** an. Ablauf, TAN und Fehler stehen in [Abruf über FinTS](bank-fints.md).
 
 > [!NOTE]
 > Die Nummer gilt nicht sofort bei allen Banken. Die DK gibt neue Registrierungen gesammelt an die Institute weiter, derzeit etwa einmal pro Woche, und wann eine Bank sie übernimmt, entscheidet die Bank: Das dauert Tage bis Wochen ([Hinweis der DK in #654](https://github.com/Speicherstadt/haben/issues/654#issuecomment-6915898298)). Bis dahin lehnt die Bank die Anmeldung ab, mit „FinTS-Produkt ist nicht registriert“ (9078 in den [Rückmeldungscodes der DK](https://www.fints.org/de/spezifikation)) oder, wie eine Bank im [Test zu #1289](https://github.com/Speicherstadt/haben/pull/1289), mit „Das Kundenprodukt wird nicht unterstützt.“ (9952); Haben weist bei beiden darauf hin. Stimmt die Nummer in `FINTS_PRODUKT_ID`, später noch einmal versuchen.

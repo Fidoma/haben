@@ -1,0 +1,166 @@
+/* Bankseite: Kartenleiste der Konten (#1951, DESIGN.md › Kartenleiste der Konten) */
+
+/* Breit: alle Konten als Karten in einer Zeile, seitlich rollbar, Pfeile links und rechts */
+.konten-leiste { display: flex; align-items: center; gap: 4px; }
+.konten-leiste:not([data-rollbar]) > .btn-icon { visibility: hidden; }
+/* Innenabstand, damit Fokusring und Rand der gewählten Karte nicht am Rand der Rollfläche abgeschnitten werden */
+.konten-karten { flex: 1; min-width: 0; display: flex; gap: 16px; overflow-x: auto; padding: 4px 4px 8px; scrollbar-width: thin; scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { .konten-karten { scroll-behavior: auto; } }
+.konten-gruppe { flex: none; display: flex; flex-direction: column; gap: 4px; }
+/* Die Überschrift bleibt beim Rollen links stehen, solange ihre Gruppe zu sehen ist */
+.konten-gruppe-titel { position: sticky; left: 0; align-self: flex-start; padding-right: 8px; font-size: 12px; line-height: 16px; color: var(--muted); background: var(--ground); }
+.konten-gruppe-karten { display: flex; gap: 8px; }
+
+/* Jede Karte gleich hoch: Name; Saldo und „n offen“; Weg und Zeit oder ein Status */
+.konto-karte { width: 184px; display: flex; flex-direction: column; gap: 4px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow-xs); color: var(--ink); text-decoration: none; transition: background var(--fade); }
+.konto-karte:hover { background: var(--hover); color: var(--ink); }
+.konto-karte:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Gewählt: Fläche, Name in Akzent und Rand mit Ring, denn die Fläche allein trennt sich vom eigenen Rand der Karte kaum */
+.konto-karte[aria-current="page"], .konto-karte[aria-current="page"]:hover { background: var(--accent-soft); border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.konto-karte[aria-current="page"] .konto-karte-name { color: var(--accent-ink); }
+.konto-karte-name { font-size: 14px; font-weight: 600; line-height: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.konto-karte-zahlen { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 14px; line-height: 20px; }
+.konto-karte-zahlen > .amount { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.konto-karte-offen { flex: none; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.konto-karte-quelle { font-size: 12px; line-height: 20px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Status in einer Zeile; was nicht passt, endet mit „…“ */
+.konto-karte .status { max-width: 100%; gap: 8px; }
+.konto-karte .status-label { flex: none; }
+.konto-karte .status-detail { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+
+/* `⋯` oben rechts in der Karte, neben dem Link und nicht darin; der Name lässt ihm Platz */
+.konto-karte-rahmen { position: relative; flex: none; }
+.konto-karte-rahmen > .konto-karte .konto-karte-name { padding-right: 28px; }
+.konto-karte-rahmen > .more-actions-menu { position: absolute; top: 6px; right: 6px; }
+.konto-karte-rahmen > .more-actions-menu > .btn-icon { width: 32px; height: 32px; min-height: 32px; color: var(--muted); }
+.konto-karte-rahmen > .more-actions-menu > .btn-icon:hover { color: var(--ink); }
+
+/* Hinweis zum gewählten Konto unter der Leiste, nur bei einem Status */
+.konto-hinweis { margin: 0; }
+
+/* Kopf der Liste: erste Zeile Stand des gewählten Kontos und sein Abruf, zweite Zeile Filter und Suche; am Handy
+   rollen die Filter seitlich in einer Zeile, die Suche steht darunter in voller Breite */
+.tx-stand { display: flex; align-items: center; justify-content: space-between; gap: 4px 12px; flex-wrap: wrap; min-height: 40px; padding: 4px 12px 0 20px; }
+.tx-stand > .small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.tx-stand > .btn { margin-left: auto; }
+.tx-stand > .tx-stand-grund { order: 3; flex-basis: 100%; white-space: normal; }
+.tx-toolbar { flex-wrap: nowrap; justify-content: flex-start; gap: 12px; padding: 8px 20px 12px; }
+.tx-filter { display: flex; gap: 8px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.tx-filter > .chip { flex: none; min-height: 32px; padding: 0 12px; }
+.tx-toolbar > .search-box { flex: 1 1 160px; min-width: 160px; max-width: 280px; margin-left: auto; }
+@media (max-width: 760px) {
+  .tx-toolbar { flex-direction: column; align-items: stretch; gap: 8px; }
+  .tx-filter { margin: 0 -20px; padding: 0 20px; }
+  .tx-toolbar > .search-box { flex: none; max-width: none; margin-left: 0; }
+}
+.nur-schmal { display: none; }
+
+/* Schmal (Liste und Zuordnung untereinander) und am Handy: eine Zeile kleiner Karten, die unter dem Seitenkopf stehen bleibt */
+.konten-klein { display: none; }
+@media (max-width: 1100px) {
+  .konten-leiste { display: none; }
+  .nur-schmal { display: contents; }
+  .konten-klein {
+    position: sticky; top: var(--below-head); z-index: 9;
+    display: flex; align-items: stretch; gap: 8px; overflow-x: auto; scrollbar-width: none;
+    margin: -12px calc(-1 * var(--main-pad-x)); padding: 8px var(--main-pad-x); background: var(--ground); border-bottom: 1px solid var(--line);
+  }
+}
+/* Wie die Karten der breiten Leiste, nur kleiner: gleiche Kante, Ecken und Auswahl */
+.konto-klein { flex: none; display: flex; flex-direction: column; justify-content: center; gap: 0; min-width: 96px; max-width: 148px; min-height: 48px; box-sizing: border-box; padding: 4px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow-xs); color: var(--ink); text-decoration: none; }
+.konto-klein:hover { color: var(--ink); background: var(--hover); }
+.konto-klein:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.konto-klein[aria-current="page"], .konto-klein[aria-current="page"]:hover { background: var(--accent-soft); border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.konto-klein[aria-current="page"] .konto-klein-name { color: var(--accent-ink); }
+.konto-klein-name { font-size: 13px; font-weight: 600; line-height: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.konto-klein-zeile { font-size: 12px; line-height: 16px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* Status mit Punkt in seiner Farbe, das Wort in Tinte der Stufe */
+.konto-klein-status { display: inline-flex; align-items: center; gap: 4px; }
+.konto-klein-status::before { content: ""; width: 6px; height: 6px; border-radius: 3px; background: currentColor; flex: none; }
+.konto-klein[data-tone="warn"] .konto-klein-status { color: var(--warn-ink); }
+.konto-klein[data-tone="danger"] .konto-klein-status { color: var(--danger-ink); }
+.konten-klein-trenner { flex: none; width: 1px; margin: 8px 0; background: var(--line); }
+
+/* Seite Verbindungen: je Gruppe eine Karte mit Tabelle; Knöpfe am Ende der Zeile, `⋯` zuletzt */
+.verbindungen-gruppe { padding: 0; overflow: hidden; }
+.verbindungen-kopf { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 20px 12px; }
+.verbindungen-kopf > h2 { margin: 0; }
+/* Feste Spalten, damit die Tabellen der Gruppen untereinander bündig stehen */
+.verbindungen-tabelle { width: 100%; border-collapse: collapse; font-size: 14px; table-layout: fixed; }
+.verbindungen-tabelle .spalte-konto { width: 22%; }
+.verbindungen-tabelle .spalte-abruf { width: 18%; }
+.verbindungen-tabelle .spalte-saldo { width: 11%; }
+.verbindungen-tabelle .spalte-offen { width: 6%; }
+.verbindungen-tabelle .spalte-aktionen { width: 212px; }
+.verbindungen-tabelle th { padding: 8px 12px; font-size: 12px; font-weight: 500; color: var(--muted); text-align: left; border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); }
+.verbindungen-tabelle td { padding: 12px; border-bottom: 1px solid var(--line-soft); vertical-align: baseline; }
+.verbindungen-tabelle tr:last-child > td { border-bottom: 0; }
+.verbindungen-tabelle :is(th, td):first-child { padding-left: 20px; }
+.verbindungen-tabelle :is(th, td):last-child { padding-right: 16px; }
+.verbindungen-tabelle .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.verbindungen-tabelle .nw { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+/* Status mit 12px mehr Abstand zur Spalte davor (DESIGN.md, Status) */
+.verbindungen-tabelle .spalte-status { padding-left: 24px; }
+/* Ein Fehler steht als Auskunft unter dem Wort, in ganzer Länge */
+.verbindungen-tabelle .spalte-status .status-detail { white-space: normal; }
+.verbindung-name { display: flex; gap: 12px; align-items: center; min-width: 0; }
+.verbindung-name > div { min-width: 0; }
+.verbindung-link { color: var(--ink); font-weight: 600; text-decoration: none; text-align: left; overflow-wrap: anywhere; }
+.verbindung-link:hover { color: var(--ink); text-decoration: underline; }
+.verbindung-kennung { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.verbindung-kachel { flex: none; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; background: var(--line-soft); color: var(--ink-2); }
+.verbindung-kennung { font-size: 12px; color: var(--muted); }
+.verbindung-aktionen { display: flex; gap: 4px; justify-content: flex-end; align-items: center; margin: -8px 0; padding-left: 12px; }
+.verbindung-aktionen > .btn:not(.btn-icon) { margin-right: 4px; white-space: nowrap; }
+.verbindung-grund { display: block; font-size: 12px; color: var(--muted); white-space: normal; max-width: 280px; }
+.verbindung-symbole { display: inline-flex; gap: 4px; align-items: center; }
+/* Schmal und am Handy: jede Zeile als Liste. Oben Name und rechts Abruf und `⋯`, darunter Weg und Saldo, unten Status und
+   rechts der Knopf, der ihn löst; ohne Status bleibt die letzte Zeile leer und nimmt keinen Platz */
+@media (max-width: 1100px) {
+  /* Der Knopf zum Hinzufügen bricht nie um; passt er nicht neben die Überschrift, steht er darunter */
+  .verbindungen-kopf { flex-wrap: wrap; justify-content: flex-start; column-gap: 16px; }
+  .verbindungen-kopf > h2 { flex: 1 1 auto; }
+  .verbindungen-kopf > .btn { white-space: nowrap; }
+  .verbindungen-tabelle thead { display: none; }
+  .verbindungen-tabelle, .verbindungen-tabelle tbody { display: block; }
+  .verbindungen-tabelle tr {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 12px 16px; border-bottom: 1px solid var(--line-soft);
+    grid-template-areas: "konto symbole" "abruf saldo" "status knopf";
+  }
+  .verbindungen-tabelle tr:last-child { border-bottom: 0; }
+  .verbindungen-tabelle td { padding: 0; border: 0; }
+  .verbindungen-tabelle :is(th, td):first-child { padding-left: 0; }
+  .verbindungen-tabelle :is(th, td):last-child { padding-right: 0; }
+  .verbindungen-tabelle :is(.spalte-konto, .spalte-abruf, .spalte-saldo, .spalte-offen, .spalte-aktionen) { width: auto; }
+  .verbindungen-tabelle .spalte-konto { grid-area: konto; }
+  .verbindungen-tabelle .spalte-abruf { grid-area: abruf; padding-left: 44px; }
+  .verbindungen-tabelle .spalte-saldo { grid-area: saldo; }
+  .verbindungen-tabelle .spalte-status { grid-area: status; padding-left: 44px; }
+  .verbindungen-tabelle .spalte-status:empty { display: none; }
+  .verbindungen-tabelle .spalte-offen { display: none; }
+  .verbindungen-tabelle .spalte-aktionen, .verbindung-aktionen { display: contents; }
+  .verbindung-symbole { grid-area: symbole; align-self: center; margin: -8px -8px -8px 0; }
+  .verbindung-aktionen > .btn:not(.btn-icon) { grid-area: knopf; align-self: center; margin: 0; }
+}
+
+/* „Wie verbinden?“ und „Anbieter wählen“: ein Weg, der hier nicht geht, steht ausgegraut mit seinem Grund */
+.verbinden-wahl > [data-gesperrt] > .checkbox { color: var(--muted); cursor: default; }
+
+/* Geführte Einrichtung: Schrittleiste über der Karte des Schritts */
+.einrichtung-schritte { display: flex; gap: 12px; margin: 0 0 16px; padding: 0; list-style: none; max-width: 960px; }
+.einrichtung-schritte > li { flex: 1; min-width: 0; padding-top: 8px; border-top: 4px solid var(--line); font-size: 13px; color: var(--muted); }
+.einrichtung-schritte > li[data-erledigt] { border-top-color: var(--accent); }
+.einrichtung-schritte > li[aria-current="step"] { color: var(--accent-ink); font-weight: 600; }
+.einrichtung-schritt { max-width: 960px; gap: 16px; }
+.einrichtung-schritt-kopf { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.einrichtung-ergebnis { display: flex; flex-direction: column; gap: 8px; padding: 16px 0 0; border-top: 1px solid var(--line); }
+.einrichtung-ergebnis-kopf { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+@media (max-width: 640px) { .einrichtung-schritte { gap: 8px; } .einrichtung-schritte > li { font-size: 12px; } }
+
+/* Abruf: Formulare, Schritte der Bank und Meldungen unter der Leiste bzw. dem Kopf (#1951); ohne Inhalt unsichtbar */
+.bank-abruf { display: flex; flex-direction: column; gap: 12px; }
+.bank-abruf:empty { display: none; }
+
+/* Nachfrage nach dem Konto in der Meldung eines Imports: Feld und Knopf in einer Zeile */
+.konto-nachfrage { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; margin-top: 8px; }
+.konto-nachfrage > .field { min-width: 200px; }

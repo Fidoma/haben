@@ -33,7 +33,10 @@ describe("Eyebrow der Seiten im Menü", () => {
 
   for (const to of [...new Set(seiten)].filter((seite) => !WEITERLEITUNG.has(seite))) {
     it(`${to} zeigt den Namen der Menügruppe, nicht von Hand getippt`, () => {
-      const datei = [`${routen}${to.slice(1)}.tsx`, `${routen}${to.slice(1)}/index.tsx`].find((pfad) => existsSync(pfad));
+      // Unterseiten ohne Layout der übergeordneten Seite liegen flach („bank_.verbindungen.tsx“)
+      const datei = [`${routen}${to.slice(1)}.tsx`, `${routen}${to.slice(1)}/index.tsx`, `${routen}${to.slice(1).replace("/", "_.")}.tsx`].find((pfad) =>
+        existsSync(pfad),
+      );
       expect(datei, `Seite zu ${to} gefunden`).toBeDefined();
       const quelltext = readFileSync(datei!, "utf8");
       // Die Seiten der Steuerberatung reichen `inhaber` durch, damit sie den Namen ihres Menüs zeigen

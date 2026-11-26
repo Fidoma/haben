@@ -53,6 +53,10 @@ const PATHS = {
   ),
   // Dauerbeleg: Kreislauf aus zwei Pfeilen, kehrt wieder
   repeat: <path d="M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3" />,
+  /** Verbindungen der Konten (#1951): zwei Kettenglieder */
+  link: <path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1" />,
+  /** Jetzt abrufen (#1951): Kreis mit Pfeil */
+  refresh: <path d="M21 12a9 9 0 1 1-2.64-6.36L21 8M21 3v5h-5" />,
   annual: <path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h6M9 17h4" />,
   quote: <path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8zM14 3v5h5M9 13h6M9 17h3M15.5 16.5l1.5 1.5 3-3" />,
   pauschale: <path d="M3 11l7-6 7 6M5 9.5V19h10V9.5M8.5 19v-5h3v5M19 4v16M19 8h2M19 14h2" />,

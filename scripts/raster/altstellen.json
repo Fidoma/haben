@@ -1,7 +1,7 @@
 {
   "apps/web/src/styles.css": {
     "gap: 10px": 5,
-    "gap: 2px": 13,
+    "gap: 2px": 12,
     "gap: 3px": 1,
     "gap: 4px 6px": 1,
     "gap: 6px": 8,

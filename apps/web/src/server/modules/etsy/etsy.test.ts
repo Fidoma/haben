@@ -1,5 +1,5 @@
 import type postgres from "postgres";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { EtsyClient, EtsyLedgerEntry } from "@haben/import";
 import { leeren, setupTestDb, testDatabaseUrl } from "../../test-db.ts";
 
@@ -388,5 +388,28 @@ describe.skipIf(!testDatabaseUrl)("Etsy-Zahlungsverlauf (Postgres)", () => {
     const verbunden =
       await sql`select m.source_event_id, t.purpose from import_movements m join bank_transactions t on t.id = m.transaction_id order by m.source_event_id::int`;
     expect(verbunden.map((v) => v.source_event_id)).toEqual(["1", "5", "8"]);
+  });
+
+  it("legt beim Verbinden das Konto für Etsy an, wenn keins da ist, und kein zweites (#1951)", async () => {
+    await leeren(sql)`truncate bank_accounts, import_sources, etsy_connections cascade`;
+    // Der Tausch des Codes gegen Token geht ohne nachgebauten Client über fetch an Etsy
+    const tausch = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async () => new Response(JSON.stringify({ access_token: "gut", refresh_token: "erneuern", expires_in: 3600 })));
+    const verbinden = async () => {
+      await etsy.saveEtsyConnection(actor, { keystring: "abc", sharedSecret: "geheim", fetchFrom: "2023-06" });
+      const state = new URL(await etsy.startEtsyConnection(actor)).searchParams.get("state") ?? "";
+      return etsy.completeEtsyConnection(actor, { state, code: "code" });
+    };
+    try {
+      expect(await verbinden()).toMatchObject({ ok: true });
+      const konten = async () => sql`select name, purpose, provider from bank_accounts`;
+      expect(await konten()).toEqual([{ name: "Etsy", purpose: "zahlungsdienstleister", provider: "etsy" }]);
+      // Neu verbunden: das Konto gibt es schon
+      expect(await verbinden()).toMatchObject({ ok: true });
+      expect(await konten()).toHaveLength(1);
+    } finally {
+      tausch.mockRestore();
+    }
   });
 });

@@ -5,7 +5,17 @@ import { expect, type Page, test } from "@playwright/test";
 import postgres from "postgres";
 import { day, YEAR } from "./daten.ts";
 import { type Durchlauf, databaseUrlFuer } from "./durchlaeufe.ts";
-import { bestaetigen, dkb, durchlaufSeite, gehe, lieferantWaehlen, neuenLieferantenOeffnen, ohneAxeVerstoesse, axeVerstoesse } from "./einrichtung.ts";
+import {
+  bestaetigen,
+  kontoVerbinden,
+  dkb,
+  durchlaufSeite,
+  gehe,
+  lieferantWaehlen,
+  neuenLieferantenOeffnen,
+  ohneAxeVerstoesse,
+  axeVerstoesse,
+} from "./einrichtung.ts";
 import { LAPTOP } from "./kopfzeile.ts";
 import { abzugEinspielen } from "./abzug.ts";
 import { receiptJpeg } from "./belegbild.ts";
@@ -1028,7 +1038,7 @@ test("Sammelrechnung des Dienstleisters: an der Gebührenzeile als bester Treffe
   await expect(page.locator(".page-head").getByText("Gebucht", { exact: true })).toBeVisible();
 
   await go("/bank");
-  await page.getByRole("button", { name: "Konto hinzufügen" }).click();
+  await kontoVerbinden(page, "Konto ohne Abruf anlegen");
   const neuesKonto = page.locator("form", { has: page.getByRole("button", { name: "Konto anlegen" }) });
   await neuesKonto.getByLabel("Art", { exact: true }).selectOption("provider");
   await neuesKonto.getByLabel("Dienstleister", { exact: true }).selectOption("etsy");
@@ -1047,6 +1057,10 @@ test("Sammelrechnung des Dienstleisters: an der Gebührenzeile als bester Treffe
   await page
     .locator('input[type=file][aria-label="Kontoauszugsdateien"]')
     .setInputFiles([{ name: "etsy.csv", mimeType: "text/csv", buffer: Buffer.from(csv) }]);
+  // Der Export nennt kein Konto: die Meldung fragt danach, vorgewählt ist das eben angelegte (#1951)
+  const nachfrage = page.getByRole("form", { name: "Konto für etsy.csv" });
+  await expect(nachfrage.getByLabel("Konto").locator("option:checked")).toHaveText("Etsy Shop", { timeout: 30_000 });
+  await nachfrage.getByRole("button", { name: "Importieren" }).click();
   await expect(page.getByText(/6 neue Umsätze für Etsy Shop/)).toBeVisible({ timeout: 30_000 });
 
   await go("/bank?filter=alle&suche=Etsy");
@@ -1067,14 +1081,13 @@ test("Unbekannte Bank-CSV: Spalten zuordnen, importieren, der nächste Export ge
   // Erfundene Bank mit Kopfblock, Soll und Haben in eigenen Spalten und dem Kontostand in der letzten Zeile
   const datei = readFileSync(new URL("../../../packages/import/test-fixtures/unbekannte-bank-soll-haben.csv", import.meta.url));
   await go("/bank");
-  await page.getByRole("button", { name: "Konto hinzufügen" }).click();
+  await kontoVerbinden(page, "Konto ohne Abruf anlegen");
   const neuesKonto = page.locator("form", { has: page.getByRole("button", { name: "Konto anlegen" }) });
   await neuesKonto.getByLabel("Name", { exact: true }).fill("Konto ohne Format");
   await neuesKonto.getByLabel("IBAN", { exact: true }).fill("DE75 5121 0800 1245 1261 99");
   await neuesKonto.getByRole("button", { name: "Konto anlegen" }).click();
   await expect(page.getByText("Konto angelegt.")).toBeVisible();
-  // Das Konto nicht vorwählen: die Datei nennt keine IBAN, gewählt wird es in der Zuordnung
-  await page.getByLabel("Konto", { exact: true }).selectOption("");
+  // „Datei importieren“ im Kopf nimmt das Konto aus der Datei; sie nennt keine IBAN, gewählt wird es in der Zuordnung
   const upload = page.locator('input[type=file][aria-label="Kontoauszugsdateien"]');
   await upload.setInputFiles([{ name: "umsaetze.csv", mimeType: "text/csv", buffer: datei }]);
   await expect(page.getByText("umsaetze.csv: Haben kennt diese Bank nicht. Ordne die Spalten einmal selbst zu.")).toBeVisible({ timeout: 30_000 });
@@ -1093,7 +1106,9 @@ test("Unbekannte Bank-CSV: Spalten zuordnen, importieren, der nächste Export ge
   await expect(dialog.getByLabel("Kopfzeile")).toHaveValue("2");
   expect(await axeVerstoesse(page)).toEqual([]);
 
-  // Ohne Konto meldet das Feld den Fehler und bekommt den Fokus
+  // Vorgewählt ist das eben angelegte, gewählte Konto (#1951); ohne Konto meldet das Feld den Fehler und bekommt den Fokus
+  await expect(dialog.getByLabel("Konto", { exact: true }).locator("option:checked")).toHaveText("Konto ohne Format");
+  await dialog.getByLabel("Konto", { exact: true }).selectOption("");
   await dialog.getByRole("button", { name: "4 Umsätze importieren" }).click();
   await expect(dialog.getByLabel("Konto", { exact: true })).toBeFocused();
   await expect(dialog.getByText("Wähle das Konto, zu dem die Datei gehört.")).toBeVisible();
@@ -1108,8 +1123,13 @@ test("Unbekannte Bank-CSV: Spalten zuordnen, importieren, der nächste Export ge
   await expect(page.getByText("umsaetze.csv: 4 neue Umsätze für Konto ohne Format. Spaltenzuordnung für Konto ohne Format gespeichert.")).toBeVisible();
   await expect(page.getByText(/Zeile 9 nicht übernommen: Buchungstag „Kontostand“ ist kein Datum/)).toBeVisible();
 
-  // Der nächste Export mit derselben Kopfzeile: ohne Dialog, ohne Dubletten
-  await upload.setInputFiles([{ name: "umsaetze-november.csv", mimeType: "text/csv", buffer: datei }]);
+  // Der nächste Export mit derselben Kopfzeile, über „Datei importieren“ des gewählten Kontos: ohne Dialog, ohne Dubletten.
+  // Die Datei nennt keine IBAN; erst das Konto bringt die gespeicherte Zuordnung mit (#1951)
+  const [auswahl] = await Promise.all([
+    page.waitForEvent("filechooser"),
+    page.getByRole("region", { name: "Umsätze" }).getByRole("button", { name: "Datei importieren" }).click(),
+  ]);
+  await auswahl.setFiles([{ name: "umsaetze-november.csv", mimeType: "text/csv", buffer: datei }]);
   await expect(page.getByText("umsaetze-november.csv: 0 neue Umsätze für Konto ohne Format, 4 schon vorhanden.")).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole("button", { name: "Spalten zuordnen" })).toHaveCount(0);
 

@@ -144,7 +144,7 @@ describe.skipIf(!testDatabaseUrl)("Externe Quellen und REST-Import (Postgres)", 
       references: { orderId: "01-9" },
     };
     const gesperrt = await quellen.importExternalBatch("api:t:Dienst", lieferung({ key: "lieferung-3", movements: [neu] }));
-    expect(gesperrt).toMatchObject({ status: "conflict", message: expect.stringMatching(/Konflikt klären/) });
+    expect(gesperrt).toMatchObject({ status: "conflict", message: expect.stringMatching(/mit „Klären“ im Hinweis zum Konto/) });
     expect(await umsaetze(psp)).toHaveLength(3);
 
     const konflikt = await import("./import-konflikt.ts");

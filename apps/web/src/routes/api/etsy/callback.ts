@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { requireUser } from "../../../server/rollen.ts";
 import { completeEtsyConnection, EtsyError } from "../../../server/modules/etsy/index.ts";
 
-/** Rückleitung von Etsy nach der Freigabe; führt zurück in die Einstellungen zum Bereich Bank */
+/** Rückleitung von Etsy nach der Freigabe; führt zurück auf die Seite Verbindungen mit der Karte Etsy Payments (#1951) */
 export const Route = createFileRoute("/api/etsy/callback")({
   server: {
     handlers: {
@@ -18,12 +18,10 @@ export const Route = createFileRoute("/api/etsy/callback")({
             errorDescription: params.get("error_description") ?? undefined,
           });
         } catch (error) {
-          // Der Zustand der Verbindung steht in den Einstellungen; ein unerwarteter Fehler darf die Rückleitung nicht sprengen
+          // Der Zustand der Verbindung steht auf ihrer Karte; ein unerwarteter Fehler darf die Rückleitung nicht sprengen
           if (!(error instanceof EtsyError)) throw error;
         }
-        const target = new URL("/einstellungen", request.url);
-        target.searchParams.set("bereich", "bank");
-        return new Response(null, { status: 303, headers: { location: `${target.pathname}${target.search}` } });
+        return new Response(null, { status: 303, headers: { location: "/bank/verbindungen#etsy" } });
       },
     },
   },

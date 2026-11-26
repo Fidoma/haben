@@ -7,58 +7,31 @@ import { useSubmitCheck } from "../lib/use-submit-check.ts";
 import { addExternalBankSource } from "../server/functions/bank-quellen.ts";
 import { Field } from "./Field.tsx";
 import { FormDialog } from "./FormDialog.tsx";
-import { KonfliktKlaeren } from "./ImportKonflikt.tsx";
-import { quelleZuAnbieter } from "../lib/import-quelle.ts";
 import { NoticeBanner } from "./NoticeBanner.tsx";
 
 /*
  * Externe Quelle am Konto (#306, Schritt 4): Ein Dienst außerhalb von Haben (etwa ein eigener eBay-Abgleich) liefert über
- * POST /api/v1/bankimporte nur in eine Quelle, die hier freigegeben ist. Die Zeile zeigt die Quelle mit Stichtag und
- * Stand; bei einem Konflikt steht daneben „Konflikt klären“, wie am Bankabruf.
+ * POST /api/v1/bankimporte nur in eine Quelle, die hier freigegeben ist. Auf der Seite Verbindungen (#1951) steht die
+ * Quelle an der Zeile ihres Kontos; einen Konflikt klärt dort „Klären“, wie am Bankabruf.
  */
 
 type Quelle = { provider: string; externalAccountId: string; cutoverDate: string | null; checkpoint: string | null; complete: boolean };
-type Konflikte = Parameters<typeof KonfliktKlaeren>[0]["konflikte"];
 
-export function ExterneQuelle({
-  account,
-  daten,
-}: {
-  account: { id: string; name: string };
-  /** Aus dem Loader der Bankseite: offene Konflikte, externe Quellen und Konten mit irgendeiner Quelle (auch ohne Stichtag) */
-  daten: {
-    sync: { konflikte: (Konflikte[number] & { bankAccountId: string; provider: string })[] };
-    quellen: (Quelle & { accountId: string })[];
-    gebundeneKonten: string[];
-  };
-}) {
-  const { quellen, gebundeneKonten } = daten;
-  const quelle = quellen.find((q) => q.accountId === account.id);
-  const konflikte = daten.sync.konflikte.filter((k) => k.bankAccountId === account.id && quelleZuAnbieter(k.provider) === "extern");
-  // Ohne andere Quelle am Konto (Bankabruf, Etsy, PayPal): ein Konto bekommt Umsätze nur aus einer
-  const kannFreigeben = !gebundeneKonten.includes(account.id);
-  const [open, setOpen] = useState(false);
-  if (!quelle && !kannFreigeben) return null;
+/** Stand einer externen Quelle in einer Zeile: Anbieter, Kennung, Stichtag und wie weit sie geliefert hat */
+export function quelleText(quelle: Quelle): string {
+  return [
+    `${quelle.provider} · ${quelle.externalAccountId}`,
+    quelle.cutoverDate ? ` · seit ${formatDate(quelle.cutoverDate)}` : "",
+    ` · ${quelle.checkpoint ? `geliefert bis ${formatDate(quelle.checkpoint)}${quelle.complete ? "" : ", Zeitraum offen"}` : "noch keine Lieferung"}`,
+  ].join("");
+}
+
+/** „Externe Quelle hinzufügen“ aus `⋯` an der Zeile eines Kontos ohne andere Quelle (#1951) */
+export function QuelleFreigebenDialog({ account, onClose }: { account: { id: string; name: string }; onClose: () => void }) {
   return (
-    <div className="small muted" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", margin: "-8px 0 16px" }}>
-      {quelle ? (
-        <>
-          <span>
-            Externe Quelle: {quelle.provider} · {quelle.externalAccountId}
-            {quelle.cutoverDate ? ` · seit ${formatDate(quelle.cutoverDate)}` : ""} ·{" "}
-            {quelle.checkpoint ? `geliefert bis ${formatDate(quelle.checkpoint)}${quelle.complete ? "" : ", Zeitraum offen"}` : "noch keine Lieferung"}
-          </span>
-          {konflikte.length > 0 && <KonfliktKlaeren konflikte={konflikte} disabled={false} quelle="extern" />}
-        </>
-      ) : (
-        <button type="button" className="btn btn-sm" onClick={() => setOpen(true)}>
-          Externe Quelle hinzufügen
-        </button>
-      )}
-      <FormDialog open={open} title="Externe Quelle hinzufügen" onClose={() => setOpen(false)}>
-        <QuelleFreigeben account={account} onDone={() => setOpen(false)} />
-      </FormDialog>
-    </div>
+    <FormDialog open title="Externe Quelle hinzufügen" onClose={onClose}>
+      <QuelleFreigeben account={account} onDone={onClose} />
+    </FormDialog>
   );
 }
 

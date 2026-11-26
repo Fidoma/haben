@@ -28,11 +28,10 @@ const MAX_KEY_SIZE = 16 * 1024;
 /** Vorgabe für den ersten Berichtsmonat: Januar des laufenden Jahres */
 const defaultFrom = () => `${new Date().getFullYear()}-01`;
 
-/** Zugänge zu den Finanzberichten von Google Play und App Store Connect */
+/** Zugänge zu den Finanzberichten von Google Play und App Store Connect; Überschrift und Rahmen gibt die Seite Verbindungen */
 export function StoreReportsCard({ connections, contacts }: { connections: Connection[]; contacts: Contact[] }) {
   return (
-    <section className="card" aria-labelledby="stores-heading">
-      <h2 id="stores-heading">Google Play und App Store</h2>
+    <div className="stack">
       <p className="small muted" style={{ margin: 0 }}>
         Haben holt die monatlichen Finanzberichte der Stores selbst, legt sie unverändert ins Archiv und übernimmt je Monat den Auszahlungsanspruch in das
         Zahlungsdienstleister-Konto des Stores (unter Bank anlegen, Anbieter Google Play bzw. App Store).{" "}
@@ -46,7 +45,7 @@ export function StoreReportsCard({ connections, contacts }: { connections: Conne
       </p>
       <StoreForm store="googleplay" connection={connections.find((c) => c.store === "googleplay") ?? null} contacts={contacts} />
       <StoreForm store="appstore" connection={connections.find((c) => c.store === "appstore") ?? null} contacts={contacts} />
-    </section>
+    </div>
   );
 }
 

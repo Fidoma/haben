@@ -879,7 +879,7 @@ describe.skipIf(!testDatabaseUrl)("Bankabgleich (Postgres)", () => {
       `"05.10.2026","08:00:00","CEST","DKB","Allgemeine Abbuchung","Abgeschlossen","EUR","-4.664,50","0,00","-4.664,50","2CD",""`,
     ].join("\n");
     const file = { bytes: new TextEncoder().encode(csv), filename: "paypal.csv" };
-    await expect(bank.importStatement(actor, file, null)).rejects.toThrow(/Konto des Dienstleisters wählen/);
+    await expect(bank.importStatement(actor, file, null)).rejects.toThrow(/Wähle das Konto des Dienstleisters/);
     const dkb = await bank.importStatement(
       actor,
       {
@@ -892,6 +892,8 @@ describe.skipIf(!testDatabaseUrl)("Bankabgleich (Postgres)", () => {
       null,
     );
     await expect(bank.importStatement(actor, file, dkb.accountId)).rejects.toThrow(/Export eines Zahlungsdienstleisters/);
+    // In ein Bankkonto gewählt (etwa über „Datei importieren“ im Menü der Karte): die Meldung fragt nach dem Konto (#1951)
+    await expect(bank.importStatement(actor, file, dkb.accountId)).rejects.toBeInstanceOf(bank.KontoWaehlenError);
     expect(await bank.importStatement(actor, file, paypal.id)).toMatchObject({ added: 3 });
 
     const [payment] = await sql`select id from bank_transactions where amount = 476000`;
@@ -933,7 +935,7 @@ describe.skipIf(!testDatabaseUrl)("Bankabgleich (Postgres)", () => {
       `"November 1, 2026",Sale,"Payment for Order #1",,EUR,€9.01,--,€9.01,--`,
     ].join("\n");
     const file = { bytes: new TextEncoder().encode(csv), filename: "etsy.csv" };
-    await expect(bank.importStatement(actor, file, null)).rejects.toThrow(/Konto des Dienstleisters wählen/);
+    await expect(bank.importStatement(actor, file, null)).rejects.toThrow(/Wähle das Konto des Dienstleisters/);
     const dkb = await bank.importStatement(
       actor,
       { bytes: dkbCsv([incoming("03.11.26", "Etsy Ireland UC", "IE29AIBK93115212345678", "Auszahlung Etsy", "8,00")]), filename: "dkb.csv" },
@@ -1432,6 +1434,8 @@ describe.skipIf(!testDatabaseUrl)("Bankabgleich (Postgres)", () => {
         '2026-09-28,2026-09-28,"JetBrains s.r.o.",,Presentment,"WebStorm","Main Account",-24.90,,,\n',
     );
     await expect(bank.importStatement(actor, { bytes: n26, filename: "n26.csv" }, null)).rejects.toThrow(/keine IBAN/);
+    // Eigene Fehlerart: Die Meldung auf der Bankseite fragt dann nach dem Konto (#1951)
+    await expect(bank.importStatement(actor, { bytes: n26, filename: "n26.csv" }, null)).rejects.toBeInstanceOf(bank.KontoWaehlenError);
     const account = await bank.createAccount(actor, { name: "N26 Business", iban: "DE55100110012620000000" });
     const result = await bank.importStatement(actor, { bytes: n26, filename: "n26.csv" }, account.id);
     expect(result).toMatchObject({ added: 1, accountName: "N26 Business" });

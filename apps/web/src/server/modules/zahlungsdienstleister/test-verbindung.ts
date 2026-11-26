@@ -14,7 +14,7 @@ async function verbindungVon(psp: Modul, provider: string) {
 
 async function idVon(psp: Modul, provider: string, name: string): Promise<string> {
   const v = await verbindungVon(psp, provider);
-  if (!v) throw new Error(`Der ${name}-Zugang ist nicht eingerichtet (Einstellungen › Bank).`);
+  if (!v) throw new Error(`Der ${name}-Zugang ist nicht eingerichtet (Bank › Konto verbinden).`);
   return v.id;
 }
 
