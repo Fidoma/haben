@@ -7,7 +7,7 @@ export function EricHinweis({ empfaenger = "Finanzamt" }: { empfaenger?: string 
     <div className="banner banner-info eric-hinweis" role="status">
       <Icon name="info" />
       <span>
-        ERiC ist nicht eingerichtet. Prüfen und Senden laufen simuliert, nichts geht an das {empfaenger}.{" "}
+        Senden ist noch nicht eingerichtet: Prüfen und Senden laufen nur simuliert, nichts geht an das {empfaenger}.{" "}
         <Link to="/einstellungen" search={{ bereich: "elster" }}>
           ERiC einrichten
         </Link>

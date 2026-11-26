@@ -14,8 +14,11 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => async () => {},
   useRouter: () => ({ invalidate: async () => {} }),
 }));
+import { EricHinweis } from "../../../components/EricHinweis.tsx";
 import type { getLstb } from "../../../server/functions/lstb.ts";
 import { Route } from "./bescheinigung.$jahr.tsx";
+
+const hinweis = renderToStaticMarkup(createElement(EricHinweis));
 
 type Daten = Awaited<ReturnType<typeof getLstb>>;
 const werte = (jahr: number) => ({
@@ -73,21 +76,21 @@ const seite = (daten: Partial<Daten>) => {
 
 describe("Lohnsteuerbescheinigung: Hinweis bei fehlendem ERiC", () => {
   it("zeigt ohne ERiC, dass nichts ans Finanzamt geht", () => {
-    expect(seite({})).toContain("ERiC ist nicht eingerichtet. Prüfen und Senden laufen simuliert, nichts geht an das Finanzamt.");
+    expect(seite({})).toContain(hinweis);
   });
 
   it("zeigt ihn mit ERiC nicht", () => {
-    expect(seite({ mode: "eric" })).not.toContain("ERiC ist nicht eingerichtet");
+    expect(seite({ mode: "eric" })).not.toContain(hinweis);
   });
 
   it("zeigt ihn nicht, wo ERiC die Bescheinigung nicht sendet: der Weg läuft dann über Mein ELSTER", () => {
-    expect(seite(jahr(2026))).not.toContain("ERiC ist nicht eingerichtet");
+    expect(seite(jahr(2026))).not.toContain(hinweis);
   });
 
   it.each([2024, 2025, 2026, 2027])("zeigt ihn %i genau dann, wenn die Seite den Sendekasten hat", (year) => {
     const html = seite(jahr(year));
     expect(html).toContain("Erika Muster");
-    expect(html.includes("ERiC ist nicht eingerichtet")).toBe(html.includes("Bescheinigung für Erika Muster senden"));
-    expect(html.includes("ERiC ist nicht eingerichtet")).toBe(year === 2025);
+    expect(html.includes(hinweis)).toBe(html.includes("Bescheinigung für Erika Muster senden"));
+    expect(html.includes(hinweis)).toBe(year === 2025);
   });
 });

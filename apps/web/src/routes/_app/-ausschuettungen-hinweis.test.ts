@@ -17,8 +17,11 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => async () => {},
   useRouter: () => ({ invalidate: async () => {} }),
 }));
+import { EricHinweis } from "../../components/EricHinweis.tsx";
 import type { getAusschuettungen } from "../../server/functions/ausschuettung.ts";
 import { Route } from "./ausschuettungen.tsx";
+
+const hinweis = renderToStaticMarkup(createElement(EricHinweis));
 
 type Daten = Awaited<ReturnType<typeof getAusschuettungen>>;
 const ausschuettung = (id: string, beschlussDate: string): Daten["ausschuettungen"][number] => ({
@@ -68,20 +71,20 @@ const seite = (daten: Partial<Daten>) => {
 
 describe("Ausschüttungen: Hinweis bei fehlendem ERiC", () => {
   it("zeigt ohne ERiC, dass die Kapitalertragsteuer-Anmeldung nichts ans Finanzamt schickt", () => {
-    expect(seite({})).toContain("ERiC ist nicht eingerichtet. Prüfen und Senden laufen simuliert, nichts geht an das Finanzamt.");
+    expect(seite({})).toContain(hinweis);
   });
 
   it("zeigt ihn mit ERiC nicht", () => {
-    expect(seite({ mode: "eric" })).not.toContain("ERiC ist nicht eingerichtet");
+    expect(seite({ mode: "eric" })).not.toContain(hinweis);
   });
 
   it("zeigt ihn im Einzelunternehmen nicht: dort gibt es keine Ausschüttung und nichts zu senden", () => {
-    expect(seite({ rechtsform: "einzelunternehmen" })).not.toContain("ERiC ist nicht eingerichtet");
+    expect(seite({ rechtsform: "einzelunternehmen" })).not.toContain(hinweis);
   });
 
   it.each(["gmbh", "ug"] as const)("zeigt ihn bei %s einmal über den Sendekästen, nicht je Beschluss", (rechtsform) => {
     const html = seite({ rechtsform, ausschuettungen: [ausschuettung("a1", "2026-06-30"), ausschuettung("a2", "2026-06-15")] });
     expect(html.split("Kapitalertragsteuer-Anmeldung 01.07.2026")).toHaveLength(3);
-    expect(html.split("ERiC ist nicht eingerichtet")).toHaveLength(2);
+    expect(html.split(hinweis)).toHaveLength(2);
   });
 });

@@ -21,13 +21,14 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => async () => {},
   useRouter: () => ({ invalidate: async () => {} }),
 }));
+import { EricHinweis } from "../../../components/EricHinweis.tsx";
 import type { getJahresabschluss } from "../../../server/functions/abschluss.ts";
 import { Route } from "./$jahr.tsx";
 
 type Daten = Awaited<ReturnType<typeof getJahresabschluss>>;
 type Kapitalgesellschaft = Extract<Daten, { kapitalgesellschaft: true }>;
 
-const HINWEIS = "ERiC ist nicht eingerichtet";
+const HINWEIS = renderToStaticMarkup(createElement(EricHinweis));
 const SENDEKASTEN = "E-Bilanz übermitteln";
 
 const ebilanz = (year: number, issues: NonNullable<Kapitalgesellschaft["ebilanz"]>["issues"] = []): NonNullable<Kapitalgesellschaft["ebilanz"]> => ({
@@ -73,7 +74,7 @@ describe("Jahresabschluss: Hinweis bei fehlendem ERiC", () => {
     const daten = gmbh(2025, "gmbh", null);
     const html = seite(mit(daten, { elster: { ...daten.elster, mode: "eric" } }));
     expect(html).toContain(SENDEKASTEN);
-    expect(html).not.toContain("ERiC ist nicht eingerichtet");
+    expect(html).not.toContain(HINWEIS);
   });
 
   it("zeigt ihn im Einzelunternehmen nicht: dort gibt es keinen Sendekasten", () => {
@@ -91,7 +92,7 @@ describe("Jahresabschluss: Hinweis bei fehlendem ERiC", () => {
     });
     expect(html).toContain("Einen Jahresabschluss mit Bilanz gibt es für GmbH und UG");
     expect(html).not.toContain(SENDEKASTEN);
-    expect(html).not.toContain("ERiC ist nicht eingerichtet");
+    expect(html).not.toContain(HINWEIS);
   });
 
   it.each([2024, 2025, 2026, 2027])("zeigt ihn %i genau dann, wenn die Seite den Sendekasten hat, einmal", (year) => {
@@ -99,8 +100,8 @@ describe("Jahresabschluss: Hinweis bei fehlendem ERiC", () => {
       for (const status of [null, abgeschlossen]) {
         const html = seite(gmbh(year, rechtsform, status));
         expect(html).toContain(`E-Bilanz ${year}`);
-        expect(html.includes("ERiC ist nicht eingerichtet")).toBe(html.includes(SENDEKASTEN));
-        expect(html.split("ERiC ist nicht eingerichtet")).toHaveLength(2);
+        expect(html.includes(HINWEIS)).toBe(html.includes(SENDEKASTEN));
+        expect(html.split(HINWEIS)).toHaveLength(2);
       }
     }
   });

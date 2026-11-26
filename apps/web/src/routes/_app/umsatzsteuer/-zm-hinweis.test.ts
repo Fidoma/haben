@@ -12,9 +12,10 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => async () => {},
   useRouter: () => ({ invalidate: async () => {} }),
 }));
+import { EricHinweis } from "../../../components/EricHinweis.tsx";
 import { Route } from "./zm.$quartal.tsx";
 
-describe("ZM-Seite: Hinweis bei fehlendem ERiC", () => {
+describe("ZM-Seite: Hinweis bei fehlender Einrichtung", () => {
   it("sagt nicht, dass nichts ans Finanzamt geht: die ZM geht an das BZSt", () => {
     state.data = {
       mode: "simuliert",
@@ -33,8 +34,7 @@ describe("ZM-Seite: Hinweis bei fehlendem ERiC", () => {
     };
     const Seite = (Route as unknown as { options: { component: ComponentType } }).options.component;
     const html = renderToStaticMarkup(createElement(Seite));
-    const hinweis = /ERiC ist nicht eingerichtet[^<]*/.exec(html)?.[0];
-    expect(hinweis).toBeDefined();
-    expect(hinweis).not.toMatch(/Finanzamt/);
+    expect(html).toContain(renderToStaticMarkup(createElement(EricHinweis, { empfaenger: "Bundeszentralamt für Steuern" })));
+    expect(html).not.toContain(renderToStaticMarkup(createElement(EricHinweis)));
   });
 });
