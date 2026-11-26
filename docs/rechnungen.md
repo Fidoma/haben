@@ -7,7 +7,7 @@ description: >-
 
 # Rechnungen und E-Rechnung
 
-Haben schreibt Ausgangsrechnungen als E-Rechnung: ZUGFeRD (PDF/A-3 mit eingebettetem XML, Profil EN 16931) oder XRechnung 3.0 in CII- oder UBL-Syntax. Eine Rechnung ist zuerst ein Entwurf, den du beliebig ändern kannst. Mit dem Festschreiben bekommt sie ihre Nummer, PDF und XML werden erzeugt, sie wird gebucht und ist danach unveränderlich.
+Haben schreibt Ausgangsrechnungen als E-Rechnung: ZUGFeRD (PDF/A-3 mit eingebettetem XML, Profil EN 16931) oder XRechnung 3.0 in CII- oder UBL-Syntax. Eine Rechnung ist zuerst ein Entwurf, den du beliebig ändern kannst. Mit dem Festschreiben bekommt sie ihre Nummer, PDF und XML werden erzeugt, sie wird gebucht, und sie ist danach unveränderlich. Gebucht wird dabei nicht jede Rechnung, etwa eine Anzahlungsanforderung von GmbH und UG: Sie bleibt bis zur Schlussleistung ohne Buchungssatz ([Abschlags- und Schlussrechnung](#abschlags--und-schlussrechnung)).
 
 <img src="screenshot-rechnung.png" alt="Rechnungseditor mit Kunde, Leistungszeitraum, Positionen und Live-Vorschau der Rechnung rechts daneben" width="900">
 
@@ -338,7 +338,7 @@ Alles läuft in einer einzigen Datenbanktransaktion. Schlägt ein Schritt fehl, 
 3. **PDF erzeugen.** Die sichtbare Rechnung entsteht mit Typst als PDF/A-3b, aus dem Layout, das der Rechnung zugeordnet ist ([Eigene Belegvorlagen](belegvorlagen.md)). Als Erstellungszeit steht das Rechnungsdatum im PDF.
 4. **XML erzeugen.** Haben schreibt je nach Format Factur-X EN 16931 (und bettet es ins PDF ein), XRechnung CII oder XRechnung UBL. Unbekannte Länder- oder Währungscodes lehnt Haben vorher mit einer Meldung ab.
 5. **Prüfsummen.** Von PDF und XML wird je ein SHA-256 gespeichert. Die ersten Zeichen des PDF-Hashes stehen auf der Detailseite.
-6. **Buchen.** Haben legt den Buchungssatz an (siehe unten) und schreibt ihn fest.
+6. **Buchen.** Haben legt den Buchungssatz an (siehe unten) und schreibt ihn fest. Im Bilanzverfahren von GmbH und UG endet dieser Schritt ohne Buchungssatz: bei einer Anzahlungsanforderung vor der Schlussleistung und ihrem Storno, bei einem Storno der Schlussrechnung und bei einem betragsgleichen Ersatz nach Storno. Dazu kommt die Schlussrechnung, deren Rest durch Abschläge vollständig gedeckt ist, auch außerhalb des Bilanzverfahrens ([Abschlags- und Schlussrechnung](#abschlags--und-schlussrechnung)).
 7. **Sperren.** Die Rechnung bekommt einen Festschreibungszeitpunkt. Ab dann lehnen Datenbank-Trigger jede Änderung oder Löschung der Rechnung, ihrer Positionen und ihrer [zusätzlichen Anhänge](#zusätzliche-anhänge) ab. Das Siegel der Rechnung schließt die Anhänge ein.
 
 ## Pflichtangaben einer GmbH oder UG

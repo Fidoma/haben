@@ -81,7 +81,7 @@ Gespeicherte Zeilen lassen sich nicht ändern. Sie hängen am Vermerk, und beide
 
 | Zeile | Woher |
 | --- | --- |
-| Umsätze zu 19 % und 7 % | Summe der zwölf Monate aus den Buchungen, wie in der Voranmeldung: Ist-Versteuerung nach Zahlungseingang, Soll nach Rechnungsdatum. Es zählt die Versteuerung des Jahres, auch wenn du sie zum Jahreswechsel umgestellt hast ([Ist- und Soll-Versteuerung](buchhaltung.md#ist--und-soll-versteuerung)). Bemessungsgrundlage in vollen Euro, die Steuer daraus. Die private Kfz-Nutzung ist in den 19 % enthalten |
+| Umsätze zu 19 % und 7 % | Summe der zwölf Monate aus den Buchungen, wie in der Voranmeldung: Ist-Versteuerung nach Zahlungseingang, Soll nach dem [Leistungstag](umsatzsteuer.md#leistungstag-bei-soll-versteuerung). Es zählt die Versteuerung des Jahres, auch wenn du sie zum Jahreswechsel umgestellt hast ([Ist- und Soll-Versteuerung](buchhaltung.md#ist--und-soll-versteuerung)). Bemessungsgrundlage in vollen Euro, die Steuer daraus. Die private Kfz-Nutzung ist in den 19 % enthalten |
 | Steuerfreie innergemeinschaftliche Lieferungen (Kz 41) und Ausfuhrlieferungen (Kz 43) | Summe der zwölf Monate, in vollen Euro |
 | Innergemeinschaftliche Erwerbe zu 19 % (Kz 89) und 7 % (Kz 93) | Bemessungsgrundlage in vollen Euro und die Erwerbsteuer daraus, wie in der Voranmeldung; die Summe der Steuer steht in der Berechnung |
 | Steuerfreie Umsätze ohne Vorsteuerabzug: Vermietung nach § 4 Nr. 12 UStG (Zeile 46) und übrige nicht zum Gesamtumsatz gehörende (Zeile 47, mit den Nummern als Text) | Summe der zwölf Monate je Zeile, in vollen Euro; die Nummer liest Haben aus dem Befreiungsgrund der Rechnung. Umsätze als Kleinunternehmer, die in der Voranmeldung in Kz 48 stehen, gehören nicht hierher |

@@ -11,7 +11,7 @@ Die Tabellen zeigen je Vorgang die Zeilen einer Buchung. Bei mehreren Steuersät
 
 ## Rechnung festschreiben
 
-Beim Festschreiben einer Ausgangsrechnung, gebucht auf das Rechnungsdatum. Beschreibung: `Rechnung <Nummer> · <Kunde>`.
+Beim Festschreiben einer Ausgangsrechnung: Bei Soll-Versteuerung wird sie auf den [Leistungstag](umsatzsteuer.md#leistungstag-bei-soll-versteuerung) gebucht, bei Ist-Versteuerung auf das Rechnungsdatum. Die Schlussrechnung im Bilanzverfahren von GmbH und UG steht auch bei Ist am Leistungstag. Weitere Ausnahmen stehen unter [Leistungstag bei Soll-Versteuerung](umsatzsteuer.md#leistungstag-bei-soll-versteuerung). Beschreibung: `Rechnung <Nummer> · <Kunde>`.
 
 | Konto SKR03 | Konto SKR04 | Soll | Haben |
 | --- | --- | --- | --- |
