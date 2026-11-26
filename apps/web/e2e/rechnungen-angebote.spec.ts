@@ -491,60 +491,99 @@ test("Leistungen: Eintrag mit eigenem Stundensatz anlegen, ändern, nach Kunde f
   await expect(page.getByText("Hier stehen deine Zeiteinträge je Kunde.")).toBeVisible();
 });
 
-test("Leistungen abrechnen: Vorschau, Rechnungsentwurf mit Nachweis, Einträge gesperrt, nicht zweimal abrechenbar (#417)", async () => {
+test("Leistungen abrechnen: Filter und Kästchen, Vorschau, Rechnungsentwurf nur mit den gewählten Einträgen, nicht zweimal abrechenbar (#417, #1933)", async () => {
   await go("/leistungen");
-  const eintraege: [string, string, boolean][] = [
-    ["1:30", "Konzept Datenmodell", false],
-    ["2:00", "Entwicklung Warenkorb", false],
-    ["0:45", "Interne Abstimmung", true],
+  const eintraege: [string, string, string, boolean][] = [
+    ["1:30", "Konzept Datenmodell", "Relaunch Shop", false],
+    ["2:00", "Entwicklung Warenkorb", "Relaunch Shop", false],
+    ["1:00", "Rufbereitschaft", "Wartung", false],
+    ["0:45", "Interne Abstimmung", "", true],
   ];
-  for (const [dauer, text, intern] of eintraege) {
+  for (const [dauer, text, projekt, intern] of eintraege) {
     await page.locator(".page-head").getByRole("button", { name: "Neuer Eintrag" }).click();
     const neu = page.getByRole("form", { name: "Neuer Eintrag" });
     await neu.getByLabel("Kunde").selectOption({ label: "Rheinpixel GmbH" });
     await neu.getByLabel("Dauer", { exact: true }).fill(dauer);
     await neu.getByLabel(/Stundensatz/).fill("95");
     await neu.getByLabel(/Tätigkeit/).fill(text);
+    if (projekt) await neu.getByLabel(/Projekt/).fill(projekt);
     if (intern) await neu.getByLabel(/Nicht abrechenbar/).check();
     await neu.getByRole("button", { name: "Anlegen" }).click();
     await expect(page.getByText("Eintrag angelegt.")).toBeVisible();
   }
 
+  const liste = page.getByRole("region", { name: "Leistungsliste" });
+  const filter = page.getByRole("group", { name: "Filter" });
+  const zeile = (text: string) => liste.locator(".table-row").filter({ hasText: text });
+
+  // Projekt und Tätigkeit filtern ohne Rücksicht auf Groß- und Kleinschreibung und stehen in der Adresse
+  await filter.getByLabel("Projekt").fill("WARTUNG");
+  await expect(liste).toContainText("Rufbereitschaft");
+  await expect(liste).not.toContainText("Konzept Datenmodell");
+  await expect(page).toHaveURL(/projekt=WARTUNG/);
+  await filter.getByLabel("Projekt").fill("");
+  await filter.getByLabel("Tätigkeit").fill("warenkorb");
+  await expect(liste).not.toContainText("Rufbereitschaft");
+  await expect(liste).toContainText("Entwicklung Warenkorb");
+  await filter.getByLabel("Tätigkeit").fill("");
+  await expect(liste).toContainText("Rufbereitschaft");
+
+  // Abrechnen verlangt den Kunden im Filter; der Stand ist dann fest „offen“
   await page.getByRole("button", { name: "Abrechnen", exact: true }).click();
   const abrechnen = page.getByRole("form", { name: "Leistungen abrechnen" });
-  await abrechnen.getByLabel("Kunde").selectOption({ label: "Rheinpixel GmbH" });
-  await abrechnen.getByLabel("Von").fill("2020-01-01");
-  await abrechnen.getByLabel("Bis").fill("2099-12-31");
-  // Vorschau: die abrechenbaren Einträge, ohne den internen; 3,5 Std. zu 95,00 € = 332,50 €
-  await expect(abrechnen).toContainText("2 Einträge, 3:30 Std., zusammen 332,50");
+  await expect(abrechnen).toContainText("Wähle in der Liste unten den Kunden");
+  await expect(filter.getByLabel("Stand")).toHaveValue("offen");
+  await expect(filter.getByLabel("Stand")).toBeDisabled();
+  await expect(abrechnen.getByRole("button", { name: "Rechnungsentwurf anlegen" })).toBeDisabled();
+  await filter.getByLabel("Kunde").selectOption({ label: "Rheinpixel GmbH" });
+  // Die offenen, abrechenbaren Einträge sind gewählt, der interne fehlt: 4,5 Std. zu 95,00 € = 427,50 €
+  await expect(liste.getByRole("checkbox", { name: /Eintrag vom .* abrechnen/ })).toHaveCount(3);
+  await expect(liste.getByText("Interne Abstimmung")).toHaveCount(0);
+  await expect(abrechnen).toContainText("3 Einträge gewählt, 4:30 Std., zusammen 427,50");
+
+  // Der Filter grenzt ein und wählt wieder alle; ein abgehaktes Kästchen nimmt den Eintrag heraus
+  await filter.getByLabel("Projekt").fill("shop");
+  await expect(liste.getByRole("checkbox", { name: /Eintrag vom .* abrechnen/ })).toHaveCount(2);
+  await expect(abrechnen).toContainText("2 Einträge gewählt, 3:30 Std., zusammen 332,50");
+  await zeile("Entwicklung Warenkorb")
+    .getByRole("checkbox", { name: /abrechnen/ })
+    .uncheck();
+  await expect(abrechnen).toContainText("1 Eintrag gewählt, 1:30 Std., zusammen 142,50");
   await abrechnen.getByRole("button", { name: "Rechnungsentwurf anlegen" }).click();
 
-  // Der Entwurf zeigt, aus welchen Einträgen er entstanden ist
+  // Der Entwurf zeigt, aus welchen Einträgen er entstanden ist: nur aus dem gewählten
   await expect(page).toHaveURL(/\/rechnungen\/[0-9a-f-]{36}/);
   const nachweis = page.getByRole("region", { name: "Enthaltene Leistungen" });
   await expect(nachweis).toContainText("Konzept Datenmodell");
-  await expect(nachweis).toContainText("Entwicklung Warenkorb");
+  await expect(nachweis).not.toContainText("Entwicklung Warenkorb");
+  await expect(nachweis).not.toContainText("Rufbereitschaft");
   await expect(nachweis).not.toContainText("Interne Abstimmung");
 
-  // Zurück in der Liste: abgerechnete Einträge sind verknüpft und nicht mehr änderbar, der interne bleibt offen
+  // Zurück in der Liste: der abgerechnete Eintrag ist verknüpft und nicht mehr änderbar, die übrigen bleiben offen
   await go("/leistungen");
-  const liste = page.getByRole("region", { name: "Leistungsliste" });
-  await expect(liste.getByRole("link", { name: "Rechnungsentwurf" })).toHaveCount(2);
-  const zeile = (text: string) => liste.locator(".table-row").filter({ hasText: text });
+  await expect(liste.getByRole("link", { name: "Rechnungsentwurf" })).toHaveCount(1);
   await expect(zeile("Konzept Datenmodell").getByRole("button", { name: /bearbeiten/ })).toBeDisabled();
   await expect(zeile("Konzept Datenmodell").getByRole("button", { name: /löschen/ })).toBeDisabled();
+  await expect(zeile("Entwicklung Warenkorb").getByRole("button", { name: /bearbeiten/ })).toBeEnabled();
   await expect(zeile("Interne Abstimmung").getByRole("button", { name: /bearbeiten/ })).toBeEnabled();
-  await page.getByRole("group", { name: "Filter" }).getByLabel("Stand").selectOption("abgerechnet");
+  await filter.getByLabel("Stand").selectOption("abgerechnet");
   await expect(liste).toContainText("Konzept Datenmodell");
   await expect(liste).not.toContainText("Interne Abstimmung");
 
-  // Ein zweites Abrechnen findet nichts mehr
+  // Das zweite Abrechnen bietet nur noch die offenen an; danach findet ein drittes nichts mehr
   await page.getByRole("button", { name: "Abrechnen", exact: true }).click();
+  await filter.getByLabel("Kunde").selectOption({ label: "Rheinpixel GmbH" });
+  const zweites = page.getByRole("form", { name: "Leistungen abrechnen" });
+  await expect(liste.getByRole("checkbox", { name: /abrechnen/ })).toHaveCount(2);
+  await expect(zweites).toContainText("2 Einträge gewählt, 3:00 Std., zusammen 285,00");
+  await zweites.getByRole("button", { name: "Rechnungsentwurf anlegen" }).click();
+  await expect(page).toHaveURL(/\/rechnungen\/[0-9a-f-]{36}/);
+  await go("/leistungen");
+  await page.getByRole("button", { name: "Abrechnen", exact: true }).click();
+  await filter.getByLabel("Kunde").selectOption({ label: "Rheinpixel GmbH" });
   const noch = page.getByRole("form", { name: "Leistungen abrechnen" });
-  await noch.getByLabel("Kunde").selectOption({ label: "Rheinpixel GmbH" });
-  await noch.getByLabel("Von").fill("2020-01-01");
-  await noch.getByLabel("Bis").fill("2099-12-31");
   await expect(noch).toContainText("keine offenen, abrechenbaren Einträge");
+  await expect(liste.getByRole("checkbox")).toHaveCount(0);
   await expect(noch.getByRole("button", { name: "Rechnungsentwurf anlegen" })).toBeDisabled();
 });
 

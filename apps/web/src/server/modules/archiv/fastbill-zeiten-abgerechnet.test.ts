@@ -57,7 +57,8 @@ describe.skipIf(!testDatabaseUrl)("Offene Zeiten aus FastBill, in Haben schon ab
     times = [zeit("4001")];
     await zeiten.importFastbillTimes(actor);
     // In Haben abgerechnet; in FastBill bleibt die Zeit offen (keine INVOICE_ID), weil die Rechnung jetzt Haben schreibt
-    await abrechnen.billServiceEntries(actor, { contactId: kunde, from: "2026-03-01", to: "2026-03-31" }, "2026-04-01");
+    const entryIds = ((await sql`select id from service_entries`) as unknown as { id: string }[]).map((e) => e.id);
+    await abrechnen.billServiceEntries(actor, { contactId: kunde, entryIds }, "2026-04-01");
   });
 
   afterAll(async () => {

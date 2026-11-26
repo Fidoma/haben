@@ -3,81 +3,66 @@ import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { errorMessage } from "../lib/format.ts";
-import { billEntries, getBillingPreview, type getServiceEntries } from "../server/functions/leistungen.ts";
-import { useSubmitCheck } from "../lib/use-submit-check.ts";
-import { Field } from "./Field.tsx";
+import { billEntries, getBillingPreview } from "../server/functions/leistungen.ts";
 
-type Customers = Awaited<ReturnType<typeof getServiceEntries>>["customers"];
 type Preview = Awaited<ReturnType<typeof getBillingPreview>>;
 
-/** Vorgabe für den Zeitraum: in den ersten Tagen eines Monats der vergangene Monat, sonst der laufende bis heute */
-export function defaultBillingPeriod(today: string): { from: string; to: string } {
-  const [year, month, day] = today.split("-").map(Number) as [number, number, number];
-  if (day > 10) return { from: `${year}-${String(month).padStart(2, "0")}-01`, to: today };
-  const previous = new Date(Date.UTC(year, month - 2, 1));
-  const last = new Date(Date.UTC(year, month - 1, 0));
-  return { from: previous.toISOString().slice(0, 10), to: last.toISOString().slice(0, 10) };
-}
-
-/** Abrechnen (#417): die offenen, abrechenbaren Einträge eines Kunden und Zeitraums werden ein Rechnungsentwurf */
+/**
+ * Abrechnen (#417, #1933): Aus den abgehakten Einträgen der Liste wird ein Rechnungsentwurf. Kunde und Filter stehen in der
+ * Liste darunter; `candidates` sind die Einträge, die sie zeigt, `entryIds` die abgehakten davon.
+ */
 export function ServiceBillingForm({
-  customers,
-  today,
-  defaultContactId,
+  customer,
+  candidates,
+  entryIds,
   onClose,
 }: {
-  customers: Customers;
-  today: string;
-  defaultContactId?: string;
+  customer: { id: string; inactive: boolean } | null;
+  candidates: number;
+  entryIds: string[];
   onClose: () => void;
 }) {
   const navigate = useNavigate();
   const preview = useServerFn(getBillingPreview);
   const bill = useServerFn(billEntries);
-  // Abrechnen nur für aktive Kunden; eine Vorgabe aus ?kunde= nur, wenn sie angeboten wird
-  const offered = customers.filter((c) => !c.inactive);
-  const [contactId, setContactId] = useState(offered.find((c) => c.id === defaultContactId)?.id ?? "");
-  const [period, setPeriod] = useState(() => defaultBillingPeriod(today));
   const [result, setResult] = useState<Preview | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const valid = contactId !== "" && period.from !== "" && period.to !== "" && period.from <= period.to;
-  const {
-    form,
-    error: fehler,
-    check,
-  } = useSubmitCheck({
-    contact: contactId === "" ? "Wähle den Kunden." : null,
-    from: period.from === "" ? "Wähle den Anfang des Zeitraums." : null,
-    to: period.to === "" ? "Wähle das Ende des Zeitraums." : period.from && period.to < period.from ? "Wähle ein Ende ab dem Anfang des Zeitraums." : null,
-  });
+  const contactId = customer && !customer.inactive ? customer.id : null;
+  const ready = contactId !== null && entryIds.length > 0;
+  const idsKey = entryIds.join(",");
 
   useEffect(() => {
-    if (!valid) {
+    if (contactId === null || idsKey === "") {
       setResult(null);
       return;
     }
     let current = true;
-    preview({ data: { contactId, from: period.from, to: period.to } })
+    preview({ data: { contactId, entryIds: idsKey.split(",") } })
       .then((p) => {
         if (current) {
           setResult(p);
           setError(null);
         }
       })
-      .catch((e) => current && setError(errorMessage(e)));
+      .catch((e) => {
+        if (current) {
+          setResult(null);
+          setError(errorMessage(e));
+        }
+      });
     return () => {
       current = false;
     };
-  }, [valid, contactId, period.from, period.to, preview]);
+  }, [contactId, idsKey, preview]);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (!check()) return;
+    if (contactId === null || entryIds.length === 0) return;
     setBusy(true);
     setError(null);
     try {
-      const { invoiceId } = await bill({ data: { contactId, from: period.from, to: period.to } });
+      const { invoiceId } = await bill({ data: { contactId, entryIds } });
       await navigate({ to: "/rechnungen/$id", params: { id: invoiceId } });
     } catch (e) {
       setError(errorMessage(e));
@@ -85,41 +70,34 @@ export function ServiceBillingForm({
     }
   }
 
-  const empty = result !== null && result.entries === 0;
   const missing = result !== null && result.withoutRate > 0;
+  const hint = !customer
+    ? "Wähle in der Liste unten den Kunden, den du abrechnen willst."
+    : customer.inactive
+      ? "Für diesen Kunden lässt sich nicht abrechnen: Er ist archiviert oder kein Kunde mehr."
+      : candidates === 0
+        ? "Für diesen Filter gibt es keine offenen, abrechenbaren Einträge dieses Kunden."
+        : entryIds.length === 0
+          ? "Hake unten mindestens einen Eintrag an."
+          : null;
   return (
-    <form ref={form} className="card stack" aria-label="Leistungen abrechnen" onSubmit={onSubmit} noValidate>
+    <form className="card stack" aria-label="Leistungen abrechnen" onSubmit={onSubmit} noValidate>
       <h2 style={{ margin: 0 }}>Leistungen abrechnen</h2>
       <p className="muted small" style={{ margin: 0, maxWidth: 680 }}>
-        Aus den offenen, abrechenbaren Einträgen eines Kunden wird ein Rechnungsentwurf: eine Position je Stundensatz, der Leistungszeitraum vom ersten bis zum
-        letzten Arbeitstag. Gebucht wird erst, wenn du die Rechnung festschreibst.
+        Aus den angehakten, offenen und abrechenbaren Einträgen eines Kunden wird ein Rechnungsentwurf: eine Position je Stundensatz, der Leistungszeitraum vom
+        ersten bis zum letzten Arbeitstag. Kunde, Zeitraum, Projekt und Tätigkeit grenzt der Filter in der Liste ein. Gebucht wird erst, wenn du die Rechnung
+        festschreibst.
       </p>
-      <div className="form-row cols-3">
-        <Field label="Kunde" error={fehler("contact")}>
-          {(control) => (
-            <select {...control} value={contactId} onChange={(e) => setContactId(e.target.value)} required autoFocus>
-              <option value="" disabled>
-                Kunde wählen
-              </option>
-              {offered.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </Field>
-        <Field label="Von" error={fehler("from")}>
-          {(control) => <input {...control} type="date" value={period.from} onChange={(e) => setPeriod({ ...period, from: e.target.value })} required />}
-        </Field>
-        <Field label="Bis" error={fehler("to")}>
-          {(control) => <input {...control} type="date" value={period.to} onChange={(e) => setPeriod({ ...period, to: e.target.value })} required />}
-        </Field>
-      </div>
-      {result && !empty && (
+      {hint && (
+        <p className="muted" style={{ margin: 0 }} aria-live="polite">
+          {hint}
+        </p>
+      )}
+      {result && ready && (
         <div className="stack" style={{ gap: 6 }} aria-live="polite">
           <div>
-            {result.entries} {result.entries === 1 ? "Eintrag" : "Einträge"}, {formatDuration(result.minutes)} Std., zusammen {formatEuro(result.net)} netto
+            {result.entries} {result.entries === 1 ? "Eintrag" : "Einträge"} gewählt, {formatDuration(result.minutes)} Std., zusammen {formatEuro(result.net)}{" "}
+            netto
           </div>
           {result.lines.map((line) => (
             <div key={line.rateCents} className="small muted">
@@ -129,12 +107,7 @@ export function ServiceBillingForm({
           ))}
         </div>
       )}
-      {empty && !missing && (
-        <p className="muted" style={{ margin: 0 }} aria-live="polite">
-          Im Zeitraum gibt es keine offenen, abrechenbaren Einträge dieses Kunden.
-        </p>
-      )}
-      {missing && (
+      {missing && ready && (
         <div className="banner banner-danger" role="alert">
           Bei {result.withoutRate} {result.withoutRate === 1 ? "Eintrag fehlt" : "Einträgen fehlt"} der Stundensatz. Trage ihn am Eintrag oder im Kontakt ein,
           dann lässt sich abrechnen.
@@ -149,8 +122,8 @@ export function ServiceBillingForm({
         <button type="button" className="btn" onClick={onClose}>
           Abbrechen
         </button>
-        {/* Mit gültigen Angaben gesperrt, solange die Vorschau lädt (einen Augenblick) oder nichts abzurechnen ist; dann steht der Grund darüber */}
-        <button type="submit" className="btn btn-primary" disabled={busy || (valid && (result === null || empty || missing))}>
+        {/* Gesperrt, solange nichts zu tun ist oder die Vorschau lädt (einen Augenblick); den Grund nennt der Hinweis darüber */}
+        <button type="submit" className="btn btn-primary" disabled={busy || !ready || result === null || missing}>
           Rechnungsentwurf anlegen
         </button>
       </div>

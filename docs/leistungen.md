@@ -26,7 +26,7 @@ Eine Buchung entsteht aus einem Eintrag nicht: Er ist die Grundlage, aus der die
 | Stundensatz | Optional. Ohne Angabe nimmt Haben den Satz des Kunden, siehe unten. |
 | Tätigkeit | Optional. Steht später auf der Rechnung. |
 
-Die Liste zeigt die neuesten Arbeitstage zuerst und lässt sich nach Kunde und Zeitraum eingrenzen. Je Eintrag stehen Kunde und Tätigkeit in einer Zeile, darunter Projekt und „nicht abrechenbar“; weicht die abrechenbare Dauer ab, steht sie als „abr.“ unter der Dauer. Unter der Liste stehen Anzahl, Stunden und Summe der Einträge im Filter; ein Eintrag ohne Stundensatz zählt in der Summe nicht mit. Einträge lassen sich ändern und löschen, solange sie auf keiner Rechnung stehen. Jede Änderung steht im Änderungsprotokoll. Der Filter **Stand** zeigt offene, abgerechnete und nicht abrechenbare Einträge. Die Einträge eines Kunden erreichst du auch von seiner Kontaktseite mit **Zeiteinträge** ([Kontakte](kontakte.md#rechnungen-und-belege-am-kontakt)).
+Die Liste zeigt die neuesten Arbeitstage zuerst und lässt sich nach Kunde, Zeitraum, Projekt und Tätigkeit eingrenzen; Projekt und Tätigkeit suchen einen Teil des Textes, ohne auf Groß- und Kleinschreibung zu achten. Je Eintrag stehen Kunde und Tätigkeit in einer Zeile, darunter Projekt und „nicht abrechenbar“; weicht die abrechenbare Dauer ab, steht sie als „abr.“ unter der Dauer. Unter der Liste stehen Anzahl, Stunden und Summe der Einträge im Filter; ein Eintrag ohne Stundensatz zählt in der Summe nicht mit. Einträge lassen sich ändern und löschen, solange sie auf keiner Rechnung stehen. Jede Änderung steht im Änderungsprotokoll. Der Filter **Stand** zeigt offene, abgerechnete und nicht abrechenbare Einträge. Die Einträge eines Kunden erreichst du auch von seiner Kontaktseite mit **Zeiteinträge** ([Kontakte](kontakte.md#rechnungen-und-belege-am-kontakt)).
 
 ## Stundensatz
 
@@ -46,13 +46,14 @@ Das Token braucht das Recht `leistungen:schreiben` (anlegen und löschen) oder `
 
 **Abrechnen** macht aus den offenen Einträgen eines Kunden einen Rechnungsentwurf:
 
-1. Kunde und Zeitraum wählen. Vorgeschlagen ist in den ersten zehn Tagen eines Monats der vergangene Monat, sonst der laufende bis heute.
-2. Haben zeigt vorab, wie viele Einträge es sind, wie viele Stunden und welche Summe netto herauskommt, und wie die Positionen aussehen.
-3. **Rechnungsentwurf anlegen** öffnet den Entwurf. Prüfe ihn wie jeden Entwurf, ergänze ihn und schreibe ihn fest.
+1. Wähle **Abrechnen**, dann im Filter der Liste den Kunden und, wenn du willst, Zeitraum, Projekt oder Tätigkeit. Der Stand steht dabei fest auf „Offen“. Die Liste zeigt dann genau die Einträge, die zur Wahl stehen, jeder mit einem Kästchen.
+2. Alle sind angehakt. Nimm heraus, was nicht in diesen Entwurf soll; das Kästchen über der Liste wählt alle ab oder an. Ändert sich der Filter, sind wieder alle angehakt.
+3. Haben zeigt vorab, wie viele Einträge angehakt sind, wie viele Stunden und welche Summe netto herauskommt, und wie die Positionen aussehen.
+4. **Rechnungsentwurf anlegen** öffnet den Entwurf. Prüfe ihn wie jeden Entwurf, ergänze ihn und schreibe ihn fest. Die nicht angehakten Einträge bleiben offen.
 
 Was in den Entwurf kommt:
 
-- Alle Einträge des Kunden im Zeitraum, die **abrechenbar** und noch **offen** sind. Nicht abrechenbare Einträge und solche, die schon auf einer Rechnung stehen, nimmt Haben nie mit.
+- Die angehakten Einträge des Kunden. Sie müssen **abrechenbar** und noch **offen** sein: Nicht abrechenbare Einträge und solche, die schon auf einer Rechnung stehen, bietet Haben nicht an. Wurde einer inzwischen anderweitig abgerechnet, legt Haben nichts an und bittet, die Liste neu zu laden.
 - Der einzige aktive [Ansprechpartner](kontakte.md#ansprechpartner) des Kunden, bei mehreren keiner.
 - Einleitung und Hinweis aus dem [Standard-Textbaustein für Rechnungen](rechnungen.md#standard-je-belegart), wenn es einen gibt.
 - **Eine Position je Stundensatz**, Bezeichnung „Leistungen“, Einheit Std., Menge die Summe der abrechenbaren Dauern. Die Menge rundet Haben einmal je Position auf Tausendstel Stunden (100 Minuten sind 1,667 Std.), nicht je Eintrag. Die Projekte der Einträge stehen als Text unter der Position.

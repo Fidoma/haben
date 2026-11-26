@@ -1,5 +1,5 @@
 import { type BillingPreview, billingPreview, type OffeneLeistung } from "@haben/core";
-import { and, asc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { einzigerAnsprechpartner } from "../../../lib/invoice.ts";
 import { withActor } from "../../db/actor.ts";
@@ -8,7 +8,7 @@ import { assertCustomer, defaultSkonto, type DraftInput, insertDraft, newDraftDe
 import { onActiveInvoice, ServiceEntryError } from "./service-entries.ts";
 
 /*
- * Leistungen abrechnen (#417): Die offenen, abrechenbaren Einträge eines Kunden und Zeitraums werden ein Rechnungsentwurf.
+ * Leistungen abrechnen (#417, #1933): Die gewählten offenen, abrechenbaren Einträge eines Kunden werden ein Rechnungsentwurf.
  * Je Stundensatz entsteht eine Position „Leistungen“ in Std. (billingPreview in packages/core), Leistungszeitraum ist der
  * erste bis letzte Arbeitstag. Jeder Eintrag trägt danach die Nummer des Entwurfs (service_entries.invoice_id) und ist
  * nicht noch einmal abrechenbar. Löscht man den Entwurf, löst die Datenbank die Verknüpfung (on delete set null); nach
@@ -16,13 +16,13 @@ import { onActiveInvoice, ServiceEntryError } from "./service-entries.ts";
  * nicht, die macht das Festschreiben der Rechnung.
  */
 
-export const billingSchema = z
-  .object({
-    contactId: z.uuid("Kunde fehlt"),
-    from: z.iso.date("Von-Datum ungültig"),
-    to: z.iso.date("Bis-Datum ungültig"),
-  })
-  .refine((d) => d.from <= d.to, { message: "Der Zeitraum endet vor seinem Beginn", path: ["to"] });
+export const billingSchema = z.object({
+  contactId: z.uuid("Kunde fehlt"),
+  entryIds: z
+    .array(z.uuid("Eintrag ungültig"))
+    .min(1, "Wähle mindestens einen Eintrag")
+    .transform((ids) => [...new Set(ids)]),
+});
 
 export type BillingInput = z.input<typeof billingSchema>;
 
@@ -44,30 +44,35 @@ async function openEntries(q: typeof db | Tx, input: z.infer<typeof billingSchem
     .from(schema.serviceEntries)
     .where(
       and(
+        inArray(schema.serviceEntries.id, input.entryIds),
         eq(schema.serviceEntries.contactId, input.contactId),
-        gte(schema.serviceEntries.workedOn, input.from),
-        lte(schema.serviceEntries.workedOn, input.to),
         eq(schema.serviceEntries.nonBillable, false),
         sql`not ${onActiveInvoice}`,
       ),
     )
     .orderBy(asc(schema.serviceEntries.workedOn), asc(schema.serviceEntries.createdAt));
   // Gesperrt, damit zwei gleichzeitige Abrechnungen dieselben Einträge nicht beide nehmen: die zweite sieht sie danach als abgerechnet
-  return lock ? query.for("update") : query;
+  const entries = await (lock ? query.for("update") : query);
+  // Nichts abrechnen, wenn ein gewählter Eintrag fehlt: anderer Kunde, schon abgerechnet, nicht abrechenbar oder gelöscht
+  if (entries.length !== input.entryIds.length) {
+    throw new ServiceEntryError(
+      "Mindestens ein gewählter Eintrag ist nicht mehr offen und abrechenbar oder gehört zu einem anderen Kunden. Lade die Liste neu.",
+    );
+  }
+  return entries;
 }
 
-/** Was „Abrechnen“ für diesen Kunden und Zeitraum anlegen würde, ohne etwas zu ändern */
+/** Was „Abrechnen“ für diese Einträge anlegen würde, ohne etwas zu ändern */
 export async function previewBilling(input: BillingInput): Promise<BillingPreview> {
   return billingPreview(await openEntries(db, billingSchema.parse(input), false));
 }
 
-/** Legt aus den offenen, abrechenbaren Einträgen einen Rechnungsentwurf an und verknüpft sie damit */
+/** Legt aus den gewählten, offenen und abrechenbaren Einträgen einen Rechnungsentwurf an und verknüpft sie damit */
 export async function billServiceEntries(actor: string, input: BillingInput, today: string): Promise<{ invoiceId: string; entries: number }> {
   const data = billingSchema.parse(input);
   return withActor(actor, async (tx) => {
     await assertCustomer(tx, data.contactId);
     const entries = await openEntries(tx, data, true);
-    if (entries.length === 0) throw new ServiceEntryError("Im Zeitraum gibt es keine offenen, abrechenbaren Einträge dieses Kunden.");
     const preview = billingPreview(entries);
     if (preview.withoutRate > 0) {
       throw new ServiceEntryError(

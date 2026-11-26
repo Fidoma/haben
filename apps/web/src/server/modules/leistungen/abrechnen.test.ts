@@ -4,7 +4,7 @@ import { leeren, setupTestDb, testDatabaseUrl } from "../../test-db.ts";
 import { kleinunternehmerStand } from "../auswertungen/test-umsatz-stand.ts";
 
 /*
- * Abrechenbare Leistungen (#417), zweiter Teil: aus den offenen Einträgen eines Kunden und Zeitraums wird ein Rechnungsentwurf.
+ * Abrechenbare Leistungen (#417), zweiter Teil: aus den gewählten offenen Einträgen eines Kunden wird ein Rechnungsentwurf (#1933).
  * Eine Position je Stundensatz, der Zeitraum aus dem ersten und letzten Arbeitstag. Ein Eintrag lässt sich nicht zweimal
  * abrechnen, ist mit der festgeschriebenen Rechnung gesperrt und nach deren Storno wieder frei; eine Korrektur gibt ihn nicht frei.
  * Der Entwurf behält den Kunden der Einträge. Alle Daten sind erfunden.
@@ -63,20 +63,23 @@ describe.skipIf(!testDatabaseUrl)("Leistungen abrechnen (Postgres, #417)", () =>
   const eintrag = (overrides: Record<string, unknown> = {}) =>
     entries.createServiceEntry(actor, { contactId: kunde, workedOn: "2026-03-02", minutes: 90, description: "Konzept Datenmodell", ...overrides });
 
-  const zeitraum = { from: "2026-03-01", to: "2026-03-31" };
-  const abrechnen_ = (contactId = kunde) => abrechnen.billServiceEntries(actor, { contactId, ...zeitraum }, heute);
+  const offene = async (contactId: string) => (await entries.listServiceEntries({ contactId, status: "offen" })).map((e) => e.id);
+  /** Ohne Auswahl alle offenen Einträge des Kunden */
+  const abrechnen_ = async (contactId = kunde, entryIds?: string[]) =>
+    abrechnen.billServiceEntries(actor, { contactId, entryIds: entryIds ?? (await offene(contactId)) }, heute);
+  const entwurfAnzahl = async () => (await sql`select count(*)::int as n from invoices`)[0]!.n;
   const zeilen = (invoiceId: string) =>
     sql`select description, detail, quantity, unit, unit_price, tax_rate, net from invoice_lines where invoice_id = ${invoiceId} order by position`;
 
   it("legt einen Entwurf an: eine Position, Menge die Summe der abrechenbaren Stunden, Leistungszeitraum erster bis letzter Tag", async () => {
-    await eintrag({ workedOn: "2026-03-02", minutes: 90, project: "Relaunch Shop" });
+    const erster = await eintrag({ workedOn: "2026-03-02", minutes: 90, project: "Relaunch Shop" });
     // abrechenbare Dauer geht vor der erfassten
-    await eintrag({ workedOn: "2026-03-20", minutes: 120, billableMinutes: 90, project: "Relaunch Shop" });
-    // nicht abrechenbar und außerhalb des Zeitraums: nie dabei
+    const zweiter = await eintrag({ workedOn: "2026-03-20", minutes: 120, billableMinutes: 90, project: "Relaunch Shop" });
+    // nicht abrechenbar, und ein offener Eintrag, den niemand gewählt hat: nicht dabei
     await eintrag({ workedOn: "2026-03-10", minutes: 45, nonBillable: true });
     await eintrag({ workedOn: "2026-04-02", minutes: 60 });
 
-    const { invoiceId, entries: count } = await abrechnen_();
+    const { invoiceId, entries: count } = await abrechnen_(kunde, [erster, zweiter]);
     expect(count).toBe(2);
     const [invoice] =
       await sql`select status, contact_id, issue_date::text, service_from::text, service_to::text, net, tax, gross from invoices where id = ${invoiceId}`;
@@ -108,15 +111,15 @@ describe.skipIf(!testDatabaseUrl)("Leistungen abrechnen (Postgres, #417)", () =>
   });
 
   it("ein Eintrag lässt sich nicht zweimal abrechnen, auch nicht von zwei gleichzeitigen Aufrufen", async () => {
-    await eintrag();
+    const id = await eintrag();
     await abrechnen_();
-    await expect(abrechnen_()).rejects.toThrow(/keine offenen/);
+    await expect(abrechnen_(kunde, [id])).rejects.toThrow(/nicht mehr offen/);
 
     await leeren(sql)`truncate service_entries, invoice_lines, invoices cascade`;
-    await eintrag();
-    const ergebnisse = await Promise.allSettled([abrechnen_(), abrechnen_()]);
+    const neu = await eintrag();
+    const ergebnisse = await Promise.allSettled([abrechnen_(kunde, [neu]), abrechnen_(kunde, [neu])]);
     expect(ergebnisse.filter((e) => e.status === "fulfilled").length).toBe(1);
-    expect((await sql`select count(*)::int as n from invoices`)[0]!.n).toBe(1);
+    expect(await entwurfAnzahl()).toBe(1);
   });
 
   it("fehlt bei einem Eintrag der Stundensatz, wird nichts angelegt", async () => {
@@ -127,11 +130,48 @@ describe.skipIf(!testDatabaseUrl)("Leistungen abrechnen (Postgres, #417)", () =>
     expect((await entries.listServiceEntries({}))[0]!.invoiceId).toBeNull();
   });
 
-  it("ohne offene Einträge, für einen Lieferanten und mit falschem Zeitraum kein Entwurf", async () => {
-    await expect(abrechnen_()).rejects.toThrow(/keine offenen/);
-    await expect(abrechnen.billServiceEntries(actor, { contactId: kunde, from: "2026-03-31", to: "2026-03-01" }, heute)).rejects.toThrow(/endet vor/);
+  it("ohne Auswahl und für einen Lieferanten kein Entwurf", async () => {
+    await expect(abrechnen_(kunde, [])).rejects.toThrow(/mindestens einen Eintrag/);
     const [lieferant] = await sql`insert into contacts (name, is_customer, is_supplier) values ('Papier AG', false, true) returning id`;
-    await expect(abrechnen_(lieferant!.id)).rejects.toThrow();
+    await expect(abrechnen_(lieferant!.id, [await eintrag()])).rejects.toThrow();
+    expect(await entwurfAnzahl()).toBe(0);
+  });
+
+  it("rechnet nur die gewählten Einträge ab; die übrigen bleiben offen und lassen sich danach abrechnen (#1933)", async () => {
+    const a = await eintrag({ workedOn: "2026-03-02", minutes: 60, description: "Konzept" });
+    const b = await eintrag({ workedOn: "2026-03-03", minutes: 120, description: "Umsetzung" });
+    const c = await eintrag({ workedOn: "2026-03-04", minutes: 30, description: "Abstimmung" });
+
+    const erste = await abrechnen_(kunde, [c, a, a]);
+    expect(erste.entries).toBe(2);
+    const [invoice] = await sql`select service_from::text, service_to::text, net from invoices where id = ${erste.invoiceId}`;
+    // 1,5 Std. zu 95,00 € = 142,50 €; der Zeitraum folgt den gewählten Einträgen
+    expect(invoice).toMatchObject({ service_from: "2026-03-02", service_to: "2026-03-04", net: 14_250 });
+    expect((await entries.getServiceEntry(b))!.invoiceId).toBeNull();
+    expect(await offene(kunde)).toEqual([b]);
+
+    const zweite = await abrechnen_();
+    expect(zweite.entries).toBe(1);
+    expect((await entries.getServiceEntry(b))!.invoiceId).toBe(zweite.invoiceId);
+  });
+
+  it("nimmt keinen Eintrag, der nicht offen und abrechenbar bei diesem Kunden liegt, und rechnet dann gar nichts ab (#1933)", async () => {
+    const gut = await eintrag({ workedOn: "2026-03-02" });
+    const anderer = await neuerKunde("Rheinpixel GmbH", 8000);
+    const fremd = await eintrag({ contactId: anderer, workedOn: "2026-03-03" });
+    const intern = await eintrag({ workedOn: "2026-03-04", nonBillable: true });
+    const gebucht = await eintrag({ workedOn: "2026-03-05" });
+    await abrechnen_(kunde, [gebucht]);
+    const geloescht = await eintrag({ workedOn: "2026-03-06" });
+    await entries.deleteServiceEntry(actor, geloescht);
+
+    for (const schlecht of [fremd, intern, gebucht, geloescht]) {
+      await expect(abrechnen_(kunde, [gut, schlecht])).rejects.toThrow(/nicht mehr offen und abrechenbar/);
+      await expect(abrechnen.previewBilling({ contactId: kunde, entryIds: [gut, schlecht] })).rejects.toThrow(/nicht mehr offen und abrechenbar/);
+    }
+    expect(await entwurfAnzahl()).toBe(1);
+    expect(await offene(kunde)).toEqual([gut]);
+    expect((await entries.getServiceEntry(fremd))!.invoiceId).toBeNull();
   });
 
   it("auf einem Entwurf ist der Eintrag nicht änderbar und nicht löschbar; löscht man den Entwurf, ist er wieder frei", async () => {
@@ -210,7 +250,7 @@ describe.skipIf(!testDatabaseUrl)("Leistungen abrechnen (Postgres, #417)", () =>
       await invoices.finalizeInvoice(actor, invoiceId, kleinunternehmerStand);
       await invoices.createCorrection(actor, invoiceId, heute);
       expect((await entries.getServiceEntry(id))!.invoiceId).toBe(invoiceId);
-      await expect(abrechnen_()).rejects.toThrow(/keine offenen/);
+      await expect(abrechnen_(kunde, [id])).rejects.toThrow(/nicht mehr offen/);
     });
   });
 
@@ -289,7 +329,7 @@ describe.skipIf(!testDatabaseUrl)("Leistungen abrechnen (Postgres, #417)", () =>
     const offen = await eintrag({ workedOn: "2026-02-10" });
     const nicht = await eintrag({ workedOn: "2026-02-11", nonBillable: true });
     const abgerechnet = await eintrag({ workedOn: "2026-03-05" });
-    await abrechnen_();
+    await abrechnen_(kunde, [abgerechnet]);
     const ids = async (status: "offen" | "abgerechnet" | "nicht-abrechenbar") => (await entries.listServiceEntries({ status })).map((e) => e.id);
     expect(await ids("offen")).toEqual([offen]);
     expect(await ids("abgerechnet")).toEqual([abgerechnet]);
@@ -297,10 +337,12 @@ describe.skipIf(!testDatabaseUrl)("Leistungen abrechnen (Postgres, #417)", () =>
   });
 
   it("die Vorschau legt nichts an und zählt Einträge ohne Satz", async () => {
-    await eintrag();
+    const mit = await eintrag();
+    await eintrag({ workedOn: "2026-03-03", minutes: 30 });
     const ohneSatz = await neuerKunde("Rheinpixel GmbH", null);
-    await eintrag({ contactId: ohneSatz });
-    expect(await abrechnen.previewBilling({ contactId: kunde, ...zeitraum })).toMatchObject({
+    const ohne = await eintrag({ contactId: ohneSatz });
+    // Nur der gewählte Eintrag zählt, nicht der zweite des Kunden
+    expect(await abrechnen.previewBilling({ contactId: kunde, entryIds: [mit] })).toMatchObject({
       entries: 1,
       minutes: 90,
       net: 14_250,
@@ -308,8 +350,8 @@ describe.skipIf(!testDatabaseUrl)("Leistungen abrechnen (Postgres, #417)", () =>
       from: "2026-03-02",
       to: "2026-03-02",
     });
-    expect(await abrechnen.previewBilling({ contactId: ohneSatz, ...zeitraum })).toMatchObject({ entries: 0, withoutRate: 1 });
-    expect((await sql`select count(*)::int as n from invoices`)[0]!.n).toBe(0);
+    expect(await abrechnen.previewBilling({ contactId: ohneSatz, entryIds: [ohne] })).toMatchObject({ entries: 0, withoutRate: 1 });
+    expect(await entwurfAnzahl()).toBe(0);
   });
 
   it("die Kontaktseite: Zahl der Einträge und offene, abrechenbare Zeit des Kunden (#1557)", async () => {

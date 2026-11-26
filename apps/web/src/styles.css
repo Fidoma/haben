@@ -781,6 +781,8 @@ a.table-row:hover { background: var(--ground); color: var(--ink); }
 .cash-cols { grid-template-columns: 48px 96px minmax(0, 1fr) 120px 120px 150px; padding-top: 8px; padding-bottom: 8px; }
 .article-cols { grid-template-columns: minmax(0, 1fr) 160px 60px auto; }
 .service-cols { grid-template-columns: 90px minmax(0, 1fr) 90px 90px 100px 184px; }
+/* Abrechnen (#1933): vorn die Spalte für das Kästchen, wie bei den Überweisungen */
+.service-cols.service-pick { grid-template-columns: 28px 90px minmax(0, 1fr) 90px 90px 100px 184px; }
 .proof-cols { grid-template-columns: 90px minmax(0, 1fr) 90px; }
 .own-account-cols { grid-template-columns: 70px minmax(0, 1fr) minmax(0, 0.8fr) auto; }
 .own-account-rename input { flex: 1 1 140px; min-width: 0; }
@@ -840,6 +842,13 @@ a.table-row:hover { background: var(--ground); color: var(--ink); }
   .service-cols > :nth-child(1), .service-cols > :nth-child(2), .service-cols > :nth-child(6) { grid-column: 1 / -1; }
   .service-cols > :nth-child(6) { justify-content: flex-start !important; }
   .table-row.head.service-cols { display: none; }
+  .service-cols.service-pick { grid-template-columns: 28px repeat(3, minmax(0, 1fr)); }
+  .service-pick > :nth-child(1) { grid-column: 1; grid-row: 1 / span 2; align-self: start; padding-top: 4px; }
+  .service-pick > :nth-child(2), .service-pick > :nth-child(3), .service-pick > :nth-child(7) { grid-column: 2 / -1; }
+  .service-pick > :nth-child(4) { grid-column: 2; }
+  .service-pick > :nth-child(5) { grid-column: 3; }
+  .service-pick > :nth-child(6) { grid-column: 4; }
+  .service-pick > :nth-child(7) { justify-content: flex-start !important; }
   .own-account-cols { grid-template-columns: 70px minmax(0, 1fr); row-gap: 6px; }
   .own-account-cols > :nth-child(3), .own-account-cols > :nth-child(4) { grid-column: 1 / -1; }
   .own-account-cols > :nth-child(4) { justify-content: flex-start !important; }

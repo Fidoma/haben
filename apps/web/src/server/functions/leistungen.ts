@@ -22,6 +22,8 @@ const filterSchema = z.object({
   from: z.iso.date().optional(),
   to: z.iso.date().optional(),
   status: z.enum(["offen", "abgerechnet", "nicht-abrechenbar"]).optional(),
+  project: z.string().trim().max(200).optional(),
+  description: z.string().trim().max(200).optional(),
 });
 
 export const getServiceEntries = createServerFn({ method: "GET" })
@@ -57,13 +59,13 @@ export const removeServiceEntry = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** Was Abrechnen für Kunde und Zeitraum anlegen würde */
-export const getBillingPreview = createServerFn({ method: "GET" })
+/** Was Abrechnen für die gewählten Einträge anlegen würde; POST, weil viele Kennungen nicht in die Adresse passen */
+export const getBillingPreview = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator(billingSchema)
   .handler(async ({ data }) => previewBilling(data));
 
-/** Legt aus den offenen Einträgen einen Rechnungsentwurf an (Datum: heute, deutsche Zeit) */
+/** Legt aus den gewählten offenen Einträgen einen Rechnungsentwurf an (Datum: heute, deutsche Zeit) */
 export const billEntries = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator(billingSchema)

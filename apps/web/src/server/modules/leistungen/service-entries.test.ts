@@ -102,6 +102,27 @@ describe.skipIf(!testDatabaseUrl)("Leistungseinträge (Postgres, #417)", () => {
     expect(await entries.listServiceEntries({ from: "2026-03-10", to: "2026-03-20" })).toHaveLength(1);
   });
 
+  it("filtert nach Projekt und Tätigkeit: enthält, ohne Groß- und Kleinschreibung, %, _ und \\ zählen als Zeichen (#1933)", async () => {
+    const shop = await entries.createServiceEntry(actor, eintrag({ project: "Relaunch Shop", description: "Warenkorb umsetzen" }));
+    const wartung = await entries.createServiceEntry(actor, eintrag({ project: "Wartung", description: "Rufbereitschaft 100% erreicht" }));
+    const unterstrich = await entries.createServiceEntry(actor, eintrag({ project: "A_B", description: "Pfad C:\\temp" }));
+    const ids = async (filter: Parameters<typeof entries.listServiceEntries>[0]) => (await entries.listServiceEntries(filter)).map((e) => e.id).sort();
+
+    expect(await ids({ project: "relaunch" })).toEqual([shop]);
+    expect(await ids({ project: "SHOP" })).toEqual([shop]);
+    expect(await ids({ description: "WARENKORB" })).toEqual([shop]);
+    expect(await ids({ description: "bereitschaft" })).toEqual([wartung]);
+    // beide zusammen verlangen beide
+    expect(await ids({ project: "relaunch", description: "bereitschaft" })).toEqual([]);
+    // Platzhalter der Eingabe suchen sich selbst: „%“ und „_“ passen nicht auf alles
+    expect(await ids({ description: "100%" })).toEqual([wartung]);
+    expect(await ids({ description: "%" })).toEqual([wartung]);
+    expect(await ids({ project: "_" })).toEqual([unterstrich]);
+    expect(await ids({ project: "A_B" })).toEqual([unterstrich]);
+    expect(await ids({ description: "C:\\temp" })).toEqual([unterstrich]);
+    expect(await ids({ project: "x" })).toEqual([]);
+  });
+
   it("nicht abrechenbar, abrechenbare Dauer und Projekt: Vorgaben und gespeicherte Werte", async () => {
     await entries.createServiceEntry(actor, eintrag());
     await entries.createServiceEntry(actor, eintrag({ nonBillable: true, billableMinutes: 60, project: "Relaunch Shop", workedOn: "2026-03-03" }));

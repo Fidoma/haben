@@ -1,5 +1,5 @@
 import { inCents } from "@haben/core";
-import { and, asc, desc, eq, gte, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { withActor } from "../../db/actor.ts";
 import { db, schema, type Tx } from "../../db/index.ts";
@@ -107,7 +107,13 @@ export interface ServiceEntryFilter {
   to?: string;
   /** offen = abrechenbar und auf keiner Rechnung; abgerechnet = auf einer Rechnung (Entwurf oder festgeschrieben); nicht abrechenbar */
   status?: "offen" | "abgerechnet" | "nicht-abrechenbar";
+  /** Teil des Projekts oder der Tätigkeit, ohne Rücksicht auf Groß- und Kleinschreibung (#1933) */
+  project?: string;
+  description?: string;
 }
+
+/** Suchmuster „enthält“ für ilike; %, _ und \ aus der Eingabe zählen als Zeichen */
+const containing = (text: string) => `%${text.replace(/[\\%_]/g, "\\$&")}%`;
 
 /** Einträge, die neuesten Arbeitstage zuerst */
 export async function listServiceEntries(filter: ServiceEntryFilter = {}): Promise<ServiceEntry[]> {
@@ -123,6 +129,8 @@ export async function listServiceEntries(filter: ServiceEntryFilter = {}): Promi
         filter.contactId ? eq(schema.serviceEntries.contactId, filter.contactId) : undefined,
         filter.from ? gte(schema.serviceEntries.workedOn, filter.from) : undefined,
         filter.to ? lte(schema.serviceEntries.workedOn, filter.to) : undefined,
+        filter.project ? ilike(schema.serviceEntries.project, containing(filter.project)) : undefined,
+        filter.description ? ilike(schema.serviceEntries.description, containing(filter.description)) : undefined,
       ),
     )
     .orderBy(desc(schema.serviceEntries.workedOn), desc(schema.serviceEntries.createdAt));

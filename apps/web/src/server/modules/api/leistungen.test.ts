@@ -147,7 +147,7 @@ describe.skipIf(!testDatabaseUrl)("REST-API /api/v1/leistungen (Postgres, #417)"
     const t = await token(["leistungen:schreiben"]);
     const created = await call(t, "POST", "/leistungen", eintrag({ source: "kimai", externalId: "9" }));
     const { billServiceEntries } = await import("../leistungen/index.ts");
-    const { invoiceId } = await billServiceEntries(actor, { contactId, from: "2026-03-01", to: "2026-03-31" }, "2026-04-01");
+    const { invoiceId } = await billServiceEntries(actor, { contactId, entryIds: [created.json!.id] }, "2026-04-01");
 
     const eins = await call(t, "GET", `/leistungen/${created.json!.id}`);
     expect(eins.json).toMatchObject({ invoiceId, invoiceNumber: null, invoiceStatus: "draft" });

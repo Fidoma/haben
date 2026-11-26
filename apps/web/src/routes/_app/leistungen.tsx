@@ -1,16 +1,15 @@
-import { billableAmount, billableMinutes, formatDuration, formatEuro, germanDay } from "@haben/core";
-import { Link, createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import { formatDuration, germanDay } from "@haben/core";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { z } from "zod";
 import { ConfirmDialog } from "../../components/ConfirmDialog.tsx";
-import { Field } from "../../components/Field.tsx";
 import { NoticeBanner } from "../../components/NoticeBanner.tsx";
 import { ServiceBillingForm } from "../../components/ServiceBillingForm.tsx";
+import { AlleWaehlen, LeistungsFilter, LeistungsKopf, LeistungsSumme, LeistungsZeile, useAbrechnenAuswahl } from "../../components/ServiceEntryList.tsx";
 import { ServiceEntryForm, type ServiceEntryRow } from "../../components/ServiceEntryForm.tsx";
 import { errorMessage, formatDate } from "../../lib/format.ts";
 import type { Notice } from "../../lib/use-action.ts";
-import { serviceEntryNote } from "../../lib/zeiteintrag.ts";
 import { getServiceEntries, removeServiceEntry } from "../../server/functions/leistungen.ts";
 import { menueGruppe } from "../../lib/menue-gruppe.ts";
 
@@ -19,14 +18,26 @@ const searchSchema = z.object({
   von: z.iso.date().optional(),
   bis: z.iso.date().optional(),
   stand: z.enum(["offen", "abgerechnet", "nicht-abrechenbar"]).optional(),
+  projekt: z.string().max(200).optional(),
+  taetigkeit: z.string().max(200).optional(),
 });
 
 type Search = z.infer<typeof searchSchema>;
 
 export const Route = createFileRoute("/_app/leistungen")({
   validateSearch: searchSchema,
-  loaderDeps: ({ search }) => ({ kunde: search.kunde, von: search.von, bis: search.bis, stand: search.stand }),
-  loader: ({ deps }) => getServiceEntries({ data: { contactId: deps.kunde, from: deps.von, to: deps.bis, status: deps.stand } }),
+  loaderDeps: ({ search }) => ({
+    kunde: search.kunde,
+    von: search.von,
+    bis: search.bis,
+    stand: search.stand,
+    projekt: search.projekt,
+    taetigkeit: search.taetigkeit,
+  }),
+  loader: ({ deps }) =>
+    getServiceEntries({
+      data: { contactId: deps.kunde, from: deps.von, to: deps.bis, status: deps.stand, project: deps.projekt, description: deps.taetigkeit },
+    }),
   head: () => ({ meta: [{ title: "Zeiteinträge · Haben" }] }),
   component: ServiceEntriesPage,
 });
@@ -44,17 +55,15 @@ function ServiceEntriesPage() {
   const [confirm, setConfirm] = useState<ServiceEntryRow | null>(null);
   const names = new Map(customers.map((c) => [c.id, c.name]));
   const formOpen = creating || editing !== null || billing;
+  /** Öffnet das Formular zum Anlegen oder das zum Abrechnen und schließt das andere */
+  const openForm = (form: "creating" | "billing") => {
+    setEditing(null);
+    setCreating(form === "creating");
+    setBilling(form === "billing");
+    setNotice(null);
+  };
   const newButton = (
-    <button
-      type="button"
-      className="btn btn-primary"
-      onClick={() => {
-        setEditing(null);
-        setBilling(false);
-        setCreating(true);
-        setNotice(null);
-      }}
-    >
+    <button type="button" className="btn btn-primary" onClick={() => openForm("creating")}>
       Neuer Eintrag
     </button>
   );
@@ -69,8 +78,18 @@ function ServiceEntriesPage() {
     }
   }
 
-  const filtered = Boolean(search.kunde || search.von || search.bis || search.stand);
-  const filter = (patch: Partial<Search>) => void navigate({ search: (prev) => ({ ...prev, ...patch }) });
+  const filtered = Boolean(search.kunde || search.von || search.bis || search.stand || search.projekt || search.taetigkeit);
+  const auswahl = useAbrechnenAuswahl(
+    billing,
+    search.stand,
+    customers.find((c) => c.id === search.kunde),
+    entries,
+  );
+  const { kunde, waehlbar, kandidaten, gewaehlt } = auswahl;
+  const filter = (patch: Partial<Search>) => {
+    auswahl.zuruecksetzen();
+    void navigate({ search: (prev) => ({ ...prev, ...patch }) });
+  };
 
   return (
     <>
@@ -85,10 +104,8 @@ function ServiceEntriesPage() {
               type="button"
               className="btn"
               onClick={() => {
-                setEditing(null);
-                setCreating(false);
-                setBilling(true);
-                setNotice(null);
+                openForm("billing");
+                filter({ stand: "offen" });
               }}
             >
               Abrechnen
@@ -102,7 +119,7 @@ function ServiceEntriesPage() {
       </p>
       <div className="stack" style={{ gap: 16 }}>
         {billing && (
-          <ServiceBillingForm customers={customers} today={germanDay(new Date())} defaultContactId={search.kunde} onClose={() => setBilling(false)} />
+          <ServiceBillingForm customer={kunde ?? null} candidates={kandidaten.length} entryIds={gewaehlt.map((e) => e.id)} onClose={() => setBilling(false)} />
         )}
         {(creating || editing !== null) && (
           <ServiceEntryForm
@@ -121,7 +138,7 @@ function ServiceEntriesPage() {
         <NoticeBanner notice={notice} />
         <EintragLoeschen entry={confirm} names={names} loeschen={onDelete} schliessen={() => setConfirm(null)} />
         <section className="card" aria-label="Leistungsliste">
-          <LeistungsFilter search={search} customers={customers} filter={filter} />
+          <LeistungsFilter search={search} customers={customers} filter={filter} standFest={billing} />
           {entries.length === 0 ? (
             <>
               <p className="muted" style={{ margin: 0 }}>
@@ -131,15 +148,9 @@ function ServiceEntriesPage() {
             </>
           ) : (
             <>
+              {waehlbar && <AlleWaehlen gewaehlt={gewaehlt.length} gesamt={kandidaten.length} onChange={auswahl.alle} />}
               <div className="table">
-                <div className="table-row head service-cols">
-                  <div>Tag</div>
-                  <div>Kunde und Tätigkeit</div>
-                  <div className="num">Dauer</div>
-                  <div className="num">Satz</div>
-                  <div className="num">Betrag</div>
-                  <div />
-                </div>
+                <LeistungsKopf wahl={waehlbar} />
                 {entries.map((e) => (
                   <LeistungsZeile
                     key={e.id}
@@ -150,6 +161,7 @@ function ServiceEntriesPage() {
                       setEditing(e);
                     }}
                     loeschen={() => setConfirm(e)}
+                    {...(waehlbar && { wahl: { gewaehlt: !auswahl.abgewaehlt.has(e.id), onChange: () => auswahl.umschalten(e.id) } })}
                   />
                 ))}
               </div>
@@ -159,103 +171,6 @@ function ServiceEntriesPage() {
         </section>
       </div>
     </>
-  );
-}
-
-type Customers = Awaited<ReturnType<typeof getServiceEntries>>["customers"];
-
-/** Filter der Liste nach Kunde, Stand und Zeitraum; sie stehen in der Adresse */
-function LeistungsFilter({ search, customers, filter }: { search: Search; customers: Customers; filter: (patch: Partial<Search>) => void }) {
-  return (
-    <div className="form-row cols-4" role="group" aria-label="Filter">
-      <Field label="Kunde">
-        {(control) => (
-          <select {...control} value={search.kunde ?? ""} onChange={(e) => filter({ kunde: e.target.value || undefined })}>
-            <option value="">Alle Kunden</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.inactive ? `${c.name} (inaktiv)` : c.name}
-              </option>
-            ))}
-          </select>
-        )}
-      </Field>
-      <Field label="Stand">
-        {(control) => (
-          <select {...control} value={search.stand ?? ""} onChange={(e) => filter({ stand: (e.target.value || undefined) as typeof search.stand })}>
-            <option value="">Alle</option>
-            <option value="offen">Offen</option>
-            <option value="abgerechnet">Abgerechnet</option>
-            <option value="nicht-abrechenbar">Nicht abrechenbar</option>
-          </select>
-        )}
-      </Field>
-      <Field label="Von">
-        {(control) => <input {...control} type="date" value={search.von ?? ""} onChange={(e) => filter({ von: e.target.value || undefined })} />}
-      </Field>
-      <Field label="Bis">
-        {(control) => <input {...control} type="date" value={search.bis ?? ""} onChange={(e) => filter({ bis: e.target.value || undefined })} />}
-      </Field>
-    </div>
-  );
-}
-
-/** Ein Zeiteintrag; auf einer Rechnung lässt er sich weder bearbeiten noch löschen */
-function LeistungsZeile({ e, kunde, bearbeiten, loeschen }: { e: ServiceEntryRow; kunde: string; bearbeiten: () => void; loeschen: () => void }) {
-  return (
-    <div className="table-row service-cols">
-      <div>{formatDate(e.workedOn)}</div>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ overflowWrap: "anywhere" }}>
-          <span style={{ fontWeight: 500 }}>{kunde}</span>
-          {e.description && <span className="muted"> · {e.description}</span>}
-        </div>
-        {serviceEntryNote(e) && (
-          <div className="small muted" style={{ overflowWrap: "anywhere" }}>
-            {serviceEntryNote(e)}
-          </div>
-        )}
-        {e.invoiceId && (
-          <div className="small">
-            <Link to="/rechnungen/$id" params={{ id: e.invoiceId }}>
-              {e.invoiceNumber ? `Rechnung ${e.invoiceNumber}` : "Rechnungsentwurf"}
-            </Link>
-          </div>
-        )}
-      </div>
-      <div className="num">
-        {formatDuration(e.minutes)} Std.
-        {!e.nonBillable && e.billableMinutes !== null && (
-          <div className="small muted">
-            <abbr title="abrechenbar">abr.</abbr> {formatDuration(e.billableMinutes)}
-          </div>
-        )}
-      </div>
-      <div className="num">{e.hourlyRateCents === null ? <span className="muted">fehlt</span> : formatEuro(e.hourlyRateCents)}</div>
-      <div className="num">{e.hourlyRateCents === null || e.nonBillable ? "" : formatEuro(billableAmount(e))}</div>
-      <div className="actions" style={{ justifyContent: "flex-end", flexWrap: "nowrap" }}>
-        <button
-          type="button"
-          className="btn btn-sm"
-          disabled={e.invoiceId !== null}
-          title={e.invoiceId ? "Auf einer Rechnung: erst den Entwurf löschen oder die Rechnung stornieren" : undefined}
-          aria-label={`Eintrag vom ${formatDate(e.workedOn)} bearbeiten`}
-          onClick={bearbeiten}
-        >
-          Bearbeiten
-        </button>
-        <button
-          type="button"
-          className="btn btn-sm btn-danger"
-          disabled={e.invoiceId !== null}
-          title={e.invoiceId ? "Auf einer Rechnung: erst den Entwurf löschen oder die Rechnung stornieren" : undefined}
-          aria-label={`Eintrag vom ${formatDate(e.workedOn)} löschen`}
-          onClick={loeschen}
-        >
-          Löschen
-        </button>
-      </div>
-    </div>
   );
 }
 
@@ -291,20 +206,5 @@ function EintragLoeschen({
     >
       <p>Der Eintrag wird gelöscht. Das steht im Änderungsprotokoll.</p>
     </ConfirmDialog>
-  );
-}
-
-/** Summe der gezeigten Einträge: Dauer, davon abrechenbar und Betrag; Einträge ohne Stundensatz zählen beim Betrag nicht */
-function LeistungsSumme({ entries }: { entries: ServiceEntryRow[] }) {
-  const totalMinutes = entries.reduce((sum, e) => sum + e.minutes, 0);
-  const totalBillable = entries.reduce((sum, e) => sum + billableMinutes(e), 0);
-  const totalCents = entries.reduce((sum, e) => sum + billableAmount(e), 0);
-  const withoutRate = entries.filter((e) => e.hourlyRateCents === null && !e.nonBillable).length;
-  return (
-    <p className="muted small" style={{ margin: 0 }}>
-      {entries.length} {entries.length === 1 ? "Eintrag" : "Einträge"}, {formatDuration(totalMinutes)} Std., davon abrechenbar {formatDuration(totalBillable)}{" "}
-      Std. mit {formatEuro(totalCents)}
-      {withoutRate > 0 && ` (${withoutRate} ohne Stundensatz nicht gerechnet)`}.
-    </p>
   );
 }
