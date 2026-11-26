@@ -34,6 +34,25 @@ Bist du in den Einstellungen als Kleinunternehmer eingetragen, zeigt die Seite o
 
 Vor jedem Prüfen oder Senden speichert Haben den Entwurf, falls er neu oder geändert ist. Mit **Entwurf speichern** geht das auch ohne Prüfung.
 
+Oben auf der Seite zeigt eine Leiste, wo du stehst:
+
+- **Zahlen prüfen**, bis ein unveränderter Entwurf gespeichert ist.
+- **Abgeben**, sobald er gespeichert ist.
+- **Zahlen**, nach dem Festschreiben, bis keine Zahllast mehr offen ist. Eine ausstehende Erstattung hält ihn nicht offen.
+
+Darunter sagt ein Satz, was Kz 83 für dich heißt, auch bei von Hand geänderten Werten:
+
+- „Du zahlst 1.234,00 € bis 10.12.2026.“; nach der Frist: „Die Zahllast von 1.234,00 € war am 10.12.2026 fällig.“
+- „Du bekommst 123,00 € zurück, sobald das Finanzamt zustimmt.“
+- „Diesmal ist nichts zu zahlen.“
+
+Der Satz entfällt:
+
+- solange von Hand ein Wert nicht lesbar ist,
+- bei einer berichtigten Anmeldung, denn zu zahlen oder zu erstatten ist nur der Unterschied zur ersten Anmeldung (siehe [berichtigte Anmeldung](#berichtigte-anmeldung)),
+- wenn der Zeitraum nicht zur Voranmeldung passt (siehe [Voranmeldungszeitraum](#voranmeldungszeitraum)),
+- nach dem Festschreiben; dort zeigen Status und **Zahlung an das Finanzamt** den Stand.
+
 ## Voranmeldungszeitraum
 
 Der Voranmeldungszeitraum ist nach § 18 Abs. 2 UStG das Kalendervierteljahr. Monatlich gibst du ab, wenn die Steuer des Vorjahres mehr als 9.000 € betrug. Bei höchstens 2.000 € kann dich das Finanzamt von den Voranmeldungen befreien; dann gibst du nur die Jahreserklärung ab. Festgelegt wird der Zeitraum vom Finanzamt, meist mit der Steuernummer oder nach der Jahreserklärung. Haben übernimmt, was du einträgst, und schlägt nur vor.
@@ -382,6 +401,8 @@ Hast du die Voranmeldung außerhalb von Haben abgegeben, per XML-Import in Mein 
 | Transferticket | das Ticket aus Mein ELSTER; jedes Ticket nur einmal |
 | Kz 83 laut Protokoll | die verbleibende Vorauszahlung bzw. der Überschuss, wie gemeldet |
 | Übermittlungsprotokoll (PDF) | das Protokoll aus Mein ELSTER |
+
+Den Bereich findest du in der rechten Spalte unter **Schon anders abgegeben?**: mit eingerichtetem ERiC und eigener Hersteller-ID zugeklappt, sonst offen, denn dann ist Mein ELSTER der Hauptweg und der Vermerk der nächste Schritt.
 
 **Abgabe vermerken** fragt in einem Dialog nach, der Tag, Transferticket und Kz 83 noch einmal zeigt, und schreibt die Anmeldung dann fest wie eine Übermittlung über ERiC: Status „Abgegeben … (vermerkt)“, die [Frist](fristen.md) ist erledigt, eine Berichtigung geht wie nach dem Senden über **Berichtigte Anmeldung anlegen**, und die Zahllast wird ein [offener Posten](#zahlung-an-das-finanzamt). Ein berechneter Entwurf wird vorher auf den Stand der Buchungen gebracht, wie vor dem Senden.
 

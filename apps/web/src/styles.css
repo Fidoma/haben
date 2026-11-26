@@ -612,7 +612,20 @@ textarea.autogrow { field-sizing: content; min-height: 8lh; max-height: 70vh; }
 .form-section-zu > details > summary > h3 { margin: 0; font-size: 13px; font-weight: 500; color: var(--muted); }
 .form-section-kurz { font-size: 13px; color: var(--ink); }
 /* Einklappabschnitt unmittelbar auf der Seite (Voranmeldung, #1253): bündig mit den Karten, ohne Einzug des Formulars */
-.main > .form-section-zu > details > summary, .main > .form-section-zu .form-section-inhalt { padding-left: 0; padding-right: 0; }
+.main > .form-section-zu > details > summary, .main > .form-section-zu .form-section-inhalt,
+.stack > .form-section-zu > details > summary, .stack > .form-section-zu .form-section-inhalt { padding-left: 0; padding-right: 0; }
+.stack > .form-section-zu { border-top: 0; }
+/* In der schmalen Spalte steht die Auskunft unter der Überschrift, bündig mit ihr (12px Pfeil plus 12px Abstand) */
+.stack > .form-section-zu > details > summary > .form-section-kurz { flex-basis: 100%; padding-left: 24px; }
+/* Ablauf der Voranmeldung (#1253): drei Schritte in einer Zeile, der aktuelle fett, Erledigtes mit Haken, darunter das Ergebnis */
+.ablauf-schritte { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 0; padding: 0; list-style: none; font-size: 14px; color: var(--muted); }
+.ablauf-schritte > li { display: flex; align-items: center; gap: 8px; }
+.ablauf-schritte > li[aria-current="step"] { color: var(--ink); font-weight: 600; }
+.ablauf-marke { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1px solid var(--muted); border-radius: 50%; font-size: 12px; }
+.ablauf-schritte > li[aria-current="step"] .ablauf-marke { border-color: var(--accent); }
+.ablauf-erledigt .ablauf-marke { border-color: transparent; background: var(--accent-soft); color: var(--accent-ink); }
+.ablauf-satz { margin: 0; font-size: 16px; font-weight: 500; }
+@media (max-width: 640px) { .ablauf-schritte { gap: 8px 16px; } }
 .form-section-inhalt { display: flex; flex-direction: column; gap: 16px; padding: 0 24px 20px; }
 @media (max-width: 640px) {
   .form-section-zu > details > summary { padding-left: 16px; padding-right: 16px; }

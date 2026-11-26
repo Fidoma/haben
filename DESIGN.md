@@ -246,7 +246,11 @@ Hinweis und Fehler gehen als `hint` und `error` an `Field`, das `aria-describedb
 
 Seltenes steht eingeklappt, Gesetztes in der Überschrift („Weitere Angaben: EUR · fällig 30.11.2026“), und ein Fehler an einem Feld darin klappt den Bereich auf, auch einer vom Server; was jeder Beleg oder Kontakt braucht, bleibt draußen. Beim Beleg (`WeitereAngaben`) und beim Kontakt (`ContactWeitereAngaben`) gilt das Muster; den Feldnamen eines Fehlers nennt `felder` (`UserError`, bei Zod-Prüfungen der Pfad), nie der Meldungstext.
 
-Im Formular gilt dasselbe für ganze Abschnitte (`EinklappAbschnitt`, Klasse `.form-section-zu`): Die Überschrift ist die Zeile zum Aufklappen, mindestens 48px hoch, mit `›` davor und dem Gesetzten dahinter. Die Seite hält den Zustand, damit ein Fehler oder ein Link mit Anker den Abschnitt aufklappen kann; die Felder bleiben zugeklappt im Formular und gehen beim Speichern mit. Auch ein Bereich unmittelbar auf der Seite, ohne Formular, steht so eingeklappt; als Kind von `<main>` rückt er nicht ein (`.main > .form-section-zu`).
+Im Formular gilt dasselbe für ganze Abschnitte (`EinklappAbschnitt`, Klasse `.form-section-zu`): Die Überschrift ist die Zeile zum Aufklappen, mindestens 48px hoch, mit `›` davor und dem Gesetzten dahinter. Die Seite hält den Zustand, damit ein Fehler oder ein Link mit Anker den Abschnitt aufklappen kann; die Felder bleiben zugeklappt im Formular und gehen beim Speichern mit. Auch ein Bereich unmittelbar auf der Seite, ohne Formular, steht so eingeklappt; als Kind von `<main>` rückt er nicht ein (`.main > .form-section-zu`). In der Spalte einer Seite (`.stack > .form-section-zu`) steht er ohne Trennlinie, die Auskunft bündig unter der Überschrift: „Schon anders abgegeben?“ mit dem Abgabevermerk. Sein Anfangszustand folgt der Lage: Er steht offen, wenn er der nächste Schritt ist (ohne ERiC oder ohne eigene Hersteller-ID ist Mein ELSTER der Hauptweg), sonst zu; die Wahl der Nutzerin gewinnt.
+
+### Ablauf
+
+Hat eine Seite eine feste Reihenfolge von Schritten, zeigt `VoranmeldungAblauf` (`.ablauf-*`) sie oben in einer Karte: eine geordnete Liste, der aktuelle Schritt trägt `aria-current="step"` und ist fett, Erledigtes trägt einen Haken und für Screenreader das unsichtbare Wort „(erledigt)“, nie nur Farbe. Darunter steht in einem Satz das Ergebnis; wo es nichts Verlässliches zu sagen gibt (festgeschrieben, berichtigt, Zeitraum passt nicht zur Voranmeldung), entfällt der Satz, die Leiste bleibt. Der Zustand kommt aus dem, was die Seite schon weiß.
 
 ### Datei-Felder
 

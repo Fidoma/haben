@@ -131,7 +131,7 @@ Maßgeblich ist immer die Kennzahl. Abschnitte und Bezeichnungen folgen dem amtl
 
 ## Grenzen
 
-- **Die Abgabe vermerkst du selbst in Haben**, unter **Außerhalb von Haben abgegeben** auf der Seite der Voranmeldung, mit Tag, Transferticket, Kz 83 und Protokoll ([Abgabe vermerken](umsatzsteuer.md#abgabe-außerhalb-von-haben-vermerken)). Der Assistent kann das nicht: Der MCP-Zugang liest nur.
+- **Die Abgabe vermerkst du selbst in Haben**, unter **Schon anders abgegeben?** im Bereich **Außerhalb von Haben abgegeben** auf der Seite der Voranmeldung, mit Tag, Transferticket, Kz 83 und Protokoll ([Abgabe vermerken](umsatzsteuer.md#abgabe-außerhalb-von-haben-vermerken)). Der Assistent kann das nicht: Der MCP-Zugang liest nur.
 - **Kein Ersatz für ERiC:** kein Senden aus Haben heraus, kein Postfachabruf, keine Übernahme von Bescheiden. Wer eine Hersteller-ID hat, sendet weiter direkt aus Haben.
 - **Nur die Voranmeldung.** Für die Jahreserklärungen (Umsatzsteuererklärung, Anlage EÜR, Einkommensteuer) gibt es noch keine Ausfüllliste; das Werkzeug `jahreserklaerung` liefert nur Summen, Hinweise und die Steuerprognose, nicht die einzelnen Zeilen.
 - **Abgesendet wird nur von dir.**

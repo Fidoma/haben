@@ -2,10 +2,12 @@ import { type computeUstva, periodLabel } from "@haben/core";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent } from "react";
+import { EinklappAbschnitt } from "../../../components/firma/EinklappAbschnitt.tsx";
 import { ElsterSubmit } from "../../../components/ElsterSubmit.tsx";
 import { MeinElsterWerte } from "../../../components/MeinElsterWerte.tsx";
 import { AbgabeVermerken } from "../../../components/umsatzsteuer/AbgabeVermerken.tsx";
 import { UstvaZahlung } from "../../../components/umsatzsteuer/UstvaZahlung.tsx";
+import { ablaufSchritt, ergebnisSatz, VoranmeldungAblauf } from "../../../components/umsatzsteuer/VoranmeldungAblauf.tsx";
 import { elsterNotice, zahllastFakt, type ElsterKind } from "../../../lib/elster.ts";
 import { errorMessage } from "../../../lib/format.ts";
 import type { Notice } from "../../../lib/use-action.ts";
@@ -84,6 +86,41 @@ export function anmeldbar(data: PageData): boolean {
   return !data.periodProblem || Boolean(data.current?.berichtigt);
 }
 
+/**
+ * Ablauf und Ergebnis über den Kennzahlen (#1253). Der Satz entfällt bei einer festgeschriebenen Anmeldung (Status und „Zahlung
+ * an das Finanzamt“ zeigen den echten Stand), bei einer berichtigten (ihr Posten ist die Differenz zur ersten Anmeldung, nicht
+ * Kz 83), bei einem Zeitraum, der nicht zur Voranmeldung passt (`anmeldbar`: Der Hinweis darüber und das gesperrte Senden widersprächen
+ * dem Satz), und solange ein Wert von Hand nicht lesbar ist (`werteGueltig` false): Die Seite rechnet ihn dann als 0, und „nichts zu
+ * zahlen“ wäre falsch. `geaendert`: ungespeicherte oder veraltete Werte.
+ */
+export function ZeitraumAblauf({
+  data,
+  shown,
+  geaendert,
+  werteGueltig,
+}: {
+  data: PageData;
+  shown: ReturnType<typeof computeUstva>;
+  geaendert: boolean;
+  werteGueltig: boolean;
+}) {
+  const locked = data.current?.status === "sent";
+  const schritt = ablaufSchritt({
+    locked,
+    gespeichert: Boolean(data.current),
+    geaendert,
+    // Alle Posten des Zeitraums (`data.posten`): Eine Berichtigung nach unten verrechnet ihre Minderung, der Rest steht dann als Zahllast offen am Posten des Originals.
+    // Eine offene Erstattung (offen < 0) ist nichts zu zahlen und hält das Zahlen nicht offen.
+    ausgeglichen: !data.posten.some((p) => p.offen > 0),
+  });
+  return (
+    <VoranmeldungAblauf
+      schritt={schritt}
+      satz={locked || data.current?.berichtigt || !anmeldbar(data) || !werteGueltig ? null : ergebnisSatz(shown.kz83, data.dueDate, data.today)}
+    />
+  );
+}
+
 /** Rechte Spalte: an ELSTER senden, Zahlung an das Finanzamt, Abgabe außerhalb von Haben, Werte für Mein ELSTER, Verlauf */
 export function AbgabeSpalte({
   data,
@@ -95,6 +132,7 @@ export function AbgabeSpalte({
   stale,
   onSubmit,
   setNotice,
+  vermerk,
 }: {
   data: PageData;
   locked: boolean;
@@ -106,6 +144,8 @@ export function AbgabeSpalte({
   stale: boolean;
   onSubmit: (kind: ElsterKind, pin?: string) => Promise<void>;
   setNotice: (notice: Notice) => void;
+  /** Ob „Schon anders abgegeben?“ offen steht; die Seite hält es, damit es das Neuaufsetzen nach dem Speichern übersteht */
+  vermerk: { offen: boolean; onOffen: (offen: boolean) => void };
 }) {
   const loadWerte = useServerFn(getMeinElsterUstvaWerte);
   const current = data.current;
@@ -131,13 +171,21 @@ export function AbgabeSpalte({
       )}
       <UstvaZahlung posten={data.posten} />
       {!locked && current && (
-        <AbgabeVermerken
-          returnId={current.id}
-          kz83={shown.kz83}
-          blocked={dirty || stale}
-          today={data.today}
-          onFiled={() => setNotice({ tone: "ok", text: "Abgabe vermerkt und Voranmeldung festgeschrieben. Die Zahllast steht jetzt im Bankabgleich." })}
-        />
+        <EinklappAbschnitt
+          id="ust-vermerk"
+          titel="Schon anders abgegeben?"
+          kurz="Abgabe in Mein ELSTER vermerken"
+          offen={vermerk.offen}
+          onOffen={vermerk.onOffen}
+        >
+          <AbgabeVermerken
+            returnId={current.id}
+            kz83={shown.kz83}
+            blocked={dirty || stale}
+            today={data.today}
+            onFiled={() => setNotice({ tone: "ok", text: "Abgabe vermerkt und Voranmeldung festgeschrieben. Die Zahllast steht jetzt im Bankabgleich." })}
+          />
+        </EinklappAbschnitt>
       )}
       {!data.herstellerIdConfigured && !locked && current && (
         <MeinElsterWerte

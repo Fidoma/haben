@@ -567,7 +567,19 @@ test("Voranmeldung außerhalb von Haben abgegeben: Abgabe vermerken, Zahllast im
   await page.getByRole("button", { name: "Entwurf speichern" }).click();
   await expect(page.getByText("Entwurf gespeichert.")).toBeVisible();
 
+  // Das Ergebnis steht über den Kennzahlen, der Ablauf steht beim Abgeben (#1253)
+  // Juni vor zwei Jahren: die Frist ist längst vorbei, also „war fällig“ statt „bis“
+  await expect(page.getByText(/Die Zahllast von 190,00\s€ war am \d{2}\.\d{2}\.\d{4} fällig\./)).toBeVisible();
+  await expect(page.getByRole("region", { name: "Ablauf der Voranmeldung" }).locator('[aria-current="step"]')).toContainText("Abgeben");
+  // Ohne Hersteller-ID ist Mein ELSTER der Hauptweg: „Schon anders abgegeben?“ steht offen, lässt sich zu- und wieder aufklappen
   const vermerk = page.getByRole("form", { name: "Außerhalb von Haben abgegeben" });
+  const abschnitt = page.locator('section[aria-labelledby="ust-vermerk"] > details');
+  await expect(abschnitt).toHaveJSProperty("open", true);
+  await abschnitt.locator("summary").click();
+  await expect(abschnitt).toHaveJSProperty("open", false);
+  await expect(vermerk).toBeHidden();
+  await abschnitt.locator("summary").click();
+  await expect(vermerk.getByLabel("Tag der Abgabe")).toBeVisible();
   // Ein geleertes Datum ist eine unfertige Eingabe, die Seite bleibt stehen (Codex-Review #443); der Knopf sagt am Feld, was fehlt
   await vermerk.getByLabel("Tag der Abgabe").fill("");
   await vermerk.getByRole("button", { name: "Abgabe vermerken" }).click();
