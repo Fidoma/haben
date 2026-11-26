@@ -41,7 +41,7 @@ describe("Grund gesperrter FinTS-Knöpfe beim Trennen (#1677)", () => {
 
   it("nennt an den übrigen Zeilen alle Knöpfe, an der trennenden keinen", () => {
     expect(zeilenGrund(zweitbank, alle, trennt)).toEqual({
-      text: "„Trennen“ und „Jetzt abrufen“ gehen wieder, sobald die Verbindung zu Testbank …3001 getrennt ist.",
+      text: "„Trennen“, „Zugang ändern“ und „Jetzt abrufen“ gehen wieder, sobald die Verbindung zu Testbank …3001 getrennt ist.",
       trennen: true,
     });
     expect(zeilenGrund(zweiterZugang, alle, trennt)).toBeNull();
@@ -54,7 +54,7 @@ describe("Grund gesperrter FinTS-Knöpfe beim Trennen (#1677)", () => {
   it("nennt bei offenem Formular oben „Trennen“ in einem zweiten Satz", () => {
     expect(zeilenGrund(zweitbank, alle, { ...trennt, verbinden: true })).toEqual({
       text:
-        "„Jetzt abrufen“ geht wieder, sobald das Verbinden über FinTS oben fertig oder abgebrochen ist. " +
+        "„Zugang ändern“ und „Jetzt abrufen“ gehen wieder, sobald das Verbinden über FinTS oben fertig oder abgebrochen ist. " +
         "„Trennen“ geht wieder, sobald die Verbindung zu Testbank …3001 getrennt ist.",
       trennen: true,
     });
@@ -62,7 +62,7 @@ describe("Grund gesperrter FinTS-Knöpfe beim Trennen (#1677)", () => {
 
   it("ohne Trennen bleibt der Grund beim offenen Formular, wie er war", () => {
     expect(zeilenGrund(zweitbank, alle, { ...ruhig, verbinden: true })).toEqual({
-      text: "„Jetzt abrufen“ geht wieder, sobald das Verbinden über FinTS oben fertig oder abgebrochen ist.",
+      text: "„Zugang ändern“ und „Jetzt abrufen“ gehen wieder, sobald das Verbinden über FinTS oben fertig oder abgebrochen ist.",
       trennen: false,
     });
   });

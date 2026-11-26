@@ -2,12 +2,12 @@ import { type FintsTestbank, type FintsTestbankUmsatz, startFintsTestbank } from
 import { expect, type Page, test } from "@playwright/test";
 import postgres from "postgres";
 import { databaseUrlFuer, FINTS_BANK_PORT, FINTS_PRODUKT_E2E } from "./durchlaeufe.ts";
-import { bestaetigen, durchlaufSeite, einrichten, gehe } from "./einrichtung.ts";
+import { axeVerstoesse, bestaetigen, durchlaufSeite, einrichten, gehe } from "./einrichtung.ts";
 
 /**
  * Kontoabruf über FinTS (#654) in eigener, leerer Datenbank (Projekt „fints-abruf“, e2e/durchlaeufe.ts). Der Server
  * des Durchlaufs hat als einziger FINTS_PRODUKT_ID (playwright.config.ts); die Bank baut @haben/import/fints-testbank
- * nach: FinTS 3.0 mit PIN/TAN, chipTAN und pushTAN, Umsätze als MT940.
+ * nach: FinTS 3.0 mit PIN/TAN, chipTAN und pushTAN, zwei Konten, Umsätze als MT940.
  */
 
 test.describe.configure({ mode: "serial" });
@@ -68,6 +68,7 @@ test.afterEach(() => {
 
 const abruf = () => page.getByRole("region", { name: "Automatischer Abruf" });
 const freigabe = () => page.getByRole("form", { name: "Freigabe bei der Bank" });
+const kontenwahl = () => page.getByRole("form", { name: "Konten wählen" });
 
 async function zugangEingeben(pin = "12345", ziel = bank, blz = "12030000") {
   const form = page.getByRole("form", { name: "Über FinTS verbinden" });
@@ -114,7 +115,7 @@ test("prüft den Zugang im Formular, bevor Haben die Bank fragt", async () => {
   await form.getByRole("button", { name: "Abbrechen" }).click();
 });
 
-test("verbindet mit TAN-Verfahren und TAN und holt die Umsätze beider Konten", async () => {
+test("verbindet mit TAN-Verfahren und TAN und holt nur die Umsätze des gewählten Kontos", async () => {
   bank.zustand.scaBeiAnmeldung = true;
   await abruf().getByRole("button", { name: "Über FinTS verbinden" }).click();
   await zugangEingeben();
@@ -127,11 +128,28 @@ test("verbindet mit TAN-Verfahren und TAN und holt die Umsätze beider Konten", 
   await freigabe().getByLabel("TAN", { exact: true }).fill("123456");
   await freigabe().getByRole("button", { name: "TAN senden" }).click();
 
+  // Erst nach der Anmeldung nennt die Bank die Konten; vorgewählt sind alle
+  const giro = kontenwahl().getByRole("checkbox", { name: "Girokonto …2051" });
+  const tagesgeld = kontenwahl().getByRole("checkbox", { name: "Tagesgeld …9890" });
+  await expect(giro).toBeChecked();
+  await expect(tagesgeld).toBeChecked();
+  // Ohne Konto fragt das Formular, statt weiterzugehen
+  await giro.uncheck();
+  await tagesgeld.uncheck();
+  await kontenwahl().getByRole("button", { name: "Weiter" }).click();
+  await expect(kontenwahl().getByText("Wähle mindestens ein Konto.")).toBeVisible();
+  await expect(giro).toBeFocused();
+  expect(await axeVerstoesse(page)).toEqual([]);
+  await giro.check();
+  await kontenwahl().getByRole("button", { name: "Weiter" }).click();
+
   await expect(abruf().getByText("Testbank verbunden, 2 neue Umsätze.")).toBeVisible();
-  await expect(abruf().getByText(/Neu angelegt: Testbank Girokonto …2051, Testbank Tagesgeld …9890/)).toBeVisible();
-  await expect(abruf().getByText("Testbank Girokonto …2051 · Testbank Tagesgeld …9890")).toBeVisible();
+  await expect(abruf().getByText(/^Neu angelegt: Testbank Girokonto …2051\. /)).toBeVisible();
+  await expect(abruf().getByText("Testbank Girokonto …2051", { exact: true })).toBeVisible();
   await expect(abruf().getByText("Aktiv")).toBeVisible();
+  await expect(abruf().getByRole("button", { name: "Zugang ändern" })).toBeVisible();
   const konten = page.getByRole("navigation", { name: "Konten" });
+  await expect(konten.getByRole("link", { name: /Tagesgeld/ })).toHaveCount(0);
   await expect(konten.getByRole("link", { name: /Testbank Girokonto …2051/ })).toContainText("Abruf");
   await expect(konten.getByRole("link", { name: /Testbank Girokonto …2051/ })).toContainText("1.140,01 €");
   await expect(page.getByText("Mobilfunk").first()).toBeVisible();
@@ -148,12 +166,6 @@ test("„Jetzt abrufen“ fragt die TAN ab, wenn die Bank sie verlangt", async (
 });
 
 test("„Über FinTS verbinden“ öffnet nach zugeklapptem „Zugang ändern“ ein leeres Formular", async () => {
-  const sql = postgres(databaseUrlFuer("fints-abruf"), { max: 1, onnotice: () => {} });
-  try {
-    await sql`update fints_connections set status = 'fehler', last_error = 'Abruf fehlgeschlagen: PIN ungültig. (9942)'`;
-  } finally {
-    await sql.end();
-  }
   await gehe(page, "/bank");
   const form = page.getByRole("form", { name: "Über FinTS verbinden" });
   const oeffnen = () => abruf().getByRole("button", { name: "Über FinTS verbinden" }).click();
@@ -177,7 +189,7 @@ test("„Über FinTS verbinden“ öffnet nach zugeklapptem „Zugang ändern“
   await expect(form).toHaveCount(0);
 });
 
-test("nach einer abgelehnten PIN den Zugang ändern", async () => {
+test("nach einer abgelehnten PIN den Zugang ändern und dabei ein Konto dazunehmen", async () => {
   // Wie nach einer neuen PIN bei der Bank: der Abruf im Hintergrund hat aufgehört, die Verbindung steht auf „Fehler“
   const sql = postgres(databaseUrlFuer("fints-abruf"), { max: 1, onnotice: () => {} });
   try {
@@ -198,9 +210,17 @@ test("nach einer abgelehnten PIN den Zugang ändern", async () => {
   // pushTAN: diesmal ohne TAN, die Bank verlangt bei der Anmeldung keine mehr
   await freigabe().getByLabel("TAN-Verfahren").selectOption({ label: "pushTAN 2.0" });
   await freigabe().getByRole("button", { name: "Weiter" }).click();
+  // Vorgewählt ist, was die Verbindung bisher abruft
+  await expect(kontenwahl().getByRole("checkbox", { name: "Girokonto …2051" })).toBeChecked();
+  await expect(kontenwahl().getByRole("checkbox", { name: "Tagesgeld …9890" })).not.toBeChecked();
+  await kontenwahl().getByRole("checkbox", { name: "Tagesgeld …9890" }).check();
+  await kontenwahl().getByRole("button", { name: "Weiter" }).click();
   await expect(abruf().getByText("Testbank verbunden, 0 neue Umsätze.")).toBeVisible();
+  await expect(abruf().getByText(/^Neu angelegt: Testbank Tagesgeld …9890\. /)).toBeVisible();
+  await expect(abruf().getByText("Testbank Girokonto …2051 · Testbank Tagesgeld …9890")).toBeVisible();
   await expect(abruf().getByText("Aktiv")).toBeVisible();
-  await expect(abruf().getByRole("button", { name: "Zugang ändern" })).toHaveCount(0);
+  await expect(abruf().getByText("Abruf fehlgeschlagen: PIN ungültig. (9942)")).toHaveCount(0);
+  await expect(abruf().getByRole("button", { name: "Zugang ändern" })).toBeVisible();
   // Das Formular schließt wie beim ersten Verbinden, mit der PIN darin bleibt nichts stehen
   await expect(page.getByRole("form", { name: "Über FinTS verbinden" })).toHaveCount(0);
 });
@@ -226,6 +246,7 @@ test("pushTAN: fragt die TAN ab, wenn die Bank bei der Anmeldung eine aus der Ap
   await expect(freigabe().getByText("Bitte generieren Sie eine TAN mit Ihrer Banking App oder Ihrem TAN Generator und geben diese hier ein.")).toBeVisible();
   await expect(freigabe().getByRole("button", { name: "Freigegeben, weiter" })).toHaveCount(0);
   await freigabe().getByLabel("TAN", { exact: true }).fill("123456");
+  await freigabe().getByRole("button", { name: "TAN senden" }).click();
   // Auch wenn die Seite langsam neu lädt, kommt die Meldung erst mit dem neu geladenen Stand (#1606)
   const neuLaden = (url: URL) => url.pathname.startsWith("/_serverFn/");
   await page.route(neuLaden, async (route) => {
@@ -233,7 +254,7 @@ test("pushTAN: fragt die TAN ab, wenn die Bank bei der Anmeldung eine aus der Ap
     await new Promise((fertig) => setTimeout(fertig, 1500));
     await route.continue();
   });
-  await freigabe().getByRole("button", { name: "TAN senden" }).click();
+  await kontenwahl().getByRole("button", { name: "Weiter" }).click();
   await expect(abruf().getByText("Testbank verbunden, 0 neue Umsätze.")).toBeVisible();
   await expect(abruf().getByText("Aktiv")).toBeVisible();
   // „wait“ lässt verzögerte Anfragen noch fertig laufen
@@ -250,6 +271,7 @@ test("erneut verbinden, bei der TAN für die Umsätze abgebrochen: die bisherige
   await zugangEingeben();
   await freigabe().getByLabel("TAN-Verfahren").selectOption({ label: "chipTAN manuell" });
   await freigabe().getByRole("button", { name: "Weiter" }).click();
+  await kontenwahl().getByRole("button", { name: "Weiter" }).click();
   await expect(freigabe().getByLabel("TAN", { exact: true })).toBeVisible();
   await freigabe().getByRole("button", { name: "Abbrechen" }).click();
   await expect(freigabe()).toHaveCount(0);
@@ -277,6 +299,7 @@ test("erneut verbinden, bei der Wahl des TAN-Verfahrens abgebrochen: die bisheri
   await zugangEingeben();
   await freigabe().getByLabel("TAN-Verfahren").selectOption({ label: "chipTAN manuell" });
   await freigabe().getByRole("button", { name: "Weiter" }).click();
+  await kontenwahl().getByRole("button", { name: "Weiter" }).click();
   await expect(abruf().getByText(/^Testbank verbunden/)).toBeVisible();
   const ids = await verbindungsIds();
   const zuletzt = abruf().getByText(/^Zuletzt abgerufen/);
@@ -298,6 +321,7 @@ test("erneut verbinden, bei der TAN für die Umsätze abgebrochen: „Trennen“
   await zugangEingeben();
   await freigabe().getByLabel("TAN-Verfahren").selectOption({ label: "chipTAN manuell" });
   await freigabe().getByRole("button", { name: "Weiter" }).click();
+  await kontenwahl().getByRole("button", { name: "Weiter" }).click();
   // Verbinden hat den neuen Zugang schon gespeichert, die ID bleibt (#1617); erst der Abruf der Umsätze fragt die TAN
   // (#1614)
   await expect(freigabe().getByLabel("TAN", { exact: true })).toBeVisible();
@@ -327,6 +351,7 @@ test("erneut verbinden, das Formular oben mit „Über FinTS verbinden“ zugekl
   await zugangEingeben();
   await freigabe().getByLabel("TAN-Verfahren").selectOption({ label: "chipTAN manuell" });
   await freigabe().getByRole("button", { name: "Weiter" }).click();
+  await kontenwahl().getByRole("button", { name: "Weiter" }).click();
   await expect(abruf().getByText(/^Testbank verbunden/)).toBeVisible();
   const ids = await verbindungsIds();
 
@@ -347,6 +372,7 @@ test("erneut verbinden, das Formular oben mit „Über FinTS verbinden“ zugekl
   await zugangEingeben();
   await freigabe().getByLabel("TAN-Verfahren").selectOption({ label: "chipTAN manuell" });
   await freigabe().getByRole("button", { name: "Weiter" }).click();
+  await kontenwahl().getByRole("button", { name: "Weiter" }).click();
   await expect(freigabe().getByLabel("TAN", { exact: true })).toBeVisible();
   expect(await verbindungsIds()).toEqual(ids);
   await page.route(
@@ -375,6 +401,7 @@ test("„Über FinTS verbinden“ ist gesperrt, solange an einer Zeile ein Schri
   await zugangEingeben();
   await freigabe().getByLabel("TAN-Verfahren").selectOption({ label: "chipTAN manuell" });
   await freigabe().getByRole("button", { name: "Weiter" }).click();
+  await kontenwahl().getByRole("button", { name: "Weiter" }).click();
   await expect(abruf().getByText(/^Testbank verbunden/)).toBeVisible();
 
   // Sonst ersetzte der Schritt beim Verbinden den an der Zeile, ohne dass Haben den Vorgang bei der Bank verwirft
@@ -402,6 +429,7 @@ test("„Über FinTS verbinden“ ist gesperrt, solange an einer Zeile ein Schri
   await zugangEingeben();
   await freigabe().getByLabel("TAN-Verfahren").selectOption({ label: "chipTAN manuell" });
   await freigabe().getByRole("button", { name: "Weiter" }).click();
+  await kontenwahl().getByRole("button", { name: "Weiter" }).click();
   await expect(abruf().getByText(/^Testbank verbunden/)).toBeVisible();
 });
 
@@ -559,12 +587,13 @@ test("zweite Verbindung über FinTS zu einer anderen Bank", async () => {
 });
 
 test("Formular oben offen bei zwei Verbindungen: jede Zeile nennt den Grund einmal", async () => {
-  const grund = "„Jetzt abrufen“ geht wieder, sobald das Verbinden über FinTS oben fertig oder abgebrochen ist.";
+  const grund = "„Zugang ändern“ und „Jetzt abrufen“ gehen wieder, sobald das Verbinden über FinTS oben fertig oder abgebrochen ist.";
   const form = page.getByRole("form", { name: "Über FinTS verbinden" });
   await abruf().getByRole("button", { name: "Über FinTS verbinden" }).click();
   await expect(form).toBeVisible();
   for (const name of ["Zweitbank", "Testbank"]) {
     await expect(zeile(name).getByText(/wieder, sobald/)).toHaveText(grund);
+    await expect(zeile(name).getByRole("button", { name: "Zugang ändern" })).toHaveAccessibleDescription(grund);
     await expect(zeile(name).getByRole("button", { name: "Jetzt abrufen" })).toHaveAccessibleDescription(grund);
   }
   await form.getByRole("button", { name: "Abbrechen" }).click();
@@ -575,11 +604,11 @@ test("Ist an einer Zeile ein Schritt der Bank offen, nennen die übrigen den Gru
   // Ein zweiter Schritt ersetzte den offenen, ohne dass Haben den Vorgang bei der Bank verwirft (#1662)
   const oben = zeile("Zweitbank");
   const unten = zeile("Testbank");
-  const grund = "„Trennen“ und „Jetzt abrufen“ gehen wieder, sobald die Freigabe für Testbank gesendet oder abgebrochen ist.";
+  const grund = "„Trennen“, „Zugang ändern“ und „Jetzt abrufen“ gehen wieder, sobald die Freigabe für Testbank gesendet oder abgebrochen ist.";
   const tan = unten.getByLabel("TAN", { exact: true });
   const gesperrtMitGrund = async () => {
     await expect(oben.getByText(grund)).toBeVisible();
-    for (const knopf of ["Trennen", "Jetzt abrufen"]) {
+    for (const knopf of ["Trennen", "Zugang ändern", "Jetzt abrufen"]) {
       await expect(oben.getByRole("button", { name: knopf })).toBeDisabled();
       await expect(oben.getByRole("button", { name: knopf })).toHaveAccessibleDescription(grund);
     }
@@ -589,7 +618,7 @@ test("Ist an einer Zeile ein Schritt der Bank offen, nennen die übrigen den Gru
   };
   const freiOhneGrund = async () => {
     await expect(abruf().getByText(grund)).toHaveCount(0);
-    for (const knopf of ["Trennen", "Jetzt abrufen"]) {
+    for (const knopf of ["Trennen", "Zugang ändern", "Jetzt abrufen"]) {
       await expect(oben.getByRole("button", { name: knopf })).toBeEnabled();
       await expect(oben.getByRole("button", { name: knopf })).toHaveAccessibleDescription("");
     }
@@ -689,13 +718,14 @@ test("zweite Verbindung zu einer Bank mit demselben Namen", async () => {
 test("Heißen zwei Verbindungen gleich, nennt der Grund die wartende mit der Endung ihrer IBAN", async () => {
   const wartend = zeileMitKonto("2051");
   const sobald = "sobald die Freigabe für Testbank …2051 gesendet oder abgebrochen ist.";
-  const grund = `„Trennen“ und „Jetzt abrufen“ gehen wieder, ${sobald}`;
+  const grund = `„Trennen“, „Zugang ändern“ und „Jetzt abrufen“ gehen wieder, ${sobald}`;
   const verbinden = abruf().getByRole("button", { name: "Über FinTS verbinden" });
   bank.zustand.scaBeiUmsaetzen = true;
   await wartend.getByRole("button", { name: "Jetzt abrufen" }).click();
   await expect(wartend.getByLabel("TAN", { exact: true })).toBeVisible();
   for (const z of [zeileMitKonto("3001"), zeile("Zweitbank")]) {
     await expect(z.getByText(/wieder, sobald/)).toHaveText(grund);
+    await expect(z.getByRole("button", { name: "Zugang ändern" })).toHaveAccessibleDescription(grund);
     await expect(z.getByRole("button", { name: "Jetzt abrufen" })).toHaveAccessibleDescription(grund);
   }
   await expect(verbinden).toBeDisabled();
@@ -709,7 +739,7 @@ test("Heißen zwei Verbindungen gleich, nennt der Grund die wartende mit der End
 test("Läuft „Trennen“ an einer Zeile, nennen die übrigen den Grund ihrer gesperrten Knöpfe", async () => {
   const trennt = zeileMitKonto("3001");
   const uebrige = [zeile("Zweitbank"), zeileMitKonto("2051")];
-  const grund = "„Trennen“ und „Jetzt abrufen“ gehen wieder, sobald die Verbindung zu Testbank …3001 getrennt ist.";
+  const grund = "„Trennen“, „Zugang ändern“ und „Jetzt abrufen“ gehen wieder, sobald die Verbindung zu Testbank …3001 getrennt ist.";
   let loslassen!: () => void;
   const gehalten = new Promise<void>((fertig) => {
     loslassen = fertig;
@@ -730,7 +760,7 @@ test("Läuft „Trennen“ an einer Zeile, nennen die übrigen den Grund ihrer g
     await expect(trennt.getByText(/wieder, sobald/)).toHaveCount(0);
     for (const z of uebrige) {
       await expect(z.getByText(/wieder, sobald/)).toHaveText(grund);
-      for (const knopf of ["Trennen", "Jetzt abrufen"]) {
+      for (const knopf of ["Trennen", "Zugang ändern", "Jetzt abrufen"]) {
         await expect(z.getByRole("button", { name: knopf })).toBeDisabled();
         await expect(z.getByRole("button", { name: knopf })).toHaveAccessibleDescription(grund);
       }
@@ -744,7 +774,7 @@ test("Läuft „Trennen“ an einer Zeile, nennen die übrigen den Grund ihrer g
   await expect(abruf().locator(".history-row")).toHaveCount(2);
   await expect(abruf().getByText(/wieder, sobald/)).toHaveCount(0);
   for (const z of uebrige) {
-    for (const knopf of ["Trennen", "Jetzt abrufen"]) {
+    for (const knopf of ["Trennen", "Zugang ändern", "Jetzt abrufen"]) {
       await expect(z.getByRole("button", { name: knopf })).toBeEnabled();
       await expect(z.getByRole("button", { name: knopf })).toHaveAccessibleDescription("");
     }

@@ -38,6 +38,15 @@ describe.skipIf(!testDatabaseUrl)("Kontoabruf über FinTS (Postgres)", () => {
     await sql`update fints_connections set ciphertext = ${geheim.fintsGeheimnisVerschluesseln({ pin, bankdaten })}`;
   }
 
+  /** Verbindet neu mit pushTAN und übernimmt beide Konten in Euro; die Wahl der Konten prüft fints-kontenwahl.test.ts */
+  async function neuVerbinden(today: string) {
+    const wahl = await fints.fintsVerbinden(ACTOR, zugang(), today);
+    if (wahl.art !== "verfahren") throw new Error("Verfahren erwartet");
+    const konten = await vorgang.vorgangFortsetzen(ACTOR, wahl.vorgang, { verfahren: 921 });
+    if (konten.art !== "konten") throw new Error("Kontenwahl erwartet");
+    return vorgang.vorgangFortsetzen(ACTOR, konten.vorgang, { konten: [IBAN_A, IBAN_B] });
+  }
+
   async function verbindung() {
     const [row] = await sql`select * from fints_connections`;
     return row!;
@@ -97,7 +106,11 @@ describe.skipIf(!testDatabaseUrl)("Kontoabruf über FinTS (Postgres)", () => {
     const nochmal = await vorgang.vorgangFortsetzen(ACTOR, tan.vorgang, { tan: " " });
     expect(nochmal).toMatchObject({ art: "tan", hinweis: "Bitte die TAN eingeben." });
     if (nochmal.art !== "tan") return;
-    const fertig = await vorgang.vorgangFortsetzen(ACTOR, nochmal.vorgang, { tan: "123456" });
+    // Nach der TAN meldet die Bank die Konten; die Person wählt, welche Haben übernimmt
+    const konten = await vorgang.vorgangFortsetzen(ACTOR, nochmal.vorgang, { tan: "123456" });
+    expect(konten).toMatchObject({ art: "konten" });
+    if (konten.art !== "konten") return;
+    const fertig = await vorgang.vorgangFortsetzen(ACTOR, konten.vorgang, { konten: [IBAN_A, IBAN_B] });
     expect(fertig).toMatchObject({ art: "fertig", ok: true, neu: 4, meldung: "Testbank verbunden, 4 neue Umsätze." });
     if (fertig.art !== "fertig") return;
     expect(fertig.hinweise).toEqual([
@@ -136,10 +149,7 @@ describe.skipIf(!testDatabaseUrl)("Kontoabruf über FinTS (Postgres)", () => {
 
   it("behält beim erneuten Verbinden desselben Zugangs die Verbindung und macht beim Abrufstand weiter", async () => {
     const { id } = await verbindung();
-    const wahl = await fints.fintsVerbinden(ACTOR, zugang(), "2026-10-21");
-    if (wahl.art !== "verfahren") throw new Error("Verfahren erwartet");
-    const fertig = await vorgang.vorgangFortsetzen(ACTOR, wahl.vorgang, { verfahren: 921 });
-    expect(fertig).toMatchObject({ art: "fertig", ok: true, neu: 0 });
+    expect(await neuVerbinden("2026-10-21")).toMatchObject({ art: "fertig", ok: true, neu: 0 });
     const rows = await sql`select id, tan_method from fints_connections`;
     expect(rows.map((r) => [r.id, r.tan_method])).toEqual([[id, 921]]);
     // Folgeabruf: sieben Tage vor dem letzten Abruf, nicht wieder ab Jahresbeginn
@@ -162,9 +172,7 @@ describe.skipIf(!testDatabaseUrl)("Kontoabruf über FinTS (Postgres)", () => {
 
     // „Abbrechen“ an der TAN für die Umsätze: Den Vorgang setzt niemand fort
     bank.zustand.scaBeiUmsaetzen = true;
-    const wahl = await fints.fintsVerbinden(ACTOR, zugang(), "2026-10-22");
-    if (wahl.art !== "verfahren") throw new Error("Verfahren erwartet");
-    expect(await vorgang.vorgangFortsetzen(ACTOR, wahl.vorgang, { verfahren: 921 })).toMatchObject({ art: "tan", entkoppelt: true });
+    expect(await neuVerbinden("2026-10-22")).toMatchObject({ art: "tan", entkoppelt: true });
     const abgebrochen = await verbindung();
     expect(stand(abgebrochen)).toEqual(stand(vorher));
     expect(abgebrochen.last_error).toBe(vorher.last_error);
@@ -175,9 +183,7 @@ describe.skipIf(!testDatabaseUrl)("Kontoabruf über FinTS (Postgres)", () => {
     // Der erste Abruf scheitert: Die Meldung nennt den Fehler, der Abrufstand bleibt
     bank.zustand.scaBeiUmsaetzen = false;
     bank.zustand.mt940Unlesbar = true;
-    const nochmal = await fints.fintsVerbinden(ACTOR, zugang(), "2026-10-22");
-    if (nochmal.art !== "verfahren") throw new Error("Verfahren erwartet");
-    const gescheitert = await vorgang.vorgangFortsetzen(ACTOR, nochmal.vorgang, { verfahren: 921 });
+    const gescheitert = await neuVerbinden("2026-10-22");
     expect(gescheitert).toMatchObject({ art: "fertig", ok: false, neu: 0 });
     if (gescheitert.art !== "fertig") return;
     expect(gescheitert.meldung).toMatch(/^Abruf fehlgeschlagen: Die Bank hat die Umsätze von Konto …2051 als MT940 geschickt/);
@@ -301,9 +307,7 @@ describe.skipIf(!testDatabaseUrl)("Kontoabruf über FinTS (Postgres)", () => {
     await sql`insert into bank_connections (aspsp_name, aspsp_country, psu_type, status, accounts) values
       ('EB-Bank', 'DE', 'business', 'aktiv', ${eb([a!, c!])}::jsonb), ('EB-Ganz', 'DE', 'business', 'aktiv', ${eb([b!])}::jsonb)`;
 
-    const wahl = await fints.fintsVerbinden(ACTOR, zugang(), "2026-10-29");
-    if (wahl.art !== "verfahren") throw new Error("Verfahren erwartet");
-    expect(await vorgang.vorgangFortsetzen(ACTOR, wahl.vorgang, { verfahren: 921 })).toMatchObject({ art: "fertig", ok: true });
+    expect(await neuVerbinden("2026-10-29")).toMatchObject({ art: "fertig", ok: true });
     const uebrig = await sql`select aspsp_name, accounts from bank_connections order by aspsp_name`;
     // EB-Bank behält nur das Konto, das FinTS nicht abruft; EB-Ganz hat keines mehr und ist getrennt
     expect(uebrig.map((r) => [r.aspsp_name, r.accounts.map((x: { bankAccountId: string }) => x.bankAccountId)])).toEqual([["EB-Bank", [c!.id]]]);
@@ -351,9 +355,7 @@ describe.skipIf(!testDatabaseUrl)("Kontoabruf über FinTS (Postgres)", () => {
 
   it("ruft nach 9075 mit TAN-Schritt ab und speichert das mit der Verbindung (wie die Consorsbank)", async () => {
     bank.zustand.umsatzTanVerschwiegen = true;
-    const wahl = await fints.fintsVerbinden(ACTOR, zugang(), "2026-10-29");
-    if (wahl.art !== "verfahren") throw new Error("Verfahren erwartet");
-    expect(await vorgang.vorgangFortsetzen(ACTOR, wahl.vorgang, { verfahren: 921 })).toMatchObject({ art: "fertig", ok: true });
+    expect(await neuVerbinden("2026-10-29")).toMatchObject({ art: "fertig", ok: true });
     const row = await verbindung();
     expect(row).toMatchObject({ status: "aktiv", last_error: null });
     const { bankdaten } = geheim.fintsGeheimnisLesen(row.ciphertext);
@@ -373,9 +375,7 @@ describe.skipIf(!testDatabaseUrl)("Kontoabruf über FinTS (Postgres)", () => {
     const [b] = await sql`select id from bank_accounts where iban = ${IBAN_B}`;
     const { addExternalSource } = await import("./externe-quellen.ts");
     await addExternalSource(ACTOR, { accountId: b!.id, provider: "eigener-dienst", externalAccountId: "tagesgeld-1" });
-    const wahl = await fints.fintsVerbinden(ACTOR, zugang(), "2026-10-29");
-    if (wahl.art !== "verfahren") throw new Error("Verfahren erwartet");
-    await expect(vorgang.vorgangFortsetzen(ACTOR, wahl.vorgang, { verfahren: 921 })).rejects.toThrow(/schon über die Schnittstelle \(eigener-dienst\)/);
+    await expect(neuVerbinden("2026-10-29")).rejects.toThrow(/schon über die Schnittstelle \(eigener-dienst\)/);
     expect(await sql`select id from fints_connections`).toHaveLength(0);
   });
 });

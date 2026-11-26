@@ -14,8 +14,7 @@ import { type Offen, type Schritt, SchrittForm, useAntwort } from "./FintsSchrit
 
 /*
  * Kontoabruf über FinTS (#654) auf der Bankseite: Verbinden mit Bankleitzahl, FinTS-Adresse, Anmeldename und PIN,
- * dann die Schritte der Bank (TAN-Verfahren wählen, TAN eingeben oder in der App freigeben), die Verbindungen mit
- * „Jetzt abrufen“, „Zugang ändern“ und „Trennen“.
+ * dann die Schritte aus FintsSchritt.tsx, die Verbindungen mit „Jetzt abrufen“, „Zugang ändern“ und „Trennen“.
  */
 
 type Fints = Awaited<ReturnType<typeof getBankOverview>>["fints"];
@@ -72,9 +71,8 @@ function trenntAndere(connections: readonly Verbindung[], busy: string | null, a
   return c ? `die Verbindung zu ${nameImGrund(c, connections)} getrennt ist` : null;
 }
 
-/** Gesperrte Knöpfe einer Zeile, „Trennen“ nur mit trennen; „Zugang ändern“ nur bei Fehler; ohne FINTS_PRODUKT_ID nur „Trennen“ */
-const knoepfe = (c: Verbindung, trennen: boolean, configured: boolean) =>
-  [...(trennen ? ["Trennen"] : []), ...(c.status === "fehler" ? ["Zugang ändern"] : []), "Jetzt abrufen"].filter((k) => configured || k === "Trennen");
+/** Gesperrte Knöpfe einer Zeile, „Trennen“ nur mit trennen; ohne FINTS_PRODUKT_ID nur „Trennen“ */
+const knoepfe = (trennen: boolean, configured: boolean) => [...(trennen ? ["Trennen"] : []), ...(configured ? ["Zugang ändern", "Jetzt abrufen"] : [])];
 
 function sperrSatz(namen: string[], sobald: string): string {
   const liste = new Intl.ListFormat("de").format(namen.map((k) => `„${k}“`));
@@ -93,12 +91,12 @@ export function zeilenGrund(c: Verbindung, connections: readonly Verbindung[], z
   const getrennt = trenntAndere(connections, z.busy, c.id);
   if (z.verbinden) {
     const schritt = z.offen?.fuer === "neu";
-    const text = sperrSatz(knoepfe(c, schritt, configured), "das Verbinden über FinTS oben fertig oder abgebrochen ist");
+    const text = sperrSatz(knoepfe(schritt, configured), "das Verbinden über FinTS oben fertig oder abgebrochen ist");
     if (getrennt && !schritt) return { text: `${text} ${sperrSatz(["Trennen"], getrennt)}`, trennen: true };
     return { text, trennen: schritt };
   }
   const sobald = wartetAuf(connections, z, c.id) ?? getrennt;
-  return sobald ? { text: sperrSatz(knoepfe(c, true, configured), sobald), trennen: true } : null;
+  return sobald ? { text: sperrSatz(knoepfe(true, configured), sobald), trennen: true } : null;
 }
 
 const meldungenAus = (s: Extract<Schritt, { art: "fertig" }>): Meldung[] => [
@@ -184,7 +182,7 @@ function VerbindenForm({ vorlage, onSchritt, onAbbrechen }: { vorlage: Verbindun
       <Field
         label="Umsätze abrufen ab"
         error={fehler("fetchFrom")}
-        hint="Gilt für Konten, die noch nie abgerufen wurden. Mit der Vorgabe holt Haben ab Jahresbeginn oder schließt an Umsätze an, die schon da sind."
+        hint="Gilt für Konten, die Haben noch nicht abruft, auch für ein wieder angehaktes. Mit der Vorgabe holt Haben ab Jahresbeginn oder schließt an Umsätze an, die schon da sind."
       >
         {(control) => <input {...control} type="date" value={fetchFrom} max={today} onChange={(e) => setFetchFrom(e.target.value)} />}
       </Field>
@@ -349,7 +347,7 @@ export function FintsAbruf({
             <button type="button" className="btn btn-danger" disabled={gesperrt} aria-describedby={grundZeile(c, true)} onClick={() => setTrennt(c)}>
               {busy === `x-${c.id}` ? "Trenne …" : "Trennen"}
             </button>
-            {c.status === "fehler" && fints.configured && (
+            {fints.configured && (
               <button
                 type="button"
                 className="btn"
