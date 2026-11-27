@@ -66,9 +66,10 @@ export function usePspAbruf(daten: PspDaten) {
             <VerbindungFormular
               daten={daten}
               verbindung={bearbeiten}
-              onFertig={(gespeichert) => {
+              onFertig={(hinweise) => {
                 setBearbeiten(null);
-                if (gespeichert) setNotice({ tone: "ok", text: "Verbindung gespeichert." });
+                // Hinweise der Prüfung, etwa ein fehlendes Recht für neue Metadaten, stehen in der Meldung (#1915)
+                if (hinweise) setNotice({ tone: hinweise.length > 0 ? "info" : "ok", text: ["Verbindung gespeichert.", ...hinweise].join(" ") });
               }}
             />
           </div>

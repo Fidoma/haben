@@ -55,7 +55,7 @@ describe.skipIf(!testDatabaseUrl)("Verbindung zu einem schon gebundenen Konto de
   });
 
   it("gibt einem anderen Stripe-Konto nicht das Konto, an das ein früheres gebunden ist; das frühere bekommt es wieder", async () => {
-    const erste = await psp.speichereVerbindung(actor, {
+    const { id: erste } = await psp.speichereVerbindung(actor, {
       provider: "stripe",
       name: "Alt",
       eingabe: { apiKey: "rk_live_alteaaaaaaaaaa" },
@@ -65,7 +65,7 @@ describe.skipIf(!testDatabaseUrl)("Verbindung zu einem schon gebundenen Konto de
     const gebunden = (await psp.ladeVerbindung(erste))!.row.bankAccountId!;
     await psp.entferneVerbindung(actor, erste);
     // „Automatisch“ nimmt das frei gewordene Konto nicht: Es enthält die Umsätze des alten Stripe-Kontos (ein Konto, eine Quelle, #306)
-    const andere = await psp.speichereVerbindung(actor, {
+    const { id: andere } = await psp.speichereVerbindung(actor, {
       provider: "stripe",
       name: "Andere",
       eingabe: { apiKey: "rk_live_andereaaaaaaaa" },
@@ -78,7 +78,7 @@ describe.skipIf(!testDatabaseUrl)("Verbindung zu einem schon gebundenen Konto de
     ).rejects.toThrow("bekommt schon die Umsätze eines anderen Stripe-Kontos");
     expect((await psp.abrufen(actor, andere, HEUTE)).error).toBeNull();
     // Das alte Stripe-Konto schreibt wieder in sein Konto
-    const wieder = await psp.speichereVerbindung(actor, {
+    const { id: wieder } = await psp.speichereVerbindung(actor, {
       provider: "stripe",
       name: "Alt wieder",
       eingabe: { apiKey: "rk_live_alteaaaaaaaaaa" },
@@ -104,7 +104,7 @@ describe.skipIf(!testDatabaseUrl)("Verbindung zu einem schon gebundenen Konto de
   });
 
   it("behält beim Wechsel auf ein anderes Stripe-Konto mit „Automatisch“ nicht das schon gebundene Konto", async () => {
-    const id = await psp.speichereVerbindung(actor, {
+    const { id } = await psp.speichereVerbindung(actor, {
       provider: "stripe",
       name: "Wechsel Alt",
       eingabe: { apiKey: "rk_live_dritteaaaaaaaa" },

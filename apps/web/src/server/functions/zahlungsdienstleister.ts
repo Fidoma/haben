@@ -21,7 +21,7 @@ export const getPspSettings = createServerFn({ method: "GET" })
 export const savePspConnectionFn = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator(verbindungSchema)
-  .handler(async ({ data, context }) => ({ id: await speichereVerbindung(context.user.id, data) }));
+  .handler(async ({ data, context }) => speichereVerbindung(context.user.id, data));
 
 export const removePspConnectionFn = createServerFn({ method: "POST" })
   .middleware([authMiddleware])

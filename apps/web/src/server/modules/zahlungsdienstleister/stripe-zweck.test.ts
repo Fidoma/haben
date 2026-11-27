@@ -64,7 +64,7 @@ describe.skipIf(!testDatabaseUrl)("Stripe-Zweck aus Metadaten (Postgres)", () =>
   const config = async () => (await psp.verbindungenUebersicht()).verbindungen[0]!.config;
 
   it("speichert die Metadaten als Verwendungszweck und erkennt den CSV-Export derselben Zahlung wieder", async () => {
-    const id = await speichern(" invoice_number, invoice_id,invoice_number, ", "rk_live_abcdefghijklmnop");
+    const { id } = await speichern(" invoice_number, invoice_id,invoice_number, ", "rk_live_abcdefghijklmnop");
     expect(await config()).toEqual({ metadataKeys: "invoice_number, invoice_id" });
     await sql`insert into bank_accounts (name, purpose, provider, ledger_index) values ('Stripe alt', 'zahlungsdienstleister', 'stripe', 4)`;
     const result = await psp.abrufen(actor, id, new Date("2026-11-03T10:00:00Z"));

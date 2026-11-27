@@ -5,7 +5,8 @@ import { setupTestDb, testDatabaseUrl } from "../../test-db.ts";
 
 /*
  * Darf der Schlüssel Zahlungen nicht lesen, sagt das schon „Zugang prüfen“, wenn Schlüssel der Metadaten gewählt sind (#1915):
- * Nach dem ersten Abruf wären die Umsätze ohne Metadaten übernommen und bekämen sie nicht mehr.
+ * Nach dem ersten Abruf wären die Umsätze ohne Metadaten übernommen und bekämen sie nicht mehr. Ebenso beim Speichern
+ * geänderter Einstellungen in „Bearbeiten“ ohne neuen Schlüssel.
  */
 
 describe.skipIf(!testDatabaseUrl)("Stripe-Zugang prüfen mit Metadaten ohne Leserecht (Postgres)", () => {
@@ -14,6 +15,8 @@ describe.skipIf(!testDatabaseUrl)("Stripe-Zugang prüfen mit Metadaten ohne Lese
   let darf = false;
   let stoerung: Error | null = null;
   let gefragt = 0;
+  let ausfall: Error | null = null;
+  const actor = "test-user";
 
   beforeAll(async () => {
     sql = await setupTestDb();
@@ -21,7 +24,10 @@ describe.skipIf(!testDatabaseUrl)("Stripe-Zugang prüfen mit Metadaten ohne Lese
     psp.setStripeClientFactory(
       () =>
         ({
-          accountId: async () => "acct_rechte",
+          accountId: async () => {
+            if (ausfall) throw ausfall;
+            return "acct_rechte";
+          },
           darfZahlungenLesen: async () => {
             gefragt++;
             if (stoerung) throw stoerung;
@@ -66,5 +72,33 @@ describe.skipIf(!testDatabaseUrl)("Stripe-Zugang prüfen mit Metadaten ohne Lese
     expect((await pruefen({})).hinweise).toEqual([]);
     expect((await pruefen({ metadataKeys: " , " })).hinweise).toEqual([]);
     expect(gefragt).toBe(0);
+  });
+
+  it("meldet das fehlende Recht auch, wenn „Bearbeiten“ Schlüssel ohne neuen Zugang setzt, und fragt bei gleicher config nicht", async () => {
+    darf = false;
+    const verbindung = { provider: "stripe", name: "Stripe", fetchFrom: "2026-11-01" };
+    const { id, hinweise: ohne } = await psp.speichereVerbindung(actor, { ...verbindung, eingabe: { apiKey: "rk_live_abcdefghijklmnop" } });
+    expect(ohne).toEqual([]);
+    const { hinweise } = await psp.speichereVerbindung(actor, { ...verbindung, id, config: { metadataKeys: "invoice_number" } });
+    expect(hinweise).toHaveLength(1);
+    expect(hinweise[0]).toContain("Lesezugriff auf Zahlungen und Erstattungen");
+    gefragt = 0;
+    const umbenannt = await psp.speichereVerbindung(actor, { ...verbindung, name: "Shop", id, config: { metadataKeys: "invoice_number" } });
+    expect(umbenannt.hinweise).toEqual([]);
+    expect(gefragt).toBe(0);
+  });
+
+  it("speichert geänderte Einstellungen auch, wenn Stripe gerade nicht erreichbar ist, und sagt, dass nicht geprüft wurde", async () => {
+    // Die Verbindung aus dem Fall davor, mit gewählten Schlüsseln
+    const { id } = (await psp.verbindungenUebersicht()).verbindungen[0]!;
+    const verbindung = { provider: "stripe", name: "Shop", fetchFrom: "2026-11-01" };
+    ausfall = new Error("fetch failed");
+    const ergebnis = await psp.speichereVerbindung(actor, { ...verbindung, id, config: {} });
+    ausfall = null;
+    expect(ergebnis.hinweise).toHaveLength(1);
+    expect(ergebnis.hinweise[0]).toContain("ließ sich nicht prüfen");
+    expect(ergebnis.hinweise[0]).toContain("fetch failed");
+    const [gespeichert] = await sql`select config from psp_connections where id = ${id}`;
+    expect(gespeichert!.config).toEqual({});
   });
 });

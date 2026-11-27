@@ -48,7 +48,7 @@ describe.skipIf(!testDatabaseUrl)("Stripe-Abruf nach geänderten Schlüsseln der
 
   it("legt nichts doppelt an, meldet keinen Konflikt und lässt den Zweck stehen", async () => {
     const verbindung = { provider: "stripe", name: "Stripe", fetchFrom: "2026-11-01" };
-    const id = await psp.speichereVerbindung(actor, {
+    const { id } = await psp.speichereVerbindung(actor, {
       ...verbindung,
       eingabe: { apiKey: "rk_live_abcdefghijklmnop" },
       config: { metadataKeys: "invoice_number" },

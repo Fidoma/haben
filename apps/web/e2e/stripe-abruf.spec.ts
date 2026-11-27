@@ -298,7 +298,7 @@ test("Ein fehlgeschlagener Abruf: Hinweis unter der Leiste mit „Zugang ändern
   await mitDatenbank((sql) => sql`update psp_connections set last_error = null`);
 });
 
-test("Verbindungen: Jetzt abrufen an der Zeile, Bearbeiten im Dialog zeigt den Schlüssel nicht", async () => {
+test("Verbindungen: Jetzt abrufen an der Zeile, Bearbeiten im Dialog zeigt den Schlüssel nicht und meldet fehlende Rechte für neue Metadaten", async () => {
   await gehe(page, "/bank/verbindungen");
   await zeile().getByRole("button", { name: "Shop DE jetzt abrufen" }).click();
   await expect(abrufBereich().getByText("Shop DE: Abruf durchgelaufen.")).toBeVisible();
@@ -310,8 +310,13 @@ test("Verbindungen: Jetzt abrufen an der Zeile, Bearbeiten im Dialog zeigt den S
   await expect(dialog.getByLabel("API-Schlüssel (leer lassen zum Behalten)")).toHaveValue("");
   // Das Feld zeigt die gespeicherten Schlüssel: bereinigt, ohne Doppelte
   await expect(dialog.getByLabel("Metadaten im Verwendungszweck")).toHaveValue("invoice_number, invoice_id");
-  await dialog.getByRole("button", { name: "Abbrechen" }).click();
+  // Andere Schlüssel ohne neuen Zugang: Stripe prüft mit dem gespeicherten, die Meldung nennt das fehlende Recht (#1915)
+  await dialog.getByLabel("Metadaten im Verwendungszweck").fill("invoice_id");
+  anfragen.length = 0;
+  await dialog.getByRole("button", { name: "Speichern" }).click();
   await expect(dialog).toHaveCount(0);
+  await expect(abrufBereich().getByRole("status")).toContainText("Verbindung gespeichert. Der Schlüssel darf Zahlungen nicht lesen");
+  expect(anfragen.map((a) => a.pfad)).toEqual(["GET /v1/account", "GET /v1/charges?limit=1"]);
 });
 
 test("Verbindung entfernen löscht den Schlüssel, die Umsätze bleiben", async () => {

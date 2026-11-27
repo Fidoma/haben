@@ -40,7 +40,7 @@ describe.skipIf(!testDatabaseUrl)("Stripe-Zweck aus Metadaten und die Gebühren 
   });
 
   it("zählt Zahlung und Erstattung nicht zu den Gebühren, auch wenn ihr Metadatenwert mit „Gebühr“ beginnt", async () => {
-    const id = await psp.speichereVerbindung(actor, {
+    const { id } = await psp.speichereVerbindung(actor, {
       provider: "stripe",
       name: "Stripe",
       eingabe: { apiKey: "rk_live_abcdefghijklmnop" },

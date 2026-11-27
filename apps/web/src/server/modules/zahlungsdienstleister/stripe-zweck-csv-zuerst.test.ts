@@ -65,7 +65,7 @@ describe.skipIf(!testDatabaseUrl)("Stripe-Zweck aus Metadaten nach dem CSV-Expor
     await sql`insert into bank_accounts (name, purpose, provider, ledger_index) values ('Stripe', 'zahlungsdienstleister', 'stripe', 3)`;
     const konto = (await sql`select id from bank_accounts where provider = 'stripe'`)[0]!.id as string;
     expect((await bank.importStatement(actor, { bytes: csv, filename: "balance-history.csv" }, konto)).added).toBe(2);
-    const id = await speichern("invoice_number", "rk_live_abcdefghijklmnop");
+    const { id } = await speichern("invoice_number", "rk_live_abcdefghijklmnop");
     const result = await psp.abrufen(actor, id, new Date("2026-11-03T10:00:00Z"));
     expect(result.error).toBeNull();
     expect(result.added).toBe(0);

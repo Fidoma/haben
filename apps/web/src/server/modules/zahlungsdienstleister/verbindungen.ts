@@ -192,9 +192,11 @@ async function gebundenesKonto(adapter: PspAdapter, accountId: string, id: strin
 /**
  * Speichert eine Verbindung. Ein neuer Zugang wird beim Anbieter geprüft und liefert die Kontokennung; gehört er zu einem
  * anderen Konto, beginnt der Abruf wieder am gewählten Tag, weil der Stand des alten Kontos nichts über das neue sagt.
- * Gibt die Kennung der Verbindung zurück.
+ * Geänderte Einstellungen ohne neuen Zugang prüft der Anbieter mit dem gespeicherten, damit „Bearbeiten“ dieselben
+ * Hinweise bekommt wie die Einrichtung (etwa fehlende Rechte für neue Metadaten, #1915).
+ * Gibt die Kennung der Verbindung und die Hinweise der Prüfung zurück.
  */
-export async function speichereVerbindung(actor: string, input: z.input<typeof verbindungSchema>): Promise<string> {
+export async function speichereVerbindung(actor: string, input: z.input<typeof verbindungSchema>): Promise<{ id: string; hinweise: string[] }> {
   const data = verbindungSchema.parse(input);
   const adapter = adapterOderFehler(data.provider);
   if (data.fetchFrom > today()) throw new ZahlungsdienstleisterError("Der erste Tag des Abrufs liegt in der Zukunft.", { felder: ["fetchFrom"] });
@@ -209,6 +211,9 @@ export async function speichereVerbindung(actor: string, input: z.input<typeof v
   const neuerZugang = adapter.zugangAusEingabe(data.eingabe, config, existing ? { zugang: existing.zugang, config: existing.config } : null);
   const zugang = neuerZugang ?? existing!.zugang;
   const pruefung = neuerZugang ? await adapter.pruefen(neuerZugang, config) : null;
+  // Geänderte Einstellungen ohne neuen Zugang: Hinweise mit dem gespeicherten
+  const configGeaendert = !pruefung && !gleicheConfig(existing!.config, config);
+  const hinweise = configGeaendert ? await configHinweise(adapter, zugang, config) : (pruefung?.hinweise ?? []);
   const accountId = pruefung?.accountId ?? existing!.row.accountId;
   await kontoBeimAnbieterFrei(adapter, accountId, id);
   // Schreibt der Abruf schon in ein Konto, bleibt es dabei: „Automatisch“ nimmt es, eine andere Wahl wird abgelehnt
@@ -244,7 +249,7 @@ export async function speichereVerbindung(actor: string, input: z.input<typeof v
     ...(anderesKonto || neuerZugang ? { lastError: null } : {}),
     updatedAt: new Date(),
   };
-  return withActor(actor, async (tx) => {
+  const gespeichert = await withActor(actor, async (tx) => {
     // Ohne freies Konto legt die Verbindung ihr eigenes an, mit ihrem Namen; erst wenn alle neun Verrechnungskonten belegt sind, Fehler
     if (!values.bankAccountId) values.bankAccountId = (await providerKontoAnlegen(tx, { name: data.name, provider: adapter.provider as PaymentProvider })).id;
     if (id) {
@@ -254,6 +259,26 @@ export async function speichereVerbindung(actor: string, input: z.input<typeof v
     const [neu] = await tx.insert(schema.pspConnections).values(values).returning({ id: schema.pspConnections.id });
     return neu!.id;
   });
+  return { id: gespeichert, hinweise };
+}
+
+/**
+ * Hinweise zu geänderten Einstellungen mit dem gespeicherten Zugang. Nur Hinweise: Lehnt der Anbieter ab oder ist er nicht
+ * erreichbar, speichert „Bearbeiten“ trotzdem und sagt, dass nicht geprüft wurde; der nächste Abruf meldet den Fehler.
+ */
+async function configHinweise(adapter: PspAdapter, zugang: unknown, config: unknown): Promise<string[]> {
+  try {
+    return (await adapter.pruefen(zugang, config)).hinweise ?? [];
+  } catch (error) {
+    return [`Ob der gespeicherte Zugang zu den Einstellungen passt, ließ sich nicht prüfen (${error instanceof Error ? error.message : String(error)}).`];
+  }
+}
+
+/** Gleiche Einstellungen, unabhängig von der Reihenfolge der Schlüssel (jsonb ordnet sie anders als das Schema) */
+function gleicheConfig(alt: unknown, neu: unknown): boolean {
+  const a = alt as Record<string, unknown>;
+  const b = neu as Record<string, unknown>;
+  return [...new Set([...Object.keys(a), ...Object.keys(b)])].every((k) => a[k] === b[k]);
 }
 
 /**

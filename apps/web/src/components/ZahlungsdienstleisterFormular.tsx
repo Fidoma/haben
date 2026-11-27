@@ -117,8 +117,8 @@ export function VerbindungFormular({
 }: {
   daten: PspDaten;
   verbindung: PspVerbindung;
-  /** Geschlossen: nach dem Speichern mit true, nach „Abbrechen“ ohne */
-  onFertig: (gespeichert?: boolean) => void;
+  /** Geschlossen: nach dem Speichern mit den Hinweisen der Prüfung (etwa fehlende Rechte), nach „Abbrechen“ ohne */
+  onFertig: (hinweise?: string[]) => void;
 }) {
   const router = useRouter();
   const save = useServerFn(savePspConnectionFn);
@@ -143,13 +143,13 @@ export function VerbindungFormular({
     const eingabe = geheimeEingabe(anbieter, form);
     void run(() =>
       zugangFehler.abfangen(async () => {
-        await save({
+        const { hinweise } = await save({
           data: { id: verbindung.id, provider: verbindung.provider, ...werte, bankAccountId: werte.bankAccountId || null, eingabe, config },
         });
         form.reset();
         await router.invalidate();
         // Die Meldung zeigt, wer das Formular geöffnet hat: es schließt sich gleich
-        onFertig(true);
+        onFertig(hinweise);
       }),
     );
   }

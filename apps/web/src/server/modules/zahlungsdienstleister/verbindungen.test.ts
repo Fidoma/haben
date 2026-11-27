@@ -84,14 +84,14 @@ describe.skipIf(!testDatabaseUrl)("Verbindungen zu Zahlungsdienstleistern (Postg
   it("ruft zwei Stripe-Verbindungen mit eigenem Namen je in ihr eigenes Konto ab", async () => {
     const shopKonto = await konto("Stripe Shop", "stripe", 1);
     const kurseKonto = await konto("Stripe Kurse", "stripe", 2);
-    const shop = await psp.speichereVerbindung(actor, {
+    const { id: shop } = await psp.speichereVerbindung(actor, {
       provider: "stripe",
       name: "Shop DE",
       bankAccountId: shopKonto,
       eingabe: { apiKey: "rk_live_shopdeaaaaaaaa" },
       fetchFrom: "2026-11-01",
     });
-    const kurse = await psp.speichereVerbindung(actor, {
+    const { id: kurse } = await psp.speichereVerbindung(actor, {
       provider: "stripe",
       name: "Online-Kurse",
       bankAccountId: kurseKonto,
@@ -235,7 +235,7 @@ describe.skipIf(!testDatabaseUrl)("Verbindungen zu Zahlungsdienstleistern (Postg
     // Abruf mit „Die Quelle des Abrufs ist schon mit einem anderen Konto verbunden“ scheitern
     const erstes = await konto("Stripe Wechsel A", "stripe", 5);
     const zweites = await konto("Stripe Wechsel B", "stripe", 6);
-    const id = await psp.speichereVerbindung(actor, {
+    const { id } = await psp.speichereVerbindung(actor, {
       provider: "stripe",
       name: "Wechsel",
       bankAccountId: erstes,
@@ -254,10 +254,10 @@ describe.skipIf(!testDatabaseUrl)("Verbindungen zu Zahlungsdienstleistern (Postg
     await konto("Stripe Neu Älter", "stripe", 7);
     const gebunden = await konto("Stripe Neu Gebunden", "stripe", 8);
     const eingabe = { apiKey: "rk_live_neuverbundenaa" };
-    const erste = await psp.speichereVerbindung(actor, { provider: "stripe", name: "Neu", bankAccountId: gebunden, eingabe, fetchFrom: "2026-11-01" });
+    const { id: erste } = await psp.speichereVerbindung(actor, { provider: "stripe", name: "Neu", bankAccountId: gebunden, eingabe, fetchFrom: "2026-11-01" });
     expect((await psp.abrufen(actor, erste, HEUTE)).error).toBeNull();
     await psp.entferneVerbindung(actor, erste);
-    const zweite = await psp.speichereVerbindung(actor, { provider: "stripe", name: "Neu", bankAccountId: null, eingabe, fetchFrom: "2026-11-01" });
+    const { id: zweite } = await psp.speichereVerbindung(actor, { provider: "stripe", name: "Neu", bankAccountId: null, eingabe, fetchFrom: "2026-11-01" });
     expect((await psp.ladeVerbindung(zweite))!.row.bankAccountId).toBe(gebunden);
     expect((await psp.abrufen(actor, zweite, new Date(HEUTE.getTime() + 2 * 60 * 60 * 1000))).error).toBeNull();
   });
@@ -268,7 +268,7 @@ describe.skipIf(!testDatabaseUrl)("Verbindungen zu Zahlungsdienstleistern (Postg
     psp.setPayPalClientFactory(() => ({ accountId: async () => `HAENDLER${++haendler}`, transactions: async () => [] }) as unknown as PayPalClient);
     const neue = (name: string) =>
       psp.speichereVerbindung(actor, { provider: "paypal", name, eingabe: { clientId: `client-${name}`, clientSecret: "geheim" }, fetchFrom: "2026-11-01" });
-    const zweite = await neue("PayPal Zwei");
+    const { id: zweite } = await neue("PayPal Zwei");
     const [konto] =
       await sql`select b.name, b.purpose, b.provider, b.ledger_index from psp_connections c join bank_accounts b on b.id = c.bank_account_id where c.id = ${zweite}`;
     expect(konto).toEqual({ name: "PayPal Zwei", purpose: "zahlungsdienstleister", provider: "paypal", ledger_index: expect.any(Number) });
