@@ -600,8 +600,9 @@ export const annualSubmissionFigures = pgTable(
 );
 
 /**
- * Nachrichten an das Finanzamt über ELSTER (Sonstige Nachricht), etwa der Antrag auf Herabsetzung der
- * Vorauszahlungen; jede Prüfung und Übermittlung mit XML, nur anhängen.
+ * Nachrichten an das Finanzamt über ELSTER: Sonstige Nachricht, Antrag auf Anpassung der Vorauszahlungen
+ * (Betreff dort von Haben: Zeitraum des Antrags, Text = Begründung) und Änderung der Bankverbindung; jede Prüfung und
+ * Übermittlung mit XML, nur anhängen.
  */
 export const elsterMessages = pgTable("elster_messages", {
   id: uuid("id").primaryKey().defaultRandom(),

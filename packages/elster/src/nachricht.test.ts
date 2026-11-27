@@ -41,6 +41,19 @@ describe("Sonstige Nachricht", () => {
     expect(tag(xml, "Vorname")).toBe("Max");
   });
 
+  it("schreibt Text und Namen im Zeichensatz Standard_E_V2 (Eing_sonstNachr-22.xsd)", () => {
+    const xml = buildNachrichtXml({
+      ...input,
+      absender: { ...input.absender, name: "Mustermann IT · Max Mustermann" },
+      betreff: "Antrag „Vorauszahlungen“",
+      text: "Gewinn 01.01.2026–27.11.2026 … rund 5.000 €",
+    });
+    expect(tag(xml, "Name")).toBe("Mustermann IT - Max Mustermann");
+    expect(tag(xml, "Betreff")).toBe("Antrag &quot;Vorauszahlungen&quot;");
+    expect(tag(xml, "Text")).toBe("Gewinn 01.01.2026-27.11.2026 ... rund 5.000 €");
+    expect(() => buildNachrichtXml({ ...input, text: "Smiley 🙂" })).toThrow(/„🙂“/);
+  });
+
   it("prüft Betreff, Text und Hausnummer", () => {
     expect(() => buildNachrichtXml({ ...input, betreff: "x".repeat(100) })).toThrow(/Betreff/);
     expect(() => buildNachrichtXml({ ...input, text: " " })).toThrow(/Text/);

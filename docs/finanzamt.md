@@ -47,7 +47,7 @@ Bei Bescheiden, die nur im Postfach zum Abruf bereitgestellt werden, gilt der Be
 
 ## Vorauszahlungen herabsetzen
 
-Das Finanzamt setzt Einkommensteuer-Vorauszahlungen (fällig 10.3., 10.6., 10.9. und 10.12.) nach dem letzten Bescheid fest. Verdienst du in diesem Jahr weniger, kannst du die Herabsetzung formlos beantragen (§ 37 Abs. 3 EStG). Ein eigenes ELSTER-Formular dafür braucht es nicht; Haben schickt den Antrag als Sonstige Nachricht.
+Das Finanzamt setzt Einkommensteuer-Vorauszahlungen (fällig 10.3., 10.6., 10.9. und 10.12.) nach dem letzten Bescheid fest. Verdienst du in diesem Jahr weniger, kannst du die Herabsetzung beantragen (§ 37 Abs. 3 EStG). Haben schickt den Antrag über ELSTER als Antrag auf Anpassung der Vorauszahlungen (Datenart AnpassungVorauszahlung, Version 22).
 
 Hast du unter [Einstellungen › Persönliche Angaben](einrichtung.md#persönliche-angaben) angegeben, dass keine Einkommensteuer-Vorauszahlungen festgesetzt sind, steht im Reiter ein Hinweis: Ein Herabsetzungsantrag ist dann gegenstandslos, es sei denn, das Finanzamt hat inzwischen wieder etwas festgesetzt. Der Antrag bleibt trotzdem ausfüllbar, weil der Haken eine Angabe von dir ist und kein Bescheid.
 
@@ -65,6 +65,8 @@ Haben füllt den Antrag mit den Zahlen aus deiner Buchhaltung und schätzt die S
 | Bisherige Vorauszahlung je Quartal | trägst du ein |
 
 Gewinn bis heute, Hochrechnung, Vorjahr und die Rechnung zur voraussichtlichen Steuer stehen zugeklappt unter **Schätzrechnung**; der Kopf nennt darunter die Vorauszahlung je Termin. Die Adresse `/finanzamt#schaetzung` öffnet sie.
+
+Im Antrag wählst du, **ab welchem Quartal** er gilt, vorbelegt mit dem Quartal des nächsten Fälligkeitstermins, oder die **nachträgliche Vorauszahlung**, dazu das **Jahr**: ELSTER nimmt das laufende, das nächste und die drei vorigen. Nach dem 10.12. ist das 1. Quartal des nächsten Jahres vorbelegt. Felder für Beträge hat der Antrag nicht; der Brief mit den Zahlen oben geht als **Begründung** mit (bis 15.000 Zeichen) und folgt Quartal, Jahr und Zahlen, bis du ihn selbst änderst. Die Zahlen sind die des laufenden Jahres, der Brief nennt es; wählst du ein anderes Jahr, weist das Feld darauf hin.
 
 ### Steuerprognose
 
@@ -84,7 +86,7 @@ Arbeitslohn, Abzüge, Lohnsteuer und ein Erstattungsüberhang stammen aus den [A
 
 Einkommensersatzleistungen wie Eltern- oder Krankengeld aus den Angaben des laufenden Jahres berücksichtigt Haben beim Progressionsvorbehalt ([§ 32b EStG](https://www.gesetze-im-internet.de/estg/__32b.html)). Bei übernommenen Vorjahresangaben lässt Haben diese Leistungen für beide Personen weg und nennt bei positiven Beträgen das Herkunftsjahr im Hinweis. In der Jahreserklärung ihres Bezugsjahres bleiben sie berücksichtigt. Erwartest du im laufenden Jahr ebenfalls Leistungen, trage sie in dessen Angaben zur Einkommensteuer ein.
 
-Die Herabsetzung wirkt ab dem nächsten Fälligkeitstermin. Die Antwort kommt als geänderter Vorauszahlungsbescheid, per Brief oder in dein ELSTER-Postfach.
+Die Antwort kommt als geänderter Vorauszahlungsbescheid, per Brief oder in dein ELSTER-Postfach.
 
 ## Freie Nachricht
 
@@ -100,4 +102,6 @@ Das Konto wählst du aus deinen Bankkonten mit IBAN, angezeigt mit Name und Zwec
 
 Jede Prüfung und Übermittlung speichert Haben mit Text, Transfer-Ticket und dem gesendeten XML; ändern oder löschen lässt sich das nicht. Ein Übertragungsprotokoll als PDF gibt es für Nachrichten nicht, das Transfer-Ticket ist der Nachweis.
 
-Für die Anschrift im Absender braucht ELSTER Straße und Hausnummer getrennt; Haben trennt die Hausnummer am Ende der Straße ab. Fehlt sie, meldet die Seite das. Sind [persönliche Angaben](einrichtung.md#persönliche-angaben) hinterlegt, geht die Nachricht unter deinem Namen und deiner Steuer-ID als natürliche Person; sonst unter dem Firmennamen.
+Für die Anschrift im Absender braucht ELSTER Straße und Hausnummer getrennt; Haben trennt die Hausnummer am Ende der Straße ab. Fehlt sie, meldet die Seite das. Die Telefonnummer aus den Firmendaten geht beim Antrag für Rückfragen mit, wenn sie ohne Leerzeichen, Klammern und „(0)“ höchstens 20 Zeichen aus Ziffern, `+`, `-` und `/` hat. Sind [persönliche Angaben](einrichtung.md#persönliche-angaben) hinterlegt, geht die Nachricht unter deinem Namen und deiner Steuer-ID als natürliche Person; sonst unter dem Firmennamen.
+
+Text, Betreff, Namen und Anschrift nimmt ELSTER nur im Zeichensatz der Datenart (Standard_E_V2: Buchstaben mit Umlauten und Akzenten, Ziffern, übliche Satzzeichen, €). Gedankenstriche und Mittelpunkte schreibt Haben als `-`, typografische Anführungszeichen als `"` und `'`, Auslassungspunkte als `...`; unsichtbare Zeichen aus kopiertem Text (weicher Trennstrich) fallen weg; jedes andere Zeichen außerhalb, etwa ein Emoji, meldet die Seite vor dem Senden. Bis Version 0.14 gingen diese Zeichen unverändert hinaus, und ERiC lehnte das XML ab, etwa wegen des Gedankenstrichs im Zeitraum des Antrags.

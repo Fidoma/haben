@@ -188,7 +188,13 @@ describe.skipIf(!testDatabaseUrl)("ELSTER-Gateway (Postgres)", () => {
     await certificate();
     const log: string[] = [];
     const client = liveClient(log, { delay: 100 });
-    const antrag = { topic: "vorauszahlung" as const, betreff: "Antrag", text: "Bitte herabsetzen.", figures: { wanted: 1 } };
+    const antrag = {
+      topic: "vorauszahlung" as const,
+      quartal: "Q4" as const,
+      jahr: new Date().getFullYear(),
+      text: "Bitte herabsetzen.",
+      figures: { wanted: 1 },
+    };
     const started = Date.now();
     await Promise.all([
       finanzamt.sendMessage(actor, antrag, client, { kind: "send", pin: "1", herstellerId: "12345" }),

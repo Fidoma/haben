@@ -2,6 +2,7 @@ import { waehleKategorie } from "./kategorie.ts";
 import { filePickerPruefen } from "./dateiauswahl.ts";
 import AxeBuilder from "@axe-core/playwright";
 import { periodKey, periodLabel } from "@haben/core";
+import { naechsterTermin } from "@haben/elster/vorauszahlung-zeitraum";
 import { expect, type Page, test } from "@playwright/test";
 import postgres from "postgres";
 import { currentDay, day, YEAR } from "./daten.ts";
@@ -169,7 +170,7 @@ test("Auswertungen, Umsatzsteuer und Jahreserklärung laden", async () => {
   // Nicht lesbare Vorauszahlung: die Meldung steht sofort am Feld, es gibt keinen eigenen Knopf (#1270)
   const vorauszahlung = page.getByRole("region", { name: /^Einkommensteuer-Vorauszahlungen \d{4}$/ });
   const bisher = vorauszahlung.getByLabel("Bisherige Vorauszahlung je Quartal (€)");
-  const antrag = page.getByRole("region", { name: "Herabsetzung der Vorauszahlungen" }).getByLabel("Text", { exact: true });
+  const antrag = page.getByRole("region", { name: "Herabsetzung der Vorauszahlungen" }).getByLabel("Begründung", { exact: true });
   await bisher.fill("12€50");
   await expect(vorauszahlung.getByText("Trag die Vorauszahlung je Quartal ein, etwa 1.500,00, oder lass das Feld leer.")).toBeVisible();
   await expect(bisher).toHaveAttribute("aria-invalid", "true");
@@ -181,6 +182,41 @@ test("Auswertungen, Umsatzsteuer und Jahreserklärung laden", async () => {
   await bisher.fill("1.500,00");
   await expect(vorauszahlung.getByText("Trag die Vorauszahlung je Quartal ein")).toHaveCount(0);
   await expect(antrag).toHaveValue(/bisher festgesetzten Vorauszahlungen von 1\.500,00\s€ je Quartal/);
+});
+
+test("Finanzamt: Antrag mit Quartal und Jahr als ELSTER-Datenart AnpassungVorauszahlung (#1329)", async () => {
+  const jahr = Number(currentDay().slice(0, 4));
+  await go("/finanzamt");
+  const karte = page.getByRole("region", { name: "Herabsetzung der Vorauszahlungen" });
+  const begruendung = karte.getByLabel("Begründung", { exact: true });
+  await expect(karte.getByRole("textbox", { name: "Betreff" })).toHaveCount(0);
+  // Vorschlag: Quartal des nächsten Fälligkeitstermins, nach dem 10.12. das 1. Quartal des Folgejahres
+  const vorschlag = naechsterTermin(currentDay());
+  await expect(karte.getByLabel("Jahr")).toHaveValue(String(vorschlag.jahr));
+  await expect(begruendung).toHaveValue(
+    new RegExp(`die Vorauszahlungen zur Einkommensteuer für ${vorschlag.jahr} ab dem ${vorschlag.quartal.slice(1)}\\. Quartal`),
+  );
+  // ELSTER nimmt das laufende Jahr, das nächste und die drei davor (Regel eEing_144)
+  await expect(karte.getByLabel("Jahr").locator("option")).toHaveText([jahr + 1, jahr, jahr - 1, jahr - 2, jahr - 3].map(String));
+  await karte.getByLabel("Ab Quartal").selectOption({ label: "Nachträgliche Vorauszahlung" });
+  await karte.getByLabel("Jahr").selectOption(String(jahr - 1));
+  await expect(begruendung).toHaveValue(new RegExp(`die nachträgliche Vorauszahlung zur Einkommensteuer für ${jahr - 1} herabzusetzen`));
+
+  await page.getByRole("form", { name: "Über ELSTER senden" }).getByRole("button", { name: "Nur prüfen" }).click();
+  await expect(page.getByText("ERiC hat die Daten geprüft, keine Fehler.")).toBeVisible();
+  const sql = postgres(databaseUrlFuer(DURCHLAUF), { max: 1 });
+  try {
+    const [zeile] = await sql<{ topic: string; betreff: string; request_xml: string }[]>`
+      select topic, betreff, request_xml from elster_messages order by created_at desc limit 1`;
+    expect(zeile!.topic).toBe("vorauszahlung");
+    expect(zeile!.betreff).toBe(`Anpassung der Einkommensteuer-Vorauszahlungen ${jahr - 1}, nachträgliche Vorauszahlung`);
+    expect(zeile!.request_xml).toContain("<DatenArt>AnpassungVorauszahlung</DatenArt>");
+    expect(zeile!.request_xml).toMatch(new RegExp(`<Steuerart>0030</Steuerart>\\s*<Quartal>nVz</Quartal>\\s*<Jahr>${jahr - 1}</Jahr>`));
+    // Der Zeitraum im Brief steht mit Bindestrich: den Gedankenstrich kennt der Zeichensatz von ELSTER nicht
+    expect(zeile!.request_xml).toMatch(/für \d{2}\.\d{2}\.\d{4}-\d{2}\.\d{2}\.\d{4}/);
+  } finally {
+    await sql.end();
+  }
 });
 
 test("Umsatzsteuer öffnet ohne Abgabe in Haben den zuletzt abgelaufenen Zeitraum, nie den laufenden (#1102)", async () => {

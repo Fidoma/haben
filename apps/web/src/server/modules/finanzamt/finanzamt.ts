@@ -3,12 +3,15 @@ import { isKapitalgesellschaft, toElsterSteuernummer, type Cents, type Prognose,
 import {
   buildBankverbindungXml,
   buildNachrichtXml,
+  buildVorauszahlungXml,
   isValidIban,
   NACHRICHT_BETREFF_MAX,
   NACHRICHT_TEXT_MAX,
   splitStrasse,
+  VORAUSZAHLUNG_QUARTALE,
   type ElsterClient,
   type ElsterResult,
+  type VorauszahlungQuartal,
 } from "@haben/elster";
 import { desc } from "drizzle-orm";
 import { z } from "zod";
@@ -19,6 +22,7 @@ import { db, schema } from "../../db/index.ts";
 import { euerForYear } from "../auswertungen/index.ts";
 import { PRODUKT_VERSION, SENDEN, uebermitteln } from "../elster/index.ts";
 import { createHash } from "node:crypto";
+import { today } from "../../today.ts";
 
 export class FinanzamtError extends UserError {}
 
@@ -31,17 +35,33 @@ export function nurEinzelunternehmen(rechtsform: Rechtsform, was: string): void 
   if (isKapitalgesellschaft(rechtsform)) throw new FinanzamtError(`${was} gibt es nur im Einzelunternehmen; eine GmbH oder UG zahlt keine Einkommensteuer.`);
 }
 
-export const messageSchema = z.object({
-  topic: z.enum(["nachricht", "vorauszahlung"]),
-  betreff: z.string().trim().min(1, "Betreff fehlt").max(NACHRICHT_BETREFF_MAX, `Der Betreff hat höchstens ${NACHRICHT_BETREFF_MAX} Zeichen`),
-  text: z.string().trim().min(1, "Text fehlt").max(NACHRICHT_TEXT_MAX, `Der Text hat höchstens ${NACHRICHT_TEXT_MAX} Zeichen`),
-  /** Zahlen aus der Oberfläche, die mit der Nachricht festgehalten werden; klein halten, sie landen im Audit-Log */
-  figures: z
-    .record(z.string().max(40), z.unknown())
-    .refine((figures) => JSON.stringify(figures).length <= 20_000, "Zu viele Angaben zur Nachricht")
-    .nullable()
-    .default(null),
-});
+const textSchema = z.string().trim().min(1, "Text fehlt").max(NACHRICHT_TEXT_MAX, `Der Text hat höchstens ${NACHRICHT_TEXT_MAX} Zeichen`);
+/** Zahlen aus der Oberfläche, die mit der Nachricht festgehalten werden; klein halten, sie landen im Audit-Log */
+const figuresSchema = z
+  .record(z.string().max(40), z.unknown())
+  .refine((figures) => JSON.stringify(figures).length <= 20_000, "Zu viele Angaben zur Nachricht")
+  .nullable()
+  .default(null);
+
+/**
+ * Freie Nachricht mit Betreff (SonstigeNachrichten) oder Antrag auf Anpassung der Einkommensteuer-Vorauszahlungen
+ * (AnpassungVorauszahlung, ohne Betreff): Der Text wird dort zur Begründung, dazu ab welchem Quartal und für welches Jahr.
+ */
+export const messageSchema = z.discriminatedUnion("topic", [
+  z.object({
+    topic: z.literal("nachricht"),
+    betreff: z.string().trim().min(1, "Betreff fehlt").max(NACHRICHT_BETREFF_MAX, `Der Betreff hat höchstens ${NACHRICHT_BETREFF_MAX} Zeichen`),
+    text: textSchema,
+    figures: figuresSchema,
+  }),
+  z.object({
+    topic: z.literal("vorauszahlung"),
+    quartal: z.enum(VORAUSZAHLUNG_QUARTALE),
+    jahr: z.number().int(),
+    text: textSchema,
+    figures: figuresSchema,
+  }),
+]);
 
 export type MessageInput = z.input<typeof messageSchema>;
 
@@ -132,19 +152,36 @@ export async function sendMessage(actor: string, rawInput: MessageInput, client:
   const issues = messageIssues(company);
   if (issues.length > 0) throw new FinanzamtError(`Firmendaten unvollständig: ${issues.join(", ")}.`);
 
+  const absender = {
+    steuernummer13: toElsterSteuernummer(company.steuernummer, company.bundesland!),
+    bundesland: company.bundesland!,
+    absender: { name: company.name, strasse: company.strasse, plz: company.plz, ort: company.ort },
+    ...(company.taxpayer.a ? { person: company.taxpayer.a } : {}),
+    produktVersion: PRODUKT_VERSION,
+  };
+  if (input.topic === "vorauszahlung") {
+    const betreff = `Anpassung der Einkommensteuer-Vorauszahlungen ${vorauszahlungZeitraum(input.quartal, input.jahr)}`;
+    return submit(actor, { topic: input.topic, betreff, text: input.text, figures: input.figures }, client, options, (herstellerId, test) =>
+      buildVorauszahlungXml({
+        ...absender,
+        telefon: company.telefon,
+        quartal: input.quartal,
+        jahr: input.jahr,
+        begruendung: input.text,
+        heute: today(),
+        herstellerId,
+        test,
+      }),
+    );
+  }
   return submit(actor, { topic: input.topic, betreff: input.betreff, text: input.text, figures: input.figures }, client, options, (herstellerId, test) =>
-    buildNachrichtXml({
-      steuernummer13: toElsterSteuernummer(company.steuernummer, company.bundesland!),
-      bundesland: company.bundesland!,
-      absender: { name: company.name, strasse: company.strasse, plz: company.plz, ort: company.ort },
-      ...(company.taxpayer.a ? { person: company.taxpayer.a } : {}),
-      betreff: input.betreff,
-      text: input.text,
-      herstellerId,
-      produktVersion: PRODUKT_VERSION,
-      test,
-    }),
+    buildNachrichtXml({ ...absender, betreff: input.betreff, text: input.text, herstellerId, test }),
   );
+}
+
+/** „ab dem 4. Quartal 2026“ bzw. „2024, nachträgliche Vorauszahlung“, für den Verlauf */
+export function vorauszahlungZeitraum(quartal: VorauszahlungQuartal, jahr: number): string {
+  return quartal === "nVz" ? `${jahr}, nachträgliche Vorauszahlung` : `ab dem ${quartal.slice(1)}. Quartal ${jahr}`;
 }
 
 export const bankChangeSchema = z.object({

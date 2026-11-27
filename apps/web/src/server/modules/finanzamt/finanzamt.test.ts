@@ -25,7 +25,9 @@ describe.skipIf(!testDatabaseUrl)("Nachrichten an das Finanzamt (Postgres)", () 
       values (1, 'Testfirma', 'Musterstraße 1', '93047', 'Regensburg', '198/113/10010', 'BY', 'ist', 'SKR03', 'selbstaendig')`;
   });
 
-  const antrag = { topic: "vorauszahlung" as const, betreff: "Antrag auf Herabsetzung", text: "Bitte herabsetzen.", figures: { wanted: 100_000 } };
+  const jahr = new Date().getFullYear();
+  const antrag = { topic: "vorauszahlung" as const, quartal: "Q4" as const, jahr, text: "Bitte herabsetzen.", figures: { wanted: 100_000 } };
+  const nachricht = { topic: "nachricht" as const, betreff: "Rückfrage", text: "Gewinn 01.01.–30.06.", figures: null };
 
   it("prüft und sendet testweise, speichert Text, Werte und XML", async () => {
     const client = new EricGeprueftClient();
@@ -37,21 +39,41 @@ describe.skipIf(!testDatabaseUrl)("Nachrichten an das Finanzamt (Postgres)", () 
     expect(tested.pdf).toBeUndefined();
     await expect(finanzamt.sendMessage(actor, antrag, client, { kind: "send", pin: "1234", herstellerId: "12345" })).rejects.toThrow(/Ohne ERiC/);
 
-    const rows = await sql`select topic, kind, ok, figures, request_xml from elster_messages order by created_at`;
+    const rows = await sql`select topic, kind, ok, betreff, figures, request_xml from elster_messages order by created_at`;
     expect(rows.map((r) => [r.topic, r.kind, r.ok])).toEqual([
       ["vorauszahlung", "validate", true],
       ["vorauszahlung", "test", true],
     ]);
     expect(rows[0]!.figures).toEqual({ wanted: 100_000 });
-    expect(rows[1]!.request_xml).toContain("<Betreff>Antrag auf Herabsetzung</Betreff>");
+    expect(rows[0]!.betreff).toBe(`Anpassung der Einkommensteuer-Vorauszahlungen ab dem 4. Quartal ${jahr}`);
+    expect(rows[1]!.request_xml).toContain("<DatenArt>AnpassungVorauszahlung</DatenArt>");
+    expect(rows[1]!.request_xml).toContain("<Begruendung>Bitte herabsetzen.</Begruendung>");
+    expect(rows[1]!.request_xml).toContain(`<Steuerart>0030</Steuerart>\n<Quartal>Q4</Quartal>\n<Jahr>${jahr}</Jahr>`);
     expect(rows[1]!.request_xml).toContain("<Hausnummer>1</Hausnummer>");
     expect((await finanzamt.listMessages()).map((m) => m.kind)).toEqual(["test", "validate"]);
     await expect(sql`delete from elster_messages`).rejects.toThrow();
   });
 
+  it("freie Nachricht als Sonstige Nachricht mit Betreff, Text im Zeichensatz von ELSTER", async () => {
+    const client = new EricGeprueftClient();
+    expect((await finanzamt.sendMessage(actor, nachricht, client, { kind: "validate" })).ok).toBe(true);
+    const [row] = await sql`select topic, betreff, request_xml from elster_messages order by created_at desc limit 1`;
+    expect(row!.topic).toBe("nachricht");
+    expect(row!.betreff).toBe("Rückfrage");
+    expect(row!.request_xml).toContain("<DatenArt>SonstigeNachrichten</DatenArt>");
+    expect(row!.request_xml).toContain("<Text>Gewinn 01.01.-30.06.</Text>");
+  });
+
+  it("Antrag: Jahr außerhalb dessen, was ELSTER annimmt, und Quartal außerhalb der Liste", async () => {
+    const client = new EricGeprueftClient();
+    await expect(finanzamt.sendMessage(actor, { ...antrag, jahr: jahr - 4 }, client, { kind: "validate" })).rejects.toThrow(/Das Jahr muss zwischen/);
+    await expect(finanzamt.sendMessage(actor, { ...antrag, quartal: "Q5" as never }, client, { kind: "validate" })).rejects.toThrow(/Q1/);
+  });
+
   it("lehnt leere Nachrichten und Anschriften ohne Hausnummer ab", async () => {
     const client = new EricGeprueftClient();
-    await expect(finanzamt.sendMessage(actor, { ...antrag, betreff: " " }, client, { kind: "validate" })).rejects.toThrow(/Betreff/);
+    await expect(finanzamt.sendMessage(actor, { ...nachricht, betreff: " " }, client, { kind: "validate" })).rejects.toThrow(/Betreff/);
+    await expect(finanzamt.sendMessage(actor, { ...antrag, text: " " }, client, { kind: "validate" })).rejects.toThrow(/Text/);
     await sql`update company set strasse = 'Am Markt'`;
     await expect(finanzamt.sendMessage(actor, antrag, client, { kind: "validate" })).rejects.toThrow(/Hausnummer/);
   });
@@ -62,7 +84,7 @@ describe.skipIf(!testDatabaseUrl)("Nachrichten an das Finanzamt (Postgres)", () 
     // elster_messages ist nur anhängen; gezählt wird, was dieser Test schreibt
     const vorher = (await sql`select count(*)::int as n from elster_messages`)[0]!.n as number;
     await expect(finanzamt.sendMessage(actor, antrag, client, { kind: "validate" })).rejects.toThrow(/nur im Einzelunternehmen/);
-    expect((await finanzamt.sendMessage(actor, { ...antrag, topic: "nachricht" }, client, { kind: "validate" })).ok).toBe(true);
+    expect((await finanzamt.sendMessage(actor, nachricht, client, { kind: "validate" })).ok).toBe(true);
     const neu = await sql`select topic from elster_messages order by created_at desc limit 1`;
     expect((await sql`select count(*)::int as n from elster_messages`)[0]!.n).toBe(vorher + 1);
     expect(neu[0]!.topic).toBe("nachricht");

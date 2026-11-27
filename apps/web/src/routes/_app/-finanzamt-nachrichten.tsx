@@ -8,25 +8,13 @@ import { PURPOSE_SHORT } from "../../lib/kontozweck.ts";
 import { useAction } from "../../lib/use-action.ts";
 import { sendFinanzamtBankChange, sendFinanzamtMessage } from "../../server/functions/finanzamt.ts";
 import { Field } from "../../components/Field.tsx";
-import { type Data, type SendResult, TOPIC_LABEL, type Topic } from "./-finanzamt-daten.ts";
+import { type Data, type SendResult, TOPIC_LABEL } from "./-finanzamt-daten.ts";
 
-export function MessageForm({
-  data,
-  topic,
-  initial,
-  figures,
-}: {
-  data: Data;
-  topic: Topic;
-  initial: { betreff: string; text: string };
-  figures?: Record<string, unknown>;
-}) {
+/** Freie Nachricht mit Betreff (SonstigeNachrichten) */
+export function MessageForm({ data }: { data: Data }) {
   const send = useServerFn(sendFinanzamtMessage);
-  // Ohne eigene Änderung folgen Betreff und Text dem Vorschlag (beim Antrag den Zahlen darüber)
-  const [ownBetreff, setBetreff] = useState<string | null>(null);
-  const [ownText, setText] = useState<string | null>(null);
-  const betreff = ownBetreff ?? initial.betreff;
-  const text = ownText ?? initial.text;
+  const [betreff, setBetreff] = useState("");
+  const [text, setText] = useState("");
   const ready = data.issues.length === 0 && betreff.trim() !== "" && text.trim() !== "";
 
   return (
@@ -37,32 +25,31 @@ export function MessageForm({
       confirmText="Die Nachricht geht an das Finanzamt."
       confirmFacts={[...finanzamtFakten(data.company.finanzamt, data.company.steuernummer), { label: "Betreff", value: betreff }]}
       footer="Die Antwort des Finanzamts kommt als Brief oder in dein ELSTER-Postfach. Die PIN wird nicht gespeichert."
-      send={(kind, pin) => send({ data: { topic, betreff, text, figures: figures ?? null, kind, pin } })}
+      send={(kind, pin) => send({ data: { topic: "nachricht", betreff, text, figures: null, kind, pin } })}
     >
-      <section className="card" aria-label={TOPIC_LABEL[topic]}>
-        <h2>{topic === "vorauszahlung" ? "Antrag" : "Nachricht an das Finanzamt"}</h2>
-        <p className="small muted" style={{ margin: 0 }}>
-          An {data.company.finanzamt || "das Finanzamt"} zur Steuernummer {data.company.steuernummer || "–"}.
-          {data.basis && " Für Einzelunternehmer ist das meist auch die Steuernummer der Einkommensteuer."}
-        </p>
+      <section className="card" aria-label={TOPIC_LABEL.nachricht}>
+        <h2>Nachricht an das Finanzamt</h2>
+        <AnFinanzamt data={data} />
         <Field label="Betreff">
           {(control) => <input {...control} value={betreff} onChange={(e) => setBetreff(e.target.value)} maxLength={99} required />}
         </Field>
         <Field label="Text" hint={<>{text.length} von 15.000 Zeichen</>}>
           {(control) => (
-            <textarea
-              {...control}
-              className="autogrow"
-              rows={topic === "vorauszahlung" ? 14 : 10}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              maxLength={15_000}
-              required
-            />
+            <textarea {...control} className="autogrow" rows={10} value={text} onChange={(e) => setText(e.target.value)} maxLength={15_000} required />
           )}
         </Field>
       </section>
     </SendPanel>
+  );
+}
+
+/** Empfänger über dem Formular: Finanzamt und Steuernummer aus den Firmendaten */
+export function AnFinanzamt({ data }: { data: Data }) {
+  return (
+    <p className="small muted" style={{ margin: 0 }}>
+      An {data.company.finanzamt || "das Finanzamt"} zur Steuernummer {data.company.steuernummer || "–"}.
+      {data.basis && " Für Einzelunternehmer ist das meist auch die Steuernummer der Einkommensteuer."}
+    </p>
   );
 }
 

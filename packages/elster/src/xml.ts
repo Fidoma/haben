@@ -1,5 +1,6 @@
 import { germanDay, filingPeriodSchema, finanzamtsnummer, type Cents, type UstvaFigures, type VatPeriod } from "@haben/core";
 import { encodeIso885915 } from "./iso8859-15.ts";
+import { zeichenErsetzen } from "./zeichensatz.ts";
 
 /** Fehlende oder ungültige Angaben für eine ELSTER-Nachricht; die Meldung ist für den Nutzer bestimmt */
 export class ElsterEingabeError extends Error {}
@@ -60,6 +61,8 @@ export function datenartVersionFromXml(xml: string): string | undefined {
   if (kapest?.[1]) return `KapEStA_${kapest[1]}`;
   const nachricht = /<DatenArt>(SonstigeNachrichten)<\/DatenArt>[\s\S]*<Nachricht\b[^>]*\bversion="(\d+)"/.exec(xml);
   if (nachricht?.[1] && nachricht[2]) return `${nachricht[1]}_${nachricht[2]}`;
+  const vorauszahlung = /<Vorauszahlung\b[^>]*elsternachricht\/anpassungvorauszahlung\/v\d+"[^>]*\bversion="(\d+)"/.exec(xml);
+  if (vorauszahlung?.[1]) return `AnpassungVorauszahlung_${vorauszahlung[1]}`;
   const bank = /<AenderungBankverbindung\b[^>]*\bversion="(\d+)"/.exec(xml);
   if (bank?.[1]) return `AenderungBankverbindung_${bank[1]}`;
   const abholung = /<DatenArt>(PostfachAnfrage|PostfachBestaetigung)<\/DatenArt>[\s\S]*<Datenabholung\b[^>]*\bversion="(\d+)"/.exec(xml);
@@ -168,7 +171,8 @@ export function elsterXml(kopf: TransferKopf, bloecke: Nutzdatenblock[]): string
     ...(kopf.testmerker ? [element("Testmerker", kopf.testmerker)] : []),
     ...(kopf.ziel !== undefined ? [`<Empfaenger id="L">${element("Ziel", kopf.ziel)}</Empfaenger>`] : []),
     element("HerstellerID", kopf.herstellerId),
-    element("DatenLieferant", kopf.datenlieferant),
+    // Der TransferHeader erlaubt nur den Zeichensatz der Datenarten (th000011_extern.xsd); ein „·“ im Firmennamen machte das XML ungültig
+    element("DatenLieferant", zeichenErsetzen(kopf.datenlieferant)),
     `<Datei>`,
     element("Verschluesselung", "CMSEncryptedData"),
     element("Kompression", "GZIP"),
@@ -251,6 +255,23 @@ export function ustvaNutzdaten(input: UstvaNutzdatenInput): string[] {
 }
 
 /**
+ * Datenlieferant der Anmeldungen (UStVA, LStA), nur Absenderangabe. Längen laut Schema (Name 45, Strasse 30, Ort 30),
+ * gekürzt erst nach dem Ersetzen der typografischen Zeichen; der Zeichensatz ist Standard_E_V2 wie im TransferHeader
+ * (UStVA-2026.xsd, LStA-2026.xsd).
+ */
+export function datenlieferantXml(dl: Datenlieferant): string[] {
+  const text = (value: string, max?: number) => zeichenErsetzen(value).slice(0, max);
+  return [
+    `<DatenLieferant>`,
+    element("Name", text(dl.name, 45)),
+    element("Strasse", text(dl.strasse, 30)),
+    element("PLZ", text(dl.plz)),
+    element("Ort", text(dl.ort, 30)),
+    `</DatenLieferant>`,
+  ];
+}
+
+/**
  * <Anmeldungssteuern> der Datenart UStVA um einen Steuerfall: Voranmeldung, Antrag auf Dauerfristverlängerung oder
  * Anmeldung der Sondervorauszahlung; laut ERiC-Plugin checkUStVA darf je Nachricht nur einer davon stehen.
  */
@@ -258,13 +279,7 @@ export function anmeldungssteuern(year: number, dl: Datenlieferant, erstellungsd
   return [
     `<Anmeldungssteuern xmlns="http://finkonsens.de/elster/elsteranmeldung/ustva/v${year}" version="${year}">`,
     element("Erstellungsdatum", yyyymmdd(erstellungsdatum ?? new Date())),
-    // Längen laut Schema; der Datenlieferant ist nur Absenderangabe
-    `<DatenLieferant>`,
-    element("Name", dl.name.slice(0, 45)),
-    element("Strasse", dl.strasse.slice(0, 30)),
-    element("PLZ", dl.plz),
-    element("Ort", dl.ort.slice(0, 30)),
-    `</DatenLieferant>`,
+    ...datenlieferantXml(dl),
     `<Steuerfall>`,
     ...steuerfall,
     `</Steuerfall>`,

@@ -74,7 +74,7 @@ function FinanzamtPage() {
           <PrepaymentForm key="v" data={data} basis={basis} />
         </>
       )}
-      {tab === "nachricht" && <MessageForm key="n" data={data} topic="nachricht" initial={{ betreff: "", text: "" }} />}
+      {tab === "nachricht" && <MessageForm key="n" data={data} />}
       {tab === "bankverbindung" && <BankChangeForm data={data} />}
 
       <History data={data} />

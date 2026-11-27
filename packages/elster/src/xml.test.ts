@@ -231,13 +231,20 @@ describe("buildUstvaUpload (XML-Import in Mein ELSTER)", () => {
   });
 
   it("schreibt Umlaute und das Euro-Zeichen in ISO-8859-15, Zeichen außerhalb als Zeichenreferenz", () => {
-    const bytes = upload({ datenlieferant: { name: "Müller € GmbH „Nord“", strasse: "Straße 1", plz: "10115", ort: "Köln" } });
+    // „Nord“ schreibt Haben im Zeichensatz der Datenart als "Nord" (UStVA-2026.xsd, #1329); ein Emoji bleibt eine Zeichenreferenz
+    const bytes = upload({ datenlieferant: { name: "Müller € GmbH „Nord“ 🙂", strasse: "Straße 1", plz: "10115", ort: "Köln" } });
     expect([...bytes].some((b) => b > 0x7f && b !== 0xfc && b !== 0xa4 && b !== 0xdf && b !== 0xf6)).toBe(false);
     expect(bytes).toContain(0xa4);
     const xml = latin9(bytes);
-    expect(tag(xml, "Name")).toBe("Müller € GmbH &#8222;Nord&#8220;");
+    expect(tag(xml, "Name")).toBe("Müller € GmbH &quot;Nord&quot; &#128578;");
     expect(tag(xml, "Strasse")).toBe("Straße 1");
     expect(tag(xml, "Ort")).toBe("Köln");
+  });
+
+  it("Datenlieferant in den Nutzdaten im Zeichensatz Standard_E_V2: „·“ im Firmennamen wird „-“ (#1329)", () => {
+    const xml = buildUstvaXml({ ...base, datenlieferant: { name: "Mustermann IT · Max Mustermann", strasse: "Weg 1", plz: "10115", ort: "Berlin" } });
+    expect(xml).toContain("<Name>Mustermann IT - Max Mustermann</Name>");
+    expect(xml).toContain("<DatenLieferant>Mustermann IT - Max Mustermann, Weg 1, 10115 Berlin</DatenLieferant>");
   });
 
   it("lehnt einen ungültigen Zeitraum ab wie der Versand", () => {

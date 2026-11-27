@@ -115,7 +115,7 @@ Seltenes steht eingeklappt, mit dem Gesetzten in der Überschrift: **Handelsregi
 | Steuernummer | So eingeben, wie sie auf dem Bescheid steht (z. B. `21/815/08150`). Haben rechnet sie ins 13-stellige ELSTER-Format um; eine schon 13-stellige Nummer bleibt unverändert. Pflicht für ELSTER; für Rechnungen reicht Steuernummer oder USt-IdNr. |
 | USt-IdNr. | Auf Rechnungen und im E-Rechnungs-XML. Form `DE123456789` |
 | Finanzamt | Name des Finanzamts, steht auf der [Lohnsteuerbescheinigung](lohn.md#lohnsteuerbescheinigung). Das Empfänger-Finanzamt der Voranmeldung leitet Haben aus der Steuernummer ab |
-| Telefon | Auf der Rechnung; für XRechnung Pflicht |
+| Telefon | Auf der Rechnung; für XRechnung Pflicht; mit dem [Antrag auf Anpassung der Vorauszahlungen](finanzamt.md#vorauszahlungen-herabsetzen) an das Finanzamt für Rückfragen |
 | Bank, IBAN, BIC | Zahlungsangaben auf der Rechnung. Die IBAN ist Pflicht zum Festschreiben; Eingabe ohne Leerzeichen, Haben entfernt sie aber auch selbst. Weitere Konten für einzelne Rechnungen oder Kunden: [Zahlungskonto](rechnungen-zahlung.md#zahlungskonto) |
 | Kontoinhaber | Nur nötig, wenn das Konto nicht auf den Firmennamen läuft. Steht im GiroCode, in der Fußzeile und in der E-Rechnung (BT-85); leer = Firmenname. Höchstens 70 Zeichen, siehe [GiroCode](rechnungen-zahlung.md#girocode) |
 | Gläubiger-ID | Nur für [SEPA-Lastschriften](kontakte.md#sepa-lastschriftmandate) nötig. Die Bundesbank vergibt sie auf Antrag; 18 Stellen wie `DE98ZZZ09999999999`. Haben prüft die Prüfziffer nach EPC262-08 und speichert sie ohne Leerzeichen |

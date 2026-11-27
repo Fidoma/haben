@@ -83,9 +83,11 @@ ERiC 45.1.5.0 ist ein BETA-Release: Damit gehen nur Testübermittlungen mit Test
 | Was | ab ERiC |
 | --- | --- |
 | Voranmeldung, Dauerfristverlängerung und Sondervorauszahlung 2027, Kapitalertragsteuer-Anmeldung 2027, Anlage EÜR und Einkommensteuer 2026 | 45 |
-| Sonstige Nachricht als Echtfall (Version 22) | 43.5 |
+| Sonstige Nachricht und Antrag auf Anpassung der Vorauszahlungen als Echtfall (Version 22) | 43.5 |
 | E-Bilanz ohne rechtsformfremde Angaben | jede; ERiC prüft das ab 43.5 |
 | Postfach und Belegabruf (Datenabholung Version 32) | 43.4 |
+
+Den Firmennamen samt Anschrift im Kopf jeder Übermittlung und im Datenlieferanten von Voranmeldung, Dauerfristverlängerung und Lohnsteuer-Anmeldung lässt ELSTER nur im Zeichensatz der Datenarten zu. Gedankenstriche und Mittelpunkte („Mustermann IT · Max Mustermann“) schreibt Haben dort als `-`, typografische Anführungszeichen als `"` und `'`; bis Version 0.14 lehnte ERiC eine Übermittlung mit solchen Zeichen im Firmennamen ab. Mehr unter [Finanzamt](finanzamt.md#verlauf).
 
 Mit dem Mindestversionswechsel im April sperrt ELSTER die Versionen 43 und 44 für den Versand (ERiC-Entwicklerhandbuch, Kap. 2.3); bis dahin brauchst du die 45.
 

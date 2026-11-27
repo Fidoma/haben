@@ -8,7 +8,17 @@ import {
   type LstaKennzahlen,
   type LstaZeitraum,
 } from "@haben/core";
-import { checkSteuernummer13, element, elsterDecimal, ElsterEingabeError, elsterXml, TESTMERKER, type Datenlieferant, yyyymmdd } from "./xml.ts";
+import {
+  checkSteuernummer13,
+  datenlieferantXml,
+  element,
+  elsterDecimal,
+  ElsterEingabeError,
+  elsterXml,
+  TESTMERKER,
+  type Datenlieferant,
+  yyyymmdd,
+} from "./xml.ts";
 
 /*
  * Lohnsteuer-Anmeldung (Verfahren ElsterAnmeldung, Datenart LStA). Elementnamen und Reihenfolge aus den Schemas
@@ -88,18 +98,6 @@ function betraege(k: LstaKennzahlen): { lohnsteuer: string[]; rest: string[] } {
   };
 }
 
-function datenlieferant(dl: Datenlieferant): string[] {
-  // Längen laut Schema (Name 45, Strasse 30, Ort 30)
-  return [
-    `<DatenLieferant>`,
-    element("Name", dl.name.slice(0, 45)),
-    element("Strasse", dl.strasse.slice(0, 30)),
-    element("PLZ", dl.plz),
-    element("Ort", dl.ort.slice(0, 30)),
-    `</DatenLieferant>`,
-  ];
-}
-
 /** Inhalt von /Elster/DatenTeil/Nutzdatenblock/Nutzdaten: das Element <Anmeldungssteuern>, zeilenweise */
 export function lstaNutzdaten(input: Omit<LStAInput, "produktVersion" | "test">): string[] {
   pruefen(input);
@@ -113,7 +111,7 @@ export function lstaNutzdaten(input: Omit<LStAInput, "produktVersion" | "test">)
   if (year === 2026) {
     return [
       ...kopf,
-      ...datenlieferant(input.datenlieferant),
+      ...datenlieferantXml(input.datenlieferant),
       `<Steuerfall>`,
       `<Lohnsteueranmeldung>`,
       element("Jahr", String(year)),
@@ -136,7 +134,7 @@ export function lstaNutzdaten(input: Omit<LStAInput, "produktVersion" | "test">)
     element("Jahr", String(year)),
     element("Zeitraum", lstaZeitraumCode(input.zeitraum)),
     `</Allgemein>`,
-    ...datenlieferant(input.datenlieferant),
+    ...datenlieferantXml(input.datenlieferant),
     `<Lohnsteueranmeldung>`,
     element("Kz09", input.herstellerId),
     ...(input.berichtigt ? [element("Kz10", "1")] : []),

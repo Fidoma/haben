@@ -72,10 +72,11 @@ export const getFinanzamt = createServerFn({ method: "GET" })
 
 export const sendFinanzamtMessage = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator(messageSchema.extend({ kind: z.enum(["validate", "test", "send"]), pin: z.string().max(64).optional() }))
+  .validator(messageSchema.and(z.object({ kind: z.enum(["validate", "test", "send"]), pin: z.string().max(64).optional() })))
   .handler(async ({ data, context }) => {
-    const { kind, pin, ...message } = data;
-    const result = await sendMessage(context.user.id, message, elsterClient(), { kind, pin, herstellerId: env().ELSTER_HERSTELLER_ID });
+    // sendMessage liest die Nachricht selbst mit messageSchema; kind und pin fallen dabei weg
+    const { kind, pin } = data;
+    const result = await sendMessage(context.user.id, data, elsterClient(), { kind, pin, herstellerId: env().ELSTER_HERSTELLER_ID });
     return { ok: result.ok, code: result.code, message: result.message, transferTicket: result.transferTicket ?? null };
   });
 

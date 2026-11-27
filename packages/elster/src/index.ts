@@ -10,6 +10,7 @@ export * from "./euer-felder.ts";
 export * from "./euer-umgliedern.ts";
 export * from "./est.ts";
 export * from "./nachricht.ts";
+export * from "./vorauszahlung.ts";
 export * from "./bankverbindung.ts";
 export * from "./postfach.ts";
 export * from "./vast.ts";
