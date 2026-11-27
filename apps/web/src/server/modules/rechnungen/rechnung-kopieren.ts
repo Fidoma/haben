@@ -6,6 +6,7 @@ import { draftSchema } from "./draft-schema.ts";
 import { assertCustomer, insertDraft } from "./invoice-drafts.ts";
 import { replacementProblem } from "./invoice-replacement.ts";
 import { getInvoice, type Invoice } from "./invoices.ts";
+import { uebernommeneBankverbindung } from "./beleg-bankverbindung.ts";
 import { mitVorlage } from "./beleg-platzhalter.ts";
 
 /** Warum sich eine Rechnung nicht kopieren lässt; null = sie lässt sich kopieren */
@@ -35,6 +36,7 @@ export async function copyInvoice(actor: string, id: string, today: string, { re
       // Mit Platzhaltern, wie im Entwurf des Originals, nicht mit dessen Werten (#1334)
       ...mitVorlage(invoice),
       contactPersonId: personActive ? invoice.contactPersonId : null,
+      bankverbindungId: await uebernommeneBankverbindung(tx, invoice),
       issueDate: today,
       serviceFrom: replacement ? invoice.serviceFrom : null,
       serviceTo: replacement ? invoice.serviceTo : null,

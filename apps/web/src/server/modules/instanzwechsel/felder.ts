@@ -128,10 +128,12 @@ export const FELDER = {
     ["id", "number", "description", "detail", "unit", "unitPrice", "taxRate", "priceIncludesTax", "arbeitskosten", "note", "sevdeskId", "archivedAt"],
     { createdAt: ANGELEGT, updatedAt: GEAENDERT },
   ),
+  bankverbindungen: felder(schema.bankverbindungen, ["id", "bezeichnung", "iban", "bic", "bank", "kontoinhaber"], { createdAt: ANGELEGT }),
   contacts: felder(
     schema.contacts,
     [
       "id",
+      "bankverbindungId",
       "kundennummer",
       "isCustomer",
       "isSupplier",

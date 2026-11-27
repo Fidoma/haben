@@ -40,6 +40,13 @@ describe("customerDraft (#1557)", () => {
     expect(customerDraft(draft, [{ ...kunde, skonto: [{ days: 10, percentBp: 300 }] }], "k1", firmenSkonto)?.skonto).toEqual([{ days: 10, percentBp: 300 }]);
   });
 
+  it("übernimmt das bevorzugte Zahlungskonto des Kunden, solange es das Konto gibt (#1887)", () => {
+    const mitVorgabe = [{ ...kunde, bankverbindungId: "b1" }];
+    expect(customerDraft(draft, mitVorgabe, "k1", firmenSkonto, [], [{ id: "b1" }])?.bankverbindungId).toBe("b1");
+    expect(customerDraft(draft, mitVorgabe, "k1", firmenSkonto, [], [])?.bankverbindungId).toBeNull();
+    expect(customerDraft(draft, [kunde], "k1", firmenSkonto)?.bankverbindungId).toBeNull();
+  });
+
   it("ein reiner Lieferant oder ein unbekannter Kontakt wird nicht vorausgewählt", () => {
     expect(customerDraft(draft, [{ ...kunde, isCustomer: false }], "k1", firmenSkonto)).toBeNull();
     expect(customerDraft(draft, [kunde], "k2", firmenSkonto)).toBeNull();

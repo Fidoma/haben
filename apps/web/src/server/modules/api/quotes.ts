@@ -173,7 +173,8 @@ export async function updateQuoteHandler(request: ApiRequest): Promise<ApiResult
   if (typeof body.contactId === "string") body.contactId = body.contactId.toLowerCase();
   const merged = { ...quoteDraftInputOf(quote, lines), ...body };
   // Ein Ansprechpartner gehört zu genau einem Kunden (#424): Wechselt der Kunde, entfällt die Person, die jemand in Haben gewählt hat
-  if ("contactId" in body && body.contactId !== quote.contactId) merged.contactPersonId = null;
+  // Ebenso die Bankverbindung (#1887): Ohne Angabe gilt dann die Vorgabe des neuen Kunden (bankverbindungFuerEntwurf)
+  if ("contactId" in body && body.contactId !== quote.contactId) Object.assign(merged, { contactPersonId: null, bankverbindungId: undefined });
   const input = validatePatched(merged);
   if ("failure" in input) return input.failure;
   const problem = await contactProblem(input.data.contactId);

@@ -162,7 +162,7 @@ curl -s -X POST "$HABEN/kontakte" -H "Authorization: Bearer $TOKEN" -H "Content-
   -d '{"name": "Anna Muster", "strasse": "Lindenweg 3", "plz": "10115", "ort": "Berlin", "email": "anna@example.com"}'
 ```
 
-Rechnungsentwurf zu einer Etsy-Bestellung, zwei Becher zu je 24,00 € netto mit 19 %. Nicht genannte Felder nehmen die Vorgaben aus den Firmendaten (Zahlungsziel, Format, Kleinunternehmer) und Einleitung und Hinweis aus dem [Standard-Textbaustein für Rechnungen](rechnungen.md#standard-je-belegart), Format, Sprache und Skonto wie im Rechnungseditor vom Kontakt (sein Standardformat, mit Leitweg-ID XRechnung), das Datum ist heute:
+Rechnungsentwurf zu einer Etsy-Bestellung, zwei Becher zu je 24,00 € netto mit 19 %. Nicht genannte Felder nehmen die Vorgaben aus den Firmendaten (Zahlungsziel, Format, Kleinunternehmer) und Einleitung und Hinweis aus dem [Standard-Textbaustein für Rechnungen](rechnungen.md#standard-je-belegart), Format, Sprache, Skonto und [Zahlungskonto](rechnungen-zahlung.md#zahlungskonto) wie im Rechnungseditor vom Kontakt (sein Standardformat, mit Leitweg-ID XRechnung), das Datum ist heute:
 
 ```sh
 curl -s -X POST "$HABEN/rechnungen" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{
@@ -258,7 +258,7 @@ Mit `angebote:entwuerfe` legt `POST /angebote` einen Entwurf an, etwa aus einer 
 
 Mit `externalSource` (z. B. `desk`) und `externalId` (stabile Vorgangs-ID) legst du je Referenz ein Angebot an. Beide Felder gehören zusammen. Beim Anlegen antwortet Haben mit `201`. Wiederholungen liefern mit `200` dasselbe Angebot in seinem aktuellen Stand zurück, auch nach dem Festschreiben. Beide Antworten haben einen `Location`-Header. Eine Wiederholung ändert das Angebot nicht. Wurde der Entwurf bewusst gelöscht, kann die Referenz erneut verwendet werden. Ohne Referenz legt jeder Aufruf einen eigenen Entwurf an.
 
-`PATCH /angebote/{id}` ändert nur die genannten Felder, `lines` ersetzt alle Positionen. Rabatte, Zahlungsplan und Ansprechpartner setzt nur Haben: Ein Gesamtrabatt und ein Zahlungsplan bleiben bei einem `PATCH` stehen, Positionsrabatte gehen mit den alten Positionen, und wechselt der Kunde, entfällt der Ansprechpartner. Passen Gesamtrabatt oder Zahlungsplan nicht zu den neuen Positionen, etwa ein fester Rabatt über der neuen Summe, antwortet die API mit `409`, und der Entwurf bleibt, bis du sie in Haben anpasst. `DELETE /angebote/{id}` löscht den Entwurf mit seinen Anhängen. Ein festgeschriebenes Angebot lässt sich über die API weder ändern noch löschen (`409`).
+`PATCH /angebote/{id}` ändert nur die genannten Felder, `lines` ersetzt alle Positionen. Rabatte, Zahlungsplan, Ansprechpartner und Zahlungskonto setzt nur Haben: Ein Gesamtrabatt, ein Zahlungsplan und das Zahlungskonto bleiben bei einem `PATCH` stehen, Positionsrabatte gehen mit den alten Positionen, und wechselt der Kunde, entfällt der Ansprechpartner und es gilt das bevorzugte Zahlungskonto des neuen Kunden. Passen Gesamtrabatt oder Zahlungsplan nicht zu den neuen Positionen, etwa ein fester Rabatt über der neuen Summe, antwortet die API mit `409`, und der Entwurf bleibt, bis du sie in Haben anpasst. `DELETE /angebote/{id}` löscht den Entwurf mit seinen Anhängen. Ein festgeschriebenes Angebot lässt sich über die API weder ändern noch löschen (`409`).
 
 ## Artikelkatalog
 

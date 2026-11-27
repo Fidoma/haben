@@ -115,13 +115,16 @@ function useInvoiceEditorFinalize(editor: InvoiceEditorFigures, persist: () => P
 
 /** Entwurf einer Rechnung, wie ihn saveInvoiceDraft speichert */
 function draftInput(editor: InvoiceEditorFigures): DraftInput {
-  const { advanceType, alreadyPaid, contactId, contactPersonId, currencyCode, deducted, discount, exchangeRate, exchangeRateDate, foreign } = editor;
+  const { advanceType, alreadyPaid, bankverbindungId, contactId, contactPersonId, currencyCode, deducted, discount, exchangeRate, exchangeRateDate, foreign } =
+    editor;
   const { format, grossPrices, initial, intro, issueDate, kind, language, lastschrift, mandateId, note, paidOn, paidVia, parsed } = editor;
   const { paymentMethod, propertyRetention, quote, quoteId, references, schluss, serviceFrom, serviceTo, skonto, special } = editor;
   const { taxDetails, taxNote, taxTreatment, term, termValid, variant } = editor;
   return {
     contactId: contactId || null,
     contactPersonId: contactPersonId || null,
+    // Bei Lastschrift gilt der Standard, auf ihn lautet das Gläubigerkonto (draftSeller)
+    bankverbindungId: lastschrift ? null : bankverbindungId || null,
     issueDate,
     serviceFrom: serviceFrom || null,
     serviceTo: serviceTo || null,

@@ -35,8 +35,9 @@ export type InvoiceEditorFigures = InvoiceEditorState & ReturnType<typeof useInv
 
 /** Auswahl, die weitere Felder mitsetzt: Steuer, Kunde, Art, Angebot und abgezogene Abschläge */
 function editorChoices(state: InvoiceEditorState, schluss: boolean, lastschrift: boolean, { term, termValid }: { term: number; termValid: boolean }) {
-  const { abschlaege, companySkonto, contactId, contactPersons, contacts, deducts, kind, mandates, quoteId, quotes, touch } = state;
+  const { abschlaege, bankverbindungen, companySkonto, contactId, contactPersons, contacts, deducts, kind, mandates, quoteId, quotes, touch } = state;
   const {
+    setBankverbindungId,
     setContactId,
     setContactPersonId,
     setDeducts,
@@ -65,6 +66,11 @@ function editorChoices(state: InvoiceEditorState, schluss: boolean, lastschrift:
     // Ein Ansprechpartner gehört zu genau einem Kunden; hat der neue genau einen aktiven, ist er gleich gewählt (#1335)
     if (value !== contactId) setContactPersonId(einzigerAnsprechpartner(contactPersons, value));
     const chosen = saved ?? contacts.find((c) => c.id === value);
+    // Bevorzugtes Zahlungskonto des Kunden, sonst der Standard (#1887), wie kontaktBankverbindung im Server
+    if (value !== contactId) {
+      const vorgabe = contacts.find((c) => c.id === value)?.bankverbindungId;
+      setBankverbindungId(bankverbindungen.some((b) => b.id === vorgabe) ? vorgabe! : "");
+    }
     if (chosen?.defaultFormat) setFormat(chosen.defaultFormat);
     else if (chosen?.leitwegId) setFormat("xrechnung-cii");
     if (chosen) setLanguage(chosen.language ?? "de");

@@ -87,7 +87,8 @@ export async function mitHinweisen(
     if (row.open === 0) return { ...row, suggestion: null, bestaetigung: null, hint: "zugeordnet" as const };
     const current = own.find((account) => account.id === row.bankAccountId);
     const purpose = konten.find((konto) => konto.id === row.bankAccountId)?.purpose ?? "geschaeft";
-    const [match] = suggestMatches({ ...row, amount: row.open }, items, 1);
+    // Wie die Detailansicht mit dem Konto des Umsatzes: Es zählt für Rechnungen auf diese IBAN (#1887)
+    const [match] = suggestMatches({ ...row, amount: row.open, kontoIban: current?.iban ?? null }, items, 1);
     // PayPal auf dem Bankkonto braucht die Gegenbuchung, die erst die Detailansicht sucht.
     let direct = !match && row.open === row.amount && current ? suggestDirectBooking(row, current, own) : null;
     // Wie die Detailansicht: Lastschrift des Finanzamts über den Betrag einer Lohnsteuer-Anmeldung, vor dem Gelernten

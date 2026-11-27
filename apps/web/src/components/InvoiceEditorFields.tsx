@@ -1,5 +1,6 @@
 import { formatEuro, skontoFristen, type PriceMode } from "@haben/core";
 import { formatDate } from "../lib/format.ts";
+import { BankverbindungField } from "./BankverbindungField.tsx";
 import { ContactCombobox } from "./ContactCombobox.tsx";
 import { ContactPersonField } from "./ContactPersonField.tsx";
 import { Field } from "./Field.tsx";
@@ -149,6 +150,7 @@ export function InvoiceDatePaymentFields({ editor }: { editor: InvoiceEditorMode
           }}
         />
       )}
+      <InvoiceBankverbindungField editor={editor} />
       {skontoAllowed && (
         <SkontoFields
           id="invoice-skonto"
@@ -162,6 +164,30 @@ export function InvoiceDatePaymentFields({ editor }: { editor: InvoiceEditorMode
         />
       )}
     </>
+  );
+}
+
+/**
+ * Zahlungskonto (#1887) im Angebot und in der Rechnung mit Überweisung; bei Lastschrift gilt das Gläubigerkonto aus den
+ * Firmendaten. Ohne weitere Zahlungskonten steht das Feld nicht da (BankverbindungField).
+ */
+function InvoiceBankverbindungField({ editor }: { editor: InvoiceEditorModel }) {
+  const { bankverbindungen, bankverbindungId, editable, kind, paymentMethod, quote, setBankverbindungId, standardIban, touch } = editor;
+  if (!quote && !(kind === "rechnung" && paymentMethod === "ueberweisung")) return null;
+  return (
+    <BankverbindungField
+      label="Zahlungskonto"
+      bankverbindungen={bankverbindungen}
+      standardIban={standardIban}
+      value={bankverbindungId}
+      disabled={!editable}
+      hint={
+        quote
+          ? "Dein Konto für die Zahlung des Kunden; geht in die Rechnung aus dem Angebot über. Vorgabe ist das bevorzugte Zahlungskonto des Kunden."
+          : "Dein Konto, auf das der Kunde zahlt: auf der Rechnung, im GiroCode und in der E-Rechnung (BT-84). Vorgabe ist das bevorzugte Zahlungskonto des Kunden."
+      }
+      onChange={touch(setBankverbindungId)}
+    />
   );
 }
 

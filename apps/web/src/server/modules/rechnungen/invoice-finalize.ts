@@ -14,7 +14,7 @@ import { withAdvanceVatChange } from "./advance-vat.ts";
 import { cancelledIds } from "./cancelled-invoices.ts";
 import { originalProblem, reductionProblem } from "./correction-checks.ts";
 import { applyRateToDraft, serviceDate } from "./draft-rate.ts";
-import { buyerFrom, buyerIssues, documentFor, invoiceTitle, numberedBuyer, sellerFrom } from "./invoice-document.ts";
+import { buyerFrom, buyerIssues, documentFor, draftSeller, invoiceTitle, numberedBuyer } from "./invoice-document.ts";
 import { lockDraft } from "./invoice-drafts.ts";
 import { InvoiceError } from "./invoice-error.ts";
 import { loadReplacement, normalReplacementId, replacementPerformanceDate, replacementProblem } from "./invoice-replacement.ts";
@@ -88,7 +88,7 @@ export async function finalizeIssues(id: string, q: Db | Tx = db): Promise<strin
         lines,
         await invoiceDocumentTotals(id, q),
         (await invoiceTotalsById([id], q)).get(id)!,
-        sellerFrom(company),
+        await draftSeller(q, company, invoice),
         buyerFrom(contact, await ansprechpartnerSnapshot(q, invoice.contactPersonId)),
         "VORSCHAU",
         documentReference(data.corrects ?? replacement),
@@ -230,7 +230,7 @@ export async function finalizeDraft(tx: Tx, id: string, umsatzStand: UmsatzStand
   const numberContactId = circleContact(company.invoiceCounterPerCustomer, invoice.contactId!);
   // Storno/Korrektur: Anschrift des Originals. {KUNDENNR} ist im gemeinsamen Kreis die Nummer des Originals, solange
   // sie taugt, sonst die heutige; im Kundenkreis muss sie zum Kreis gehören und ist die des Kontakts (#1426).
-  const seller = sellerFrom(company);
+  const seller = await draftSeller(tx, company, invoice);
   const buyer = await buyerForFinalization(tx, company, invoice, corrects, contact!, numberContactId);
   const counter = await peekNumber(tx, "rechnung", circle, numberContactId);
   const number = await documentNumber(tx, "rechnung", company.invoiceNumberFormat, invoice.issueDate, counter, buyer.kundennummer);
@@ -270,6 +270,8 @@ export async function finalizeDraft(tx: Tx, id: string, umsatzStand: UmsatzStand
         numberContactId,
         contactVersion: contact!.version,
         seller,
+        // Ab hier gilt die Kopie des Zahlungskontos im Verkäufer; ohne Verweis lässt sich das Konto löschen (#1887)
+        bankverbindungId: null,
         buyer,
         net: totals.net,
         tax: totals.tax,

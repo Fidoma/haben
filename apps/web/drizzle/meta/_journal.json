@@ -2346,6 +2346,20 @@
       "when": 1795730920584,
       "tag": "0334_ki_warteschlange",
       "breakpoints": true
+    },
+    {
+      "idx": 335,
+      "version": "7",
+      "when": 1795771874553,
+      "tag": "0335_bankverbindungen",
+      "breakpoints": true
+    },
+    {
+      "idx": 336,
+      "version": "7",
+      "when": 1795771882747,
+      "tag": "0336_bankverbindungen_trigger",
+      "breakpoints": true
     }
   ]
 }

@@ -43,8 +43,23 @@ export {
   type Company,
   type CompanyInput,
 } from "./company.ts";
+export { setContactIbanIfEmpty } from "./contact-iban.ts";
 export { extractionLimitsSchema, saveExtractionLimits, setExtractionPaused, type ExtractionLimitsInput } from "./ki-grenzen.ts";
 export { editorContext } from "./editor-context.ts";
+export {
+  bankverbindungAuswahl,
+  bankverbindungNachIban,
+  bankverbindungProblem,
+  bankverbindungSchema,
+  createBankverbindung,
+  kontaktBankverbindung,
+  listBankverbindungen,
+  deleteBankverbindung,
+  loadBankverbindung,
+  updateBankverbindung,
+  type Bankverbindung,
+  type BankverbindungInput,
+} from "./bankverbindungen.ts";
 export {
   contactRoleProblem,
   contactSchema,
@@ -55,7 +70,6 @@ export {
   listContacts,
   searchContacts,
   setContactArchived,
-  setContactIbanIfEmpty,
   updateContact,
   type Contact,
   type ContactChoice,
@@ -176,6 +190,7 @@ export {
 } from "./text-blocks.ts";
 export {
   artikelUebernehmen,
+  bankverbindungenUebernehmen,
   einheitenUebernehmen,
   einrichtungUebernehmen,
   firmaErgaenzen,

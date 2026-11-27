@@ -78,6 +78,7 @@ export function draftInputOf(invoice: Invoice, lines: InvoiceLine[]): DraftInput
   return {
     contactId: invoice.contactId,
     contactPersonId: invoice.contactPersonId,
+    bankverbindungId: invoice.bankverbindungId,
     issueDate: invoice.issueDate,
     serviceFrom: invoice.serviceFrom,
     serviceTo: invoice.serviceTo,

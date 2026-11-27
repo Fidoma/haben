@@ -14,10 +14,19 @@ import {
 import { asc, eq } from "drizzle-orm";
 import { withActor } from "../../db/actor.ts";
 import { schema, type Tx } from "../../db/index.ts";
-import { contactPersonProblem, contactRoleProblem, loadCompany, standardTexte, type Company, type RateFields } from "../stammdaten/index.ts";
+import {
+  bankverbindungNachIban,
+  contactPersonProblem,
+  contactRoleProblem,
+  loadCompany,
+  standardTexte,
+  type Company,
+  type RateFields,
+} from "../stammdaten/index.ts";
 import { deductionLinesFor, deductionProblems } from "./advance-deductions.ts";
 import { lockInvoice } from "./advance-vat.ts";
 import { attachmentFiles, removeFiles, unusedFiles } from "./attachments.ts";
+import { bankverbindungFuerEntwurf } from "./beleg-bankverbindung.ts";
 import { draftRate, MAX_EURO_CENTS } from "./draft-rate.ts";
 import { effectivePriceMode, type DraftInput, type LineInput } from "./draft-schema.ts";
 import { InvoiceError } from "./invoice-error.ts";
@@ -132,6 +141,22 @@ function draftValues(input: DraftInput, bundesland: Company["bundesland"], lines
   return { values, calculation, taxes };
 }
 
+/** Zahlungskonto des Entwurfs (#1887). Eine Lastschrift zieht auf das Gläubigerkonto aus den Firmendaten ein: dann gilt der Standard. */
+function entwurfsBankverbindung(
+  tx: Tx,
+  values: { contactId: string | null; paymentMethod: string },
+  gewaehlt: string | null | undefined,
+  bisher: { bankverbindungId: string | null; contactId: string | null } | null,
+): Promise<string | null> {
+  if (values.paymentMethod === "lastschrift") return Promise.resolve(null);
+  return bankverbindungFuerEntwurf(tx, gewaehlt, values.contactId, bisher, (m) => new InvoiceError(m));
+}
+
+async function kontoDerRechnung(tx: Tx, invoiceId: string): Promise<string | null> {
+  const [original] = await tx.select({ seller: schema.invoices.seller }).from(schema.invoices).where(eq(schema.invoices.id, invoiceId));
+  return (await bankverbindungNachIban(tx, original?.seller?.iban)) ?? null;
+}
+
 type DraftExtra = Partial<Pick<Invoice, "kind" | "correctsId" | "recurringId" | "recurringDate" | "externalSource" | "externalId" | "paymentPlanRow">>;
 
 /** Rechnungen gehen an Kunden; ein Lieferant oder ein unbekannter Kontakt passt nicht */
@@ -174,9 +199,14 @@ export async function insertDraft(tx: Tx, draft: DraftInput, extra: DraftExtra =
   if (mandateProblem) throw new InvoiceError(mandateProblem);
   const personProblem = await contactPersonProblem(tx, values.contactId, values.contactPersonId);
   if (personProblem) throw new InvoiceError(personProblem);
+  // Storno und Korrektur nennen das weitere Zahlungskonto der Rechnung, solange es das Konto gibt; sonst wie jeder neue
+  // Beleg das heutige Standardkonto, auch wenn die Firma ihre IBAN seit der Rechnung geändert hat
+  const bankverbindungId = extra.correctsId
+    ? await kontoDerRechnung(tx, extra.correctsId)
+    : await entwurfsBankverbindung(tx, values, input.bankverbindungId, null);
   const [invoice] = await tx
     .insert(schema.invoices)
-    .values({ ...values, ...extra, replacesInvoiceId: input.replacesInvoiceId ?? null })
+    .values({ ...values, ...extra, bankverbindungId, replacesInvoiceId: input.replacesInvoiceId ?? null })
     .returning();
   await storeLines(tx, invoice!.id, lines, calculation, taxes);
   await syncQuoteBilling(tx, [invoice!.quoteId]);
@@ -226,9 +256,10 @@ export async function updateDraft(actor: string, id: string, proposed: DraftInpu
     if (personProblem) throw new InvoiceError(personProblem);
     // Abschlag zu einer Zeile des Zahlungsplans: nur solange es ein Abschlag zu diesem Angebot bleibt
     const keepsPlanRow = values.variant === "abschlag" && values.quoteId === draft.quoteId;
+    const bankverbindungId = await entwurfsBankverbindung(tx, values, input.bankverbindungId, draft);
     const [updated] = await tx
       .update(schema.invoices)
-      .set({ ...values, replacesInvoiceId, ...(keepsPlanRow ? {} : { paymentPlanRow: null }) })
+      .set({ ...values, bankverbindungId, replacesInvoiceId, ...(keepsPlanRow ? {} : { paymentPlanRow: null }) })
       .where(eq(schema.invoices.id, id))
       .returning();
     await storeLines(tx, id, lines, calculation, taxes);

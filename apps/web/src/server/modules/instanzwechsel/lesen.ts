@@ -38,6 +38,8 @@ const aufbauSchema = z.object({
   layouts: zeilen,
   units: zeilen,
   articles: zeilen,
+  // Ab Version 5 (#1887); ältere Dateien haben keine
+  bankverbindungen: zeilen.default([]),
   contacts: zeilen,
   contactPersons: zeilen,
   textBlocks: zeilen,

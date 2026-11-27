@@ -5,6 +5,7 @@ import { BEREICH_IDS } from "../../../lib/bereiche.ts";
 import { schema, type Tx } from "../../db/index.ts";
 import { geprueft, mitBezeichnung, UserError } from "../../errors.ts";
 import { articleInputSchema, insertArticle } from "./articles.ts";
+import { bankverbindungSchema } from "./bankverbindungen.ts";
 import { setEinrichtung } from "./company.ts";
 import { contactPersonInputSchema, insertContactPerson } from "./contact-persons.ts";
 import { contactSchema, insertContact } from "./contacts.ts";
@@ -104,6 +105,16 @@ export async function artikelUebernehmen(tx: Tx, articles: readonly unknown[]): 
         .set({ sevdeskId, archivedAt: seitDerUebernahme(archivedAt) })
         .where(eq(schema.articles.id, created.id));
     }
+  }
+}
+
+/** Weitere Zahlungskonten (#1887) mit ihrer ID aus der Datei, damit Kontakte sie als bevorzugtes Zahlungskonto finden */
+export async function bankverbindungenUebernehmen(tx: Tx, rows: readonly unknown[]): Promise<void> {
+  for (const raw of rows) {
+    const bezeichnung = `Zahlungskonto ${genannt(raw, "bezeichnung")}`;
+    const input = geprueft(bankverbindungSchema, raw, bezeichnung);
+    const { id } = geprueft(z.object({ id: z.uuid() }), raw, bezeichnung);
+    await mitBezeichnung(bezeichnung, () => tx.insert(schema.bankverbindungen).values({ ...input, id }));
   }
 }
 

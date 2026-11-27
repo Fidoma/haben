@@ -2,7 +2,7 @@ import { isKapitalgesellschaft } from "@haben/core";
 import { and, count, eq, gte, lt, sql } from "drizzle-orm";
 import { listAssets } from "../buchhaltung/index.ts";
 import { listInvoices } from "../rechnungen/index.ts";
-import { loadCompany, offeneFragenErledigt, type Company, type CompanyInput } from "../stammdaten/index.ts";
+import { bankverbindungNachIban, loadBankverbindung, loadCompany, offeneFragenErledigt, type Company, type CompanyInput } from "../stammdaten/index.ts";
 import { withActor } from "../../db/actor.ts";
 import { db, schema, type Db, type Tx } from "../../db/index.ts";
 import { UserError } from "../../errors.ts";
@@ -132,6 +132,11 @@ export async function saveCompanyIn(tx: Tx, input: CompanyInput, today: string, 
     throw new UserError("Das Gründungsdatum darf nicht in der Zukunft liegen.");
   }
   await loadCompany(tx);
+  // Dieselbe IBAN als Standard und als weiteres Zahlungskonto wäre in der Auswahl nicht zu unterscheiden (#1887)
+  const weiteres = input.iban ? await loadBankverbindung(tx, await bankverbindungNachIban(tx, input.iban)) : null;
+  if (weiteres) {
+    throw new UserError(`Diese IBAN steht schon als weiteres Zahlungskonto „${weiteres.bezeichnung}“; lösche es dort zuerst.`, { felder: ["iban"] });
+  }
   const [current] = await tx.select().from(schema.company).where(eq(schema.company.id, 1)).for("update");
   const locked = lockedChange(current!, input, await settingsLocks(today, tx));
   if (locked) throw new UserError(locked);

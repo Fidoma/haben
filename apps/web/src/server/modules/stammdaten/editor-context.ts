@@ -3,6 +3,7 @@ import { legalLine } from "@haben/einvoice";
 import { db, schema } from "../../db/index.ts";
 import { today } from "../../today.ts";
 import { listArticles } from "./articles.ts";
+import { listBankverbindungen } from "./bankverbindungen.ts";
 import { backgroundInfo } from "./background.ts";
 import { letterIssues, loadCompany, sellerIssues } from "./company.ts";
 import { contactPersonOptions } from "./contact-persons.ts";
@@ -15,7 +16,7 @@ import { listUnits } from "./units.ts";
 
 /** Gemeinsame Daten für den Rechnungs- und den Angebotseditor, mit der letzten vergebenen Nummer je Jahr */
 export async function editorContext(kind: "rechnung" | "angebot") {
-  const [company, counters, contacts, articles, textBlocks, logo, background, design, mandates, contactPersons, units] = await Promise.all([
+  const [company, counters, contacts, articles, textBlocks, logo, background, design, mandates, contactPersons, units, bankverbindungen] = await Promise.all([
     loadCompany(),
     kind === "rechnung" ? db.select().from(schema.invoiceNumberCounters) : db.select().from(schema.quoteNumberCounters),
     listContacts(),
@@ -27,6 +28,7 @@ export async function editorContext(kind: "rechnung" | "angebot") {
     kind === "rechnung" ? mandateOptions(today()) : Promise.resolve([]),
     contactPersonOptions(),
     listUnits(),
+    listBankverbindungen(),
   ]);
   const { name, strasse, plz, ort, email, telefon, steuernummer, ustId, iban, bic, bank, kontoinhaber } = company;
   return {
@@ -35,6 +37,9 @@ export async function editorContext(kind: "rechnung" | "angebot") {
     mandates,
     /** Ansprechpartner aller Kunden (#424), für die Auswahl unter „Kunde“ */
     contactPersons,
+    /** Weitere Zahlungskonten (#1887) und die IBAN des Standards */
+    bankverbindungen: bankverbindungen.map(({ id, bezeichnung, iban: kontoIban }) => ({ id, bezeichnung, iban: kontoIban })),
+    standardIban: iban,
     articles: articles.map(({ id, number, description, detail, unit, unitPrice, taxRate, priceIncludesTax, arbeitskosten }) => ({
       id,
       number,

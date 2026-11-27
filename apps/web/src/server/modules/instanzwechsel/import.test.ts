@@ -11,6 +11,7 @@ import { withChecksum } from "./integritaet.ts";
 
 const KUNDE = "0b6a1c1e-5d7e-4f0a-9a43-1f2d3c4b5a60";
 const LIEFERANT = "5a2b8c4d-1e3f-4a5b-8c6d-7e8f9a0b1c2d";
+const NORD = "3c1d2e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f";
 const LAYOUT = "4f1e2d3c-6b5a-4978-8a1b-2c3d4e5f6a70";
 const PNG = new Uint8Array(readFileSync(new URL("../../../../public/icon-192.png", import.meta.url)));
 const PDF = new TextEncoder().encode("%PDF-1.7\nAllgemeine Geschäftsbedingungen\n%%EOF\n");
@@ -56,6 +57,7 @@ type Datei = Zeile & {
   einrichtung: Zeile;
   letterheadProfiles: Zeile[];
   units: Zeile[];
+  bankverbindungen: Zeile[];
   articles: Zeile[];
   contacts: Zeile[];
   contactPersons: Zeile[];
@@ -97,7 +99,9 @@ describe.skipIf(!testDatabaseUrl)("Einstellungen übernehmen (Postgres)", () => 
 
   /** Alles leeren, was eine neue Instanz nicht hat */
   const neuBeginnen = () =>
-    leeren(sql)`truncate company, einrichtung, contacts, contact_persons, text_blocks, articles, units, own_accounts, beleg_layouts, letterhead_profiles,
+    leeren(
+      sql,
+    )`truncate company, einrichtung, bankverbindungen, contacts, contact_persons, text_blocks, articles, units, own_accounts, beleg_layouts, letterhead_profiles,
       company_logo, letterhead_background, quote_default_attachments, custom_pages, procedure_details, invoice_number_counters, quote_number_counters,
       mail_settings cascade`;
 
@@ -114,7 +118,10 @@ describe.skipIf(!testDatabaseUrl)("Einstellungen übernehmen (Postgres)", () => 
         'COBADEFFXXX', 'SKR04', 'soll', 21, 'RE-{NNNN}', 'AN-{JJJJ}-{NNN}', true, 'K-{NNNN}', 42, '12345', '678',
         ${JSON.stringify({ a: ERIKA })}::jsonb, '#1D4ED8', false, true, now())`;
     await sql`insert into einrichtung(id, ausgeblendete_bereiche, fragen_at) values (1, ${JSON.stringify(["personal"])}::jsonb, now())`;
-    await sql`insert into contacts(id, kundennummer, name, ort, email, debitor_nr, lexoffice_id) values (${KUNDE}, 'K-0041', 'Nordwerk GmbH', 'Hamburg', 'einkauf@nordwerk.example', 10041, 'lx-41')`;
+    // Weitere Zahlungskonten (#1887): eins als bevorzugtes des Kunden, eins ohne Kontakt
+    await sql`insert into bankverbindungen(id, bezeichnung, iban, bank) values (${NORD}, 'Objekt Nord', 'DE02120300000000202051', 'Deutsche Kreditbank')`;
+    await sql`insert into bankverbindungen(bezeichnung, iban) values ('Rücklage', 'DE75512108001245126199')`;
+    await sql`insert into contacts(id, kundennummer, name, ort, email, debitor_nr, lexoffice_id, bankverbindung_id) values (${KUNDE}, 'K-0041', 'Nordwerk GmbH', 'Hamburg', 'einkauf@nordwerk.example', 10041, 'lx-41', ${NORD})`;
     await sql`insert into contacts(id, is_customer, is_supplier, name, archived_at) values (${LIEFERANT}, false, true, 'Altlieferant KG', now())`;
     await sql`insert into contact_persons(contact_id, name, funktion, created_by) values (${KUNDE}, 'Jana Peters', 'Einkauf', 'test-user')`;
     await sql`insert into text_blocks(name, kind, text, contact_id) values ('Rahmenvertrag', 'kopf', 'Gemäß Rahmenvertrag RV-17 berechnen wir:', ${KUNDE})`;
@@ -181,6 +188,13 @@ describe.skipIf(!testDatabaseUrl)("Einstellungen übernehmen (Postgres)", () => 
       [LIEFERANT, null, "Altlieferant KG", null, null, true],
       [KUNDE, "K-0041", "Nordwerk GmbH", 10041, "lx-41", false],
     ]);
+    expect((await sql`select bankverbindung_id from contacts where id = ${KUNDE}`)[0]!.bankverbindung_id).toBe(NORD);
+    const bankverbindungen = await sql`select id, bezeichnung, iban, bank from bankverbindungen order by bezeichnung`;
+    expect(bankverbindungen.map((b) => [b.bezeichnung, b.iban, b.bank])).toEqual([
+      ["Objekt Nord", "DE02120300000000202051", "Deutsche Kreditbank"],
+      ["Rücklage", "DE75512108001245126199", ""],
+    ]);
+    expect(bankverbindungen[0]!.id).toBe(NORD);
     expect(await sql`select contact_id, name, funktion, created_by from contact_persons`).toEqual([
       { contact_id: KUNDE, name: "Jana Peters", funktion: "Einkauf", created_by: actor },
     ]);

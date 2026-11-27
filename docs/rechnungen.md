@@ -226,7 +226,7 @@ In Einleitung und Hinweis von Rechnung und Angebot, auch aus einem Textbaustein,
 | `{leistungszeitraum}` | Leistungszeitraum („01.10.2026 – 31.10.2026“) oder Leistungsdatum, leer ohne Angabe |
 | `{kunde}` | Name des Kunden |
 | `{firma}` | dein Firmenname |
-| `{iban}`, `{bic}` | IBAN (in Vierergruppen) und BIC deines Bankkontos aus den Firmendaten, etwa um sie größer als in der Fußzeile auf die Rechnung zu setzen |
+| `{iban}`, `{bic}` | IBAN (in Vierergruppen) und BIC des [Zahlungskontos](rechnungen-zahlung.md#zahlungskonto) der Rechnung, etwa um sie größer als in der Fußzeile auf die Rechnung zu setzen |
 
 Kopierst du eine Rechnung oder ein Angebot oder machst aus einem Angebot eine Rechnung, kommen Einleitung und Hinweis mit den Platzhaltern mit, nicht mit den Werten des Originals; die Auftragsbestätigung setzt die Werte der gewählten Positionen ein.
 

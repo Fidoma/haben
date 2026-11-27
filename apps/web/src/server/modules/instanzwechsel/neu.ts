@@ -12,6 +12,7 @@ const BELEGT: readonly [string, PgTable][] = [
   ["Kontakte", schema.contacts],
   ["Artikel", schema.articles],
   ["eigene Einheiten", schema.units],
+  ["weitere Zahlungskonten", schema.bankverbindungen],
   ["Textbausteine", schema.textBlocks],
   ["eigene Konten", schema.ownAccounts],
   ["eigene Layouts", schema.belegLayouts],

@@ -16,6 +16,7 @@ import type { KIND_TITLE } from "../lib/invoice.ts";
 import type { DraftInput } from "../server/modules/rechnungen/index.ts";
 import type { MandateOption } from "../server/modules/stammdaten/index.ts";
 import type { ArticleOption } from "./ArticleCombobox.tsx";
+import type { BankverbindungOption } from "./BankverbindungField.tsx";
 import type { ContactPersonOption } from "./ContactPersonField.tsx";
 import type { TextBlockOption } from "./TextBlockField.tsx";
 
@@ -38,6 +39,8 @@ export interface ContactOption {
   isCustomer: boolean;
   /** Für den Hinweis auf eine Dublette beim Anlegen im Dialog */
   ustId: string;
+  /** Bankverbindung für Belege an diesen Kunden (#1887); null = Standard */
+  bankverbindungId?: string | null;
 }
 
 /** Abschlagsrechnung, die eine Schlussrechnung abziehen kann */
@@ -128,6 +131,10 @@ export type InvoiceEditorProps = {
   mandates?: MandateOption[];
   /** Ansprechpartner aller Kunden (#424), für die Auswahl unter „Kunde“ */
   contactPersons?: ContactPersonOption[];
+  /** Weitere Zahlungskonten (#1887); ohne keine Auswahl im Editor */
+  bankverbindungen?: BankverbindungOption[];
+  /** IBAN der Standard-Bankverbindung aus den Firmendaten, für die Auswahl */
+  standardIban?: string;
   /** Korrektur einer Schlussrechnung: die übernommenen Abzüge, fest; Haben behält sie beim Speichern */
   keptDeductions?: { description: string; quantity: number; unit: string; unitPrice: number; taxRate: 1900 | 700 | 0; deductionOf: string }[];
 };

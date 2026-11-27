@@ -131,6 +131,8 @@ function editorProps({
   planTemplates = [],
   mandates = [],
   contactPersons = [],
+  bankverbindungen = [],
+  standardIban = "",
   keptDeductions = [],
 }: InvoiceEditorProps) {
   return {
@@ -161,6 +163,8 @@ function editorProps({
     planTemplates,
     mandates,
     contactPersons,
+    bankverbindungen,
+    standardIban,
     keptDeductions,
   };
 }
@@ -169,6 +173,8 @@ function editorProps({
 function useKopfFelder(initial: InvoiceEditorProps["initial"]) {
   const [contactId, setContactId] = useState(initial.contactId ?? "");
   const [contactPersonId, setContactPersonId] = useState(initial.contactPersonId ?? "");
+  /** Zahlungskonto (#1887); leer = Standard aus den Firmendaten */
+  const [bankverbindungId, setBankverbindungId] = useState(initial.bankverbindungId ?? "");
   /** Offener Dialog „Neuer Kunde“ mit dem vorgetragenen Namen; null = geschlossen */
   const [newContactName, setNewContactName] = useState<string | null>(null);
   /** Offener Dialog „Neuer Artikel“ und die Position, die ihn danach übernimmt */
@@ -188,6 +194,8 @@ function useKopfFelder(initial: InvoiceEditorProps["initial"]) {
     setContactId,
     contactPersonId,
     setContactPersonId,
+    bankverbindungId,
+    setBankverbindungId,
     newContactName,
     setNewContactName,
     newArticle,

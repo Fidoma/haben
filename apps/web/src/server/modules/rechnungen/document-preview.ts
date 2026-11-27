@@ -21,6 +21,7 @@ import {
 import {
   asDraft,
   type Buyer,
+  type Seller,
   type InvoiceDocument,
   type Letterhead,
   pdfData,
@@ -38,7 +39,6 @@ import { z } from "zod";
 import { db } from "../../db/index.ts";
 import { UserError } from "../../errors.ts";
 import {
-  type Company,
   customLayoutFor,
   mitEingebautemLayout,
   customLayoutJob,
@@ -53,7 +53,7 @@ import {
   typstMeldung,
 } from "../stammdaten/index.ts";
 import { deductedRefs } from "./advance-deductions.ts";
-import { buyerFrom, sellerFrom } from "./invoice-document.ts";
+import { buyerFrom, draftSeller } from "./invoice-document.ts";
 import { directDebitFor } from "./lastschrift.ts";
 import { documentReferences, referenceColumns, referenceFieldsSchema } from "./order-references.ts";
 import { quoteCalculation } from "./quotes.ts";
@@ -84,6 +84,8 @@ export const documentPreviewSchema = z.object({
   contactId: z.uuid().nullable(),
   /** Ansprechpartner des Kunden (#424), für die Zeile „z. Hd.“ in der Vorschau */
   contactPersonId: z.uuid().nullable().default(null),
+  /** Gewähltes Zahlungskonto (#1887); null = Standard aus den Firmendaten */
+  bankverbindungId: z.uuid().nullable().default(null),
   ...referenceFieldsSchema,
   lines: z
     .array(
@@ -159,7 +161,7 @@ async function previewBuyer(contactId: string | null, contactPersonId: string | 
 
 function invoiceDocument(
   input: Input,
-  company: Company,
+  seller: Seller,
   buyer: Buyer,
   letterhead: Letterhead,
   directDebit: InvoiceDocument["directDebit"],
@@ -181,7 +183,7 @@ function invoiceDocument(
     ...(input.serviceFrom ? { serviceFrom: input.serviceFrom } : {}),
     ...(input.serviceTo ? { serviceTo: input.serviceTo } : {}),
     currency: input.currency,
-    seller: sellerFrom(company),
+    seller,
     buyer,
     lines: input.lines.map((line, index) => ({
       position: index + 1,
@@ -215,7 +217,7 @@ function invoiceDocument(
   };
 }
 
-function quoteDocument(input: Input, company: Company, buyer: Buyer, letterhead: Letterhead): QuoteDocument {
+function quoteDocument(input: Input, seller: Seller, buyer: Buyer, letterhead: Letterhead): QuoteDocument {
   const { exemptionReason } = outgoingTaxColumns(input);
   const lines = input.lines.map((line, index) => ({ ...line, position: index + 1 }));
   const calc = quoteCalculation(lines, input.priceMode, input.discount);
@@ -227,7 +229,7 @@ function quoteDocument(input: Input, company: Company, buyer: Buyer, letterhead:
     validUntil: input.validUntil || input.issueDate,
     ...(input.serviceFrom ? { serviceFrom: input.serviceFrom } : {}),
     ...(input.serviceTo ? { serviceTo: input.serviceTo } : {}),
-    seller: sellerFrom(company),
+    seller,
     buyer,
     lines: lines.map((line, index) => ({
       position: line.position,
@@ -275,13 +277,17 @@ export async function documentPreview(input: Input): Promise<DocumentPreview> {
     company,
     db,
   );
+  const seller = await draftSeller(db, company, {
+    bankverbindungId: input.bankverbindungId,
+    paymentMethod: input.sepaMandateId ? "lastschrift" : "ueberweisung",
+  });
   // Abgezogene Abschlagsrechnungen wie im Entwurfs-PDF, mit ihrem Anteil nach § 35a EStG (#1667); nur IDs, die es geben kann
   const deducted = input.kind === "rechnung" ? await deductedRefs(input.lines.filter((line) => z.uuid().safeParse(line.deductionOf).success)) : [];
   const t = texts(input.language, input.currency);
   const data =
     input.kind === "angebot"
-      ? quotePdfData(angebotMitPlatzhaltern(quoteDocument(input, company, buyer, letterhead)))
-      : pdfData(rechnungMitPlatzhaltern(invoiceDocument(input, company, buyer, letterhead, directDebit, deducted)));
+      ? quotePdfData(angebotMitPlatzhaltern(quoteDocument(input, seller, buyer, letterhead)))
+      : pdfData(rechnungMitPlatzhaltern(invoiceDocument(input, seller, buyer, letterhead, directDebit, deducted)));
   const { draft: _noMark, ...sheet } = asDraft(data, t);
   return renderPreview(
     input.kind === "angebot" ? "angebot" : "rechnung",

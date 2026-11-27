@@ -77,6 +77,8 @@ export const draftSchema = z
     paidOn: isoDate.nullable().default(null),
     /** Ansprechpartner des Kunden (#424); der Stand beim Festschreiben steht im Käufer des Belegs */
     contactPersonId: z.uuid().nullable().default(null),
+    /** Zahlungskonto (#1887); null = Standard, fehlt = bisheriges bzw. bevorzugtes des Kontakts (bankverbindungFuerEntwurf) */
+    bankverbindungId: z.uuid().nullable().optional(),
   })
   .refine((d) => !d.serviceFrom || !d.serviceTo || d.serviceFrom <= d.serviceTo, {
     message: "Leistungszeitraum endet vor seinem Beginn",

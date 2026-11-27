@@ -21,6 +21,7 @@ import { withActor } from "../../db/actor.ts";
 import { db, schema, type Db, type Tx } from "../../db/index.ts";
 import { firstHits, runSearchParts, searchPart } from "../../db/search-parts.ts";
 import { isUniqueViolation } from "../../errors.ts";
+import { assertBankverbindungWaehlbar } from "./bankverbindungen.ts";
 import { takeCustomerNumber } from "./customer-numbers.ts";
 import { customerNumberLocked } from "./kundennummer-sperre.ts";
 
@@ -100,6 +101,8 @@ export const contactSchema = z.object({
   hourlyRateCents: z.optional(
     z.nullable(inCents(z.number().int("Stundensatz in ganzen Cent").min(0, "Stundensatz nicht negativ").max(100_000_00, "Stundensatz: höchstens 100.000 €"))),
   ),
+  /** Bankverbindung für neue Rechnungen und Angebote (#1887); null = Standard, fehlt = unverändert */
+  bankverbindungId: z.optional(z.nullable(z.uuid())),
 });
 
 export type ContactRole = "kunde" | "lieferant";
@@ -258,6 +261,7 @@ export async function createContact(actor: string, input: ContactInput): Promise
  */
 export async function insertContact(tx: Tx, input: ContactInput, { id, vergeben = true }: { id?: string; vergeben?: boolean } = {}): Promise<Contact> {
   const values = clean(input);
+  await assertBankverbindungWaehlbar(tx, values.bankverbindungId);
   // Ohne eigene Nummer vergibt Haben die nächste, wenn in den Einstellungen ein Format steht; nur an Kunden,
   // ein reiner Lieferant hat keine Kundennummer (#224)
   // Eine eigene Nummer geht immer über die Sperre der Firmenzeile, damit keine gleichzeitige Vergabe sie doppelt nimmt
@@ -296,6 +300,7 @@ export async function updateContact(actor: string, id: string, input: ContactInp
     const values = clean(input);
     const [current] = await tx.select({ kundennummer: schema.contacts.kundennummer }).from(schema.contacts).where(eq(schema.contacts.id, id));
     if (!current) throw new ContactError("Kontakt nicht gefunden.");
+    await assertBankverbindungWaehlbar(tx, values.bankverbindungId);
     if (current.kundennummer !== values.kundennummer && (await customerNumberLocked(tx, id))) {
       throw new ContactError(
         `Die Kundennummer ${current.kundennummer} ist gesperrt, weil festgeschriebene Belege im Nummernkreis dieses Kunden sie in der Nummer tragen.`,
@@ -305,20 +310,6 @@ export async function updateContact(actor: string, id: string, input: ContactInp
     if (!updated) throw new ContactError("Kontakt nicht gefunden.");
     return updated;
   });
-}
-
-/**
- * Trägt eine IBAN in einen Kontakt ein, der noch keine hat (#410: ausdrücklich bestätigte IBAN aus einer E-Rechnung).
- * Eine vorhandene IBAN überschreibt Haben nie; false, wenn der Kontakt inzwischen eine hat. In der Transaktion des
- * Aufrufers, damit Bestätigung und Kontakt zusammen gelten. Die Version erhöht wie bei jeder Änderung der Trigger.
- */
-export async function setContactIbanIfEmpty(tx: Tx, id: string, iban: string): Promise<boolean> {
-  const updated = await tx
-    .update(schema.contacts)
-    .set({ iban })
-    .where(and(eq(schema.contacts.id, id), sql`coalesce(${schema.contacts.iban}, '') = ''`))
-    .returning({ id: schema.contacts.id });
-  return updated.length > 0;
 }
 
 export async function setContactArchived(actor: string, id: string, archived: boolean) {

@@ -250,6 +250,28 @@ export const company = pgTable(
 );
 
 /**
+ * Weitere Zahlungskonten für Rechnungen und Angebote (#1887); das Standardkonto bleibt in `company`. Wählbar je Entwurf
+ * und als Vorgabe am Kontakt. Festgeschriebene Belege tragen eine Kopie im Verkäufer (seller) und keinen Verweis, darum
+ * lässt sich jedes löschen; Entwürfe und Kontakte fallen dann auf den Standard zurück.
+ */
+export const bankverbindungen = pgTable(
+  "bankverbindungen",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** Kurzbezeichnung für die Auswahl, z. B. „Objekt Nord“; steht nicht auf dem Beleg */
+    bezeichnung: text("bezeichnung").notNull(),
+    /** Ohne Leerzeichen, in Großbuchstaben */
+    iban: text("iban").notNull(),
+    bic: text("bic").notNull().default(""),
+    bank: text("bank").notNull().default(""),
+    /** Inhaber des Kontos, wenn nicht der Firmenname; leer = Firmenname (GiroCode, BT-85) */
+    kontoinhaber: text("kontoinhaber").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("bankverbindungen_iban").on(t.iban)],
+);
+
+/**
  * Fragen zur Einrichtung und ausgeblendete Bereiche (#266), genau eine Zeile (id = 1), angelegt beim ersten Speichern.
  * Eine eigene Tabelle statt Spalten in `company`: Die Firmendaten bleiben, wie sie sind, und eine Instanz von vor dem
  * Update hat keine Zeile, zeigt also alle Bereiche.
@@ -1149,6 +1171,8 @@ export const contacts = pgTable(
      */
     debitorNr: integer("debitor_nr").unique(),
     kreditorNr: integer("kreditor_nr").unique(),
+    /** Bevorzugtes Zahlungskonto für Rechnungen und Angebote an diesen Kunden (#1887); null = Standard aus den Firmendaten */
+    bankverbindungId: uuid("bankverbindung_id").references(() => bankverbindungen.id, { onDelete: "set null" }),
     /** Stundensatz für Leistungseinträge (#417); null = keiner hinterlegt */
     hourlyRateCents: integer("hourly_rate_cents").$type<Cents>(),
     version: integer("version").notNull().default(1),
@@ -1535,6 +1559,11 @@ export const invoices = pgTable(
     sepaMandateId: uuid("sepa_mandate_id").references(() => sepaMandates.id),
     /** Gewählter Ansprechpartner des Kunden (#424); der festgeschriebene Stand steht im Käufer */
     contactPersonId: uuid("contact_person_id").references(() => contactPersons.id),
+    /**
+     * Zahlungskonto des Entwurfs (#1887); null = Standard aus den Firmendaten. Bei Lastschrift gilt immer der Standard,
+     * auf ihn lautet das Gläubigerkonto. Beim Festschreiben geleert: Dann gilt die Kopie im Verkäufer (seller).
+     */
+    bankverbindungId: uuid("bankverbindung_id").references(() => bankverbindungen.id, { onDelete: "set null" }),
     recurringId: uuid("recurring_id"),
     recurringDate: date("recurring_date", { mode: "string" }),
     /** Offene Rechnung aus Lexoffice übernommen: Original-PDF, Eröffnungsbuchung statt Erlösbuchung */
@@ -1552,6 +1581,9 @@ export const invoices = pgTable(
   },
   (t) => [
     check("invoices_payment_method", sql`${t.paymentMethod} in ('ueberweisung', 'lastschrift', 'bereits_bezahlt')`),
+    // Zahlungskonto nur im Entwurf (#1887): festgeschrieben gilt die Kopie im Verkäufer. So berührt ON DELETE SET NULL nie
+    // eine gesperrte, versiegelte Zeile, und versiegelt ist hier immer NULL
+    check("invoices_bankverbindung_entwurf", sql`${t.status} = 'draft' or ${t.bankverbindungId} is null`),
     check(
       "invoices_paid_payment",
       sql`case when ${t.paymentMethod} = 'bereits_bezahlt'
@@ -1725,6 +1757,11 @@ export const quotes = pgTable(
     contactVersion: integer("contact_version"),
     /** Gewählter Ansprechpartner des Kunden (#424); der festgeschriebene Stand steht im Käufer */
     contactPersonId: uuid("contact_person_id").references(() => contactPersons.id),
+    /**
+     * Zahlungskonto des Entwurfs (#1887); null = Standard aus den Firmendaten. Beim Festschreiben geleert: Dann gilt die
+     * Kopie im Verkäufer (seller).
+     */
+    bankverbindungId: uuid("bankverbindung_id").references(() => bankverbindungen.id, { onDelete: "set null" }),
     issueDate: date("issue_date", { mode: "string" }).notNull(),
     validUntil: date("valid_until", { mode: "string" }).notNull(),
     serviceFrom: date("service_from", { mode: "string" }),
@@ -1776,6 +1813,8 @@ export const quotes = pgTable(
   },
   (t) => [
     check("quotes_final_has_number", sql`${t.status} = 'draft' or (${t.number} is not null and ${t.lockedAt} is not null)`),
+    // Zahlungskonto nur im Entwurf (#1887), wie bei Rechnungen
+    check("quotes_bankverbindung_entwurf", sql`${t.status} = 'draft' or ${t.bankverbindungId} is null`),
     check("quotes_external_ref_pair", sql`(${t.externalSource} is null) = (${t.externalId} is null)`),
     uniqueIndex("quotes_external_ref").on(t.externalSource, t.externalId),
     check("quotes_decision_final", sql`${t.decision} is null or ${t.status} = 'final'`),

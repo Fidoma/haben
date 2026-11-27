@@ -29,7 +29,7 @@ describe.skipIf(!testDatabaseUrl)("Export der Einstellungen (Postgres)", () => {
   });
 
   beforeEach(async () => {
-    await leeren(sql)`truncate company, einrichtung, mail_settings, contacts, contact_persons, text_blocks, articles, units, own_accounts,
+    await leeren(sql)`truncate company, einrichtung, mail_settings, bankverbindungen, contacts, contact_persons, text_blocks, articles, units, own_accounts,
       beleg_layouts, letterhead_profiles, company_logo, letterhead_background, quote_default_attachments, custom_pages, procedure_details cascade`;
   });
 
@@ -46,6 +46,7 @@ describe.skipIf(!testDatabaseUrl)("Export der Einstellungen (Postgres)", () => {
     await sql`insert into contacts(id, kundennummer, name, ort, email, debitor_nr, lexoffice_id) values (${KUNDE}, 'K-0041', 'Nordwerk GmbH', 'Hamburg', 'buchhaltung@nordwerk.example', 10041, 'lx-41')`;
     await sql`insert into contact_persons(contact_id, name, funktion, created_by) values (${KUNDE}, 'Jana Peters', 'Einkauf', 'test-user')`;
     await sql`insert into text_blocks(name, kind, text, contact_id) values ('Rahmenvertrag', 'kopf', 'Gemäß Rahmenvertrag RV-17 berechnen wir:', ${KUNDE})`;
+    await sql`insert into bankverbindungen(bezeichnung, iban) values ('Objekt Nord', 'DE02120300000000202051')`;
     await sql`insert into units(label, code) values ('Lizenz', 'C62')`;
     await sql`insert into articles(number, description, unit, unit_price, tax_rate) values ('B-1', 'Beratung', 'Stunde', 9500, 1900)`;
     await sql`insert into own_accounts(kontenrahmen, account, name, parent_category, created_by) values ('SKR04', '6837', 'Software-Abos', 'software', 'test-user')`;
@@ -71,7 +72,7 @@ describe.skipIf(!testDatabaseUrl)("Export der Einstellungen (Postgres)", () => {
     await testinstanz();
     const export_ = await datei();
 
-    expect(export_).toMatchObject({ format: "haben-einstellungen", version: 4, exportedAt: "2026-12-20T10:00:00.000Z" });
+    expect(export_).toMatchObject({ format: "haben-einstellungen", version: 5, exportedAt: "2026-12-20T10:00:00.000Z" });
     expect(export_.company).toMatchObject({
       name: "Muster Design",
       steuernummer: "231/815/08150",
@@ -102,6 +103,8 @@ describe.skipIf(!testDatabaseUrl)("Export der Einstellungen (Postgres)", () => {
     expect(export_.contactPersons).toEqual([expect.objectContaining({ contactId: KUNDE, name: "Jana Peters", funktion: "Einkauf", deactivatedAt: null })]);
     expect(export_.contactPersons[0]).not.toHaveProperty("createdBy");
     expect(export_.textBlocks).toEqual([expect.objectContaining({ name: "Rahmenvertrag", kind: "kopf", contactId: KUNDE })]);
+    expect(export_.bankverbindungen).toEqual([expect.objectContaining({ bezeichnung: "Objekt Nord", iban: "DE02120300000000202051" })]);
+    expect(export_.bankverbindungen[0]).not.toHaveProperty("createdAt");
     expect(export_.units).toEqual([expect.objectContaining({ label: "Lizenz", code: "C62", archivedAt: null })]);
     expect(export_.articles).toEqual([expect.objectContaining({ number: "B-1", description: "Beratung", unitPrice: 9500, taxRate: 1900 })]);
     expect(export_.ownAccounts).toEqual([

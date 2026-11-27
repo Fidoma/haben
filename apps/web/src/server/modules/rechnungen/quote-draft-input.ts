@@ -10,6 +10,7 @@ export function quoteDraftInputOf(quote: Quote, lines: QuoteLine[]): QuoteDraftI
   return {
     contactId: quote.contactId,
     contactPersonId: quote.contactPersonId,
+    bankverbindungId: quote.bankverbindungId,
     issueDate: quote.issueDate,
     validUntil: quote.validUntil,
     serviceFrom: quote.serviceFrom,

@@ -29,6 +29,7 @@ function QuotePage() {
         initial={{
           contactId: quote.contactId,
           contactPersonId: quote.contactPersonId,
+          bankverbindungId: quote.bankverbindungId,
           issueDate: quote.issueDate,
           validUntil: quote.validUntil,
           serviceFrom: quote.serviceFrom,
@@ -63,6 +64,8 @@ function QuotePage() {
         }}
         planTemplates={data.planTemplates}
         contactPersons={data.contactPersons}
+        bankverbindungen={data.bankverbindungen}
+        standardIban={data.standardIban}
         contacts={data.contacts}
         seller={data.company}
         sellerIssues={data.sellerIssues}

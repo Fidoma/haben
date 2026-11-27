@@ -1,9 +1,9 @@
-import { documentOpen, invoiceOpen, skontoZahlfristen, type InvoiceTotals, type OpenItem } from "@haben/core";
+import { compactIban, documentOpen, invoiceOpen, skontoZahlfristen, type InvoiceTotals, type OpenItem } from "@haben/core";
 import { and, eq, inArray } from "drizzle-orm";
 import { type Db, db, schema, type Tx } from "../../db/index.ts";
 import { documentNotCancelled } from "../../db/document-cancelled.ts";
 import { invoicePayments, invoiceTotalsById, mixNachKorrekturen, paidByTarget, paperCancellationIds } from "../rechnungen/index.ts";
-import { loadCompany } from "../stammdaten/index.ts";
+import { listBankverbindungen, loadCompany } from "../stammdaten/index.ts";
 import { today } from "../../today.ts";
 import { documentPayees, ibanDecisions, payeeIbans } from "./document-payees.ts";
 import { directDebitReferences } from "./lastschrift-abgleich.ts";
@@ -34,6 +34,7 @@ async function finalInvoiceRows() {
       externalId: schema.invoices.externalId,
       buyerOrderReference: schema.invoices.buyerOrderReference,
       sellerOrderReference: schema.invoices.sellerOrderReference,
+      seller: schema.invoices.seller,
     })
     .from(schema.invoices)
     .leftJoin(schema.contacts, eq(schema.contacts.id, schema.invoices.contactId))
@@ -165,6 +166,10 @@ export async function openItems(): Promise<OpenItem[]> {
   // Feiertage für das Ende der Skontofrist (§ 193 BGB) wie beim Zahlungsziel: die im Bundesland der Firma
   const { bundesland } = await loadCompany();
 
+  // Erst wenn eine Rechnung auf ein weiteres Zahlungskonto lautet (#1887), sagt das Konto etwas; sonst stünde es an jedem
+  // Vorschlag, auch nach einem Wechsel der eigenen IBAN
+  const weitere = new Set((await listBankverbindungen()).map((b) => b.iban));
+  const mitZielkonto = invoices.some((inv) => inv.seller?.iban && weitere.has(compactIban(inv.seller.iban)));
   const items: OpenItem[] = [];
   for (const inv of invoices) {
     const paid = invoicePaid.get(inv.id) ?? 0;
@@ -185,6 +190,7 @@ export async function openItems(): Promise<OpenItem[]> {
       ...orderReferencesOf(inv, externalIds.get(inv.id)),
       currency: inv.currency,
       ...(skonto.length > 0 ? { skonto } : {}),
+      ...(mitZielkonto && inv.seller?.iban ? { zielIban: inv.seller.iban } : {}),
     });
   }
   attachOpenCorrections(items, invoices);

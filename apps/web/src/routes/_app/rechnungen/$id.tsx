@@ -49,6 +49,8 @@ function InvoicePage() {
           companySkonto={data.companySkonto}
           mandates={data.mandates}
           contactPersons={data.contactPersons}
+          bankverbindungen={data.bankverbindungen}
+          standardIban={data.standardIban}
           articles={data.articles}
           units={data.units}
           textBlocks={data.textBlocks}
@@ -79,6 +81,7 @@ function draftInitial(data: Detail, invoice: Detail["invoice"]): InvoiceEditorPr
   return {
     contactId: invoice.contactId,
     contactPersonId: invoice.contactPersonId,
+    bankverbindungId: invoice.bankverbindungId,
     issueDate: invoice.issueDate,
     serviceFrom: invoice.serviceFrom,
     serviceTo: invoice.serviceTo,

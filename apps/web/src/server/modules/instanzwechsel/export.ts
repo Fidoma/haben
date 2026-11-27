@@ -49,6 +49,10 @@ export async function exportSettings(now = new Date()) {
       const layouts = await tx.select(auswahl(f.belegLayouts)).from(schema.belegLayouts).orderBy(asc(schema.belegLayouts.name));
       const units = await tx.select(auswahl(f.units)).from(schema.units).orderBy(asc(schema.units.label));
       const articles = await tx.select(auswahl(f.articles)).from(schema.articles).orderBy(asc(schema.articles.description), asc(schema.articles.id));
+      const bankverbindungen = await tx
+        .select(auswahl(f.bankverbindungen))
+        .from(schema.bankverbindungen)
+        .orderBy(asc(schema.bankverbindungen.bezeichnung), asc(schema.bankverbindungen.id));
       const contacts = await tx.select(auswahl(f.contacts)).from(schema.contacts).orderBy(asc(schema.contacts.name), asc(schema.contacts.id));
       const contactPersons = await tx
         .select(auswahl(f.contactPersons))
@@ -80,6 +84,7 @@ export async function exportSettings(now = new Date()) {
         layouts,
         units,
         articles,
+        bankverbindungen,
         contacts,
         contactPersons,
         textBlocks,

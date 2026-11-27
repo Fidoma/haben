@@ -12,7 +12,7 @@ import {
 import type { Buyer, DirectDebit, InvoiceDocument, InvoiceFormat, Seller } from "@haben/einvoice";
 import { eq } from "drizzle-orm";
 import { schema, type Db, type Tx } from "../../db/index.ts";
-import type { Company, Contact } from "../stammdaten/index.ts";
+import { loadBankverbindung, type Company, type Contact } from "../stammdaten/index.ts";
 import type { Invoice, InvoiceLine } from "./invoices.ts";
 import { paidPaymentOf } from "./lastschrift.ts";
 import { documentReferences } from "./order-references.ts";
@@ -25,7 +25,12 @@ export function invoiceTitle(invoice: Pick<Invoice, "kind" | "variant">): string
   return { rechnung: "Rechnung", storno: "Stornorechnung", korrektur: "Rechnungskorrektur" }[invoice.kind];
 }
 
-export function sellerFrom(company: Company): Seller {
+/** Zahlungskonto des Belegs statt des Standards aus den Firmendaten (#1887), nur die Felder des Kontos */
+type SellerBank = Pick<Company, "iban" | "bic" | "bank" | "kontoinhaber">;
+
+/** Verkäufer aus den Firmendaten; mit `bank` das gewählte weitere Zahlungskonto statt des Standards (#1887) */
+export function sellerFrom(company: Company, bank: SellerBank | null = null): Seller {
+  const { iban, bic, kontoinhaber, bank: bankName } = bank ?? company;
   return {
     name: company.name,
     strasse: company.strasse,
@@ -36,12 +41,21 @@ export function sellerFrom(company: Company): Seller {
     ...(company.telefon ? { telefon: company.telefon } : {}),
     ...(company.steuernummer ? { steuernummer: company.steuernummer } : {}),
     ...(company.ustId ? { ustId: company.ustId } : {}),
-    ...(company.iban ? { iban: company.iban } : {}),
-    ...(company.bic ? { bic: company.bic } : {}),
-    ...(company.bank ? { bank: company.bank } : {}),
-    ...(company.kontoinhaber ? { kontoinhaber: company.kontoinhaber } : {}),
+    ...(iban ? { iban } : {}),
+    ...(bic ? { bic } : {}),
+    ...(bankName ? { bank: bankName } : {}),
+    ...(kontoinhaber ? { kontoinhaber } : {}),
     ...sellerLegalInfo(company),
   };
+}
+
+/**
+ * Verkäufer eines Entwurfs mit dessen Zahlungskonto (#1887). Eine Lastschrift zieht Haben immer auf das Konto aus den
+ * Firmendaten ein (Gläubigerkonto der SEPA-Datei); dann steht auch auf dem Beleg der Standard.
+ */
+export async function draftSeller(q: Db | Tx, company: Company, draft: { bankverbindungId: string | null; paymentMethod?: string }): Promise<Seller> {
+  const bank = draft.paymentMethod === "lastschrift" ? null : await loadBankverbindung(q, draft.bankverbindungId);
+  return sellerFrom(company, bank);
 }
 
 /** GmbH und UG: Pflichtangaben für Geschäftsbriefe (§ 35a Abs. 1 GmbHG) aus den Firmendaten */

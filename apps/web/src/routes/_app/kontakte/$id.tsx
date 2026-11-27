@@ -14,6 +14,7 @@ import { formatDateTime } from "../../../lib/format.ts";
 import { ERSTES_JAHR, LETZTES_JAHR } from "../../../lib/jahre.ts";
 import { useAction } from "../../../lib/use-action.ts";
 import { useBereichAktiv } from "../../../lib/use-bereich.ts";
+import { getBankverbindungAuswahl } from "../../../server/functions/bankverbindungen.ts";
 import { archiveContact, getContactDetail, getContactHistory } from "../../../server/functions/contacts.ts";
 import { getContactPersons } from "../../../server/functions/contact-persons.ts";
 import { getCustomerNumbering } from "../../../server/functions/invoices.ts";
@@ -32,7 +33,7 @@ export const Route = createFileRoute("/_app/kontakte/$id")({
   }),
   loaderDeps: ({ search }) => ({ jahr: search.jahr }),
   loader: async ({ params, deps }) => {
-    const [detail, mandates, personen, history, ustid, kreise, service] = await Promise.all([
+    const [detail, mandates, personen, history, ustid, kreise, service, bankverbindungen] = await Promise.all([
       getContactDetail({ data: params.id }),
       getMandates({ data: params.id }),
       getContactPersons({ data: params.id }),
@@ -40,8 +41,9 @@ export const Route = createFileRoute("/_app/kontakte/$id")({
       getUstIdBestaetigungen({ data: params.id }),
       getCustomerNumbering({ data: { contactId: params.id } }),
       getContactServiceSummary({ data: params.id }),
+      getBankverbindungAuswahl(),
     ]);
-    return { ...detail, ...mandates, ...personen, history, ustid, kreise, service };
+    return { ...detail, ...mandates, ...personen, history, ustid, kreise, service, bankverbindungen };
   },
   head: ({ loaderData }) => ({
     meta: [{ title: `${loaderData?.contact.name ?? "Kontakt"} · Haben` }],
@@ -55,7 +57,7 @@ export const Route = createFileRoute("/_app/kontakte/$id")({
 });
 
 function ContactPage() {
-  const { contact, history, service } = Route.useLoaderData();
+  const { contact, history, service, bankverbindungen } = Route.useLoaderData();
   const { bestaetigen } = Route.useSearch();
   const router = useRouter();
   const navigate = useNavigate({ from: Route.fullPath });
@@ -115,6 +117,7 @@ function ContactPage() {
           key={contact.version}
           contact={contact}
           saved={saved}
+          bankverbindungen={bankverbindungen}
           onUpdated={() => {
             setSaved(true);
             setPruefen(true);

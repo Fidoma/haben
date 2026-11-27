@@ -11,6 +11,7 @@ import { ContactWeitereAngaben, feldFehler, weitereAngabenFeld } from "./Contact
 import { parseSkontoRows, type SkontoRow, toSkontoRows } from "./SkontoFields.tsx";
 import { useAction } from "../lib/use-action.ts";
 import { ContactAddressFields } from "./ContactAddressFields.tsx";
+import type { BankverbindungOption } from "./BankverbindungField.tsx";
 import { useFokusNachSperre } from "../lib/use-fokus-nach-sperre.ts";
 
 const EMPTY: ContactInput = {
@@ -54,6 +55,7 @@ export function ContactForm({
   ibanSuggestion = null,
   saved = false,
   onUpdated,
+  bankverbindungen,
 }: {
   contact: Contact | null;
   nextNumber?: string | null;
@@ -69,6 +71,8 @@ export function ContactForm({
    */
   saved?: boolean;
   onUpdated?: () => void;
+  /** Weitere Zahlungskonten (#1887) zur Auswahl des bevorzugten am Kontakt */
+  bankverbindungen?: { liste: readonly BankverbindungOption[]; standardIban: string };
 }) {
   const [ustId, setUstId] = useState(contact?.ustId ?? prefill?.ustId ?? "");
   // Skonto: null = Vorgabe aus den Einstellungen; eigene Stufen, leer = ohne Skonto
@@ -95,6 +99,7 @@ export function ContactForm({
           onSkontoRows={setSkontoRows}
           offen={weitereOffen}
           onOffen={setWeitereOffen}
+          {...(bankverbindungen ? { bankverbindungen } : {})}
         />
       </fieldset>
 
@@ -232,6 +237,8 @@ function kontaktEingaben(form: FormData, ownSkonto: boolean, skontoRows: SkontoR
     debitorNr: debitor.value,
     kreditorNr: kreditor.value,
     hourlyRateCents: rate,
+    // Ohne weitere Zahlungskonten steht das Feld nicht da; dann bleibt die Vorgabe, wie sie ist
+    ...(form.has("bankverbindungId") ? { bankverbindungId: text("bankverbindungId") || null } : {}),
   } satisfies ContactInput;
 }
 

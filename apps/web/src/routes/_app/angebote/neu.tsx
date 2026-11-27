@@ -32,6 +32,8 @@ function NewQuotePage() {
       textBlocks={data.textBlocks}
       planTemplates={data.planTemplates}
       contactPersons={data.contactPersons}
+      bankverbindungen={data.bankverbindungen}
+      standardIban={data.standardIban}
     />
   );
 }

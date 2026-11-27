@@ -143,7 +143,7 @@ Viele Selbständige haben bei derselben Bank mehrere Konten, etwa ein Geschäfts
 
 Auf einem Privatkonto bietet der Abgleich Kontoführung und Bankgebühren, Zinserträge, Privat, Spende und Geldtransit nicht an, schlägt sie nicht vor und lehnt sie ab. Gebühren und Zinsen eines privaten Kontos sind privat: kein Betriebsaufwand (§ 12 Nr. 1 EStG) und keine Betriebseinnahme (§ 20 EStG); „Privat“ und „Spende“ buchten privat gegen privat, und Geldtransit wäre Entnahme gegen Entnahme. Alle anderen Arten sind dort erlaubt und laufen über Entnahme und Einlage, in GmbH und UG über das Gesellschafter-Verrechnungskonto ([unten](#privates-konto-geschäftsvorfälle-gegen-entnahme-und-einlage)). Schon gebuchte Zuordnungen bleiben sichtbar und lassen sich aufheben.
 
-Jedes Konto hat einen Zweck. Außer auf einem privaten Konto bucht Haben auf das eine Bankkonto (1200 bzw. 1800); welche IBAN auf Rechnungen steht, bestimmen die Firmendaten.
+Jedes Konto hat einen Zweck. Außer auf einem privaten Konto bucht Haben auf das eine Bankkonto (1200 bzw. 1800); welche IBAN auf Rechnungen steht, bestimmen die Firmendaten oder ein [weiteres Zahlungskonto](rechnungen-zahlung.md#zahlungskonto).
 
 N26-Exporte enthalten keine eigene IBAN. Dafür legst du das Konto vorher mit **Konto verbinden › Konto ohne Abruf anlegen** an (Name und IBAN) und importierst die Datei in dieses Konto ([So gehst du vor](#so-gehst-du-vor)).
 
@@ -274,6 +274,7 @@ Jeder Posten bekommt Punkte:
 | Überweisung aus Haben (Referenz), nur bei Belegen | 60 |
 | IBAN bekannt vom Kontakt bzw. bei Belegen IBAN des Lieferanten | 30 |
 | Name passt | 15 |
+| Auf das Konto der Rechnung, nur wenn eine Rechnung auf ein angelegtes [weiteres Zahlungskonto](rechnungen-zahlung.md#zahlungskonto) lautet | 10 |
 | Datum passt (± 5 Tage), nur bei Belegen, gemessen an Beleg- oder Fälligkeitsdatum | 10 |
 | Teilbetrag des offenen Betrags | 5 |
 

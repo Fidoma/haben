@@ -526,6 +526,20 @@
       "function": "public.haben_reject_truncate()"
     },
     {
+      "table": "public.bankverbindungen",
+      "name": "bankverbindungen_audit",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER bankverbindungen_audit AFTER INSERT OR DELETE OR UPDATE ON public.bankverbindungen FOR EACH ROW EXECUTE FUNCTION public.haben_audit()",
+      "function": "public.haben_audit()"
+    },
+    {
+      "table": "public.bankverbindungen",
+      "name": "bankverbindungen_no_truncate",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER bankverbindungen_no_truncate BEFORE TRUNCATE ON public.bankverbindungen FOR EACH STATEMENT EXECUTE FUNCTION public.haben_reject_truncate()",
+      "function": "public.haben_reject_truncate()"
+    },
+    {
       "table": "public.beleg_layouts",
       "name": "beleg_layouts_audit",
       "enabled": "O",

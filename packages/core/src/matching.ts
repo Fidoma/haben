@@ -14,6 +14,8 @@ export interface MatchTransaction {
   bankReference?: string | null;
   /** EndToEndId der Überweisung, soweit der Auszug sie nennt (CAMT) */
   endToEndId?: string | null;
+  /** IBAN des eigenen Kontos, auf dem der Umsatz steht */
+  kontoIban?: string | null;
 }
 
 export interface OpenItem {
@@ -37,6 +39,11 @@ export interface OpenItem {
    * Plattform wie Etsy, Bestellnummer des Kunden, eigene Auftragsnummer)
    */
   orderReferences?: string[];
+  /**
+   * Nur bei Rechnungen, wenn eine auf ein weiteres Zahlungskonto lautet (#1887): die IBAN, die auf der Rechnung steht. Geht die
+   * Zahlung auf genau dieses Konto, zählt das für die Rechnung.
+   */
+  zielIban?: string;
   /**
    * Nur bei Rechnungen: festgeschriebene Rechnungskorrekturen zu dieser Rechnung, die selbst noch offen sind (open mit
    * dem Vorzeichen der Erstattung). Zahlt der Kunde „Rechnung minus Korrektur“, gehört der Rest dorthin, nicht in eine Ausbuchung nach § 17 Abs. 1 UStG (#1398).
@@ -248,6 +255,8 @@ export function suggestMatches(tx: MatchTransaction, items: OpenItem[], limit = 
       score += 30;
       reasons.push(item.type === "document" ? "IBAN des Lieferanten" : "IBAN bekannt vom Kontakt");
     }
+    // Das Konto der Rechnung ordnet nur unter den Vorschlägen; einen Vorschlag macht es nicht (Schwelle unten, #1887)
+    const aufZielkonto = !!item.zielIban && !!tx.kontoIban && compact(item.zielIban) === compact(tx.kontoIban);
     const partyWords = words(item.partyName);
     if ([...partyWords].some((w) => txWords.has(w))) {
       score += 15;
@@ -262,6 +271,10 @@ export function suggestMatches(tx: MatchTransaction, items: OpenItem[], limit = 
     }
     // Ohne passenden Betrag nur mit starkem weiteren Hinweis vorschlagen
     if (score < 40) continue;
+    if (aufZielkonto) {
+      score += 10;
+      reasons.push("Auf das Konto der Rechnung");
+    }
     const amount = Math.abs(tx.amount) <= Math.abs(item.open) ? tx.amount : item.open;
     suggestions.push({
       item,

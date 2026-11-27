@@ -133,6 +133,7 @@ const gruppen: Record<(typeof MIT_DATEN)[number], { testMatch: string[]; grepInv
     testMatch: [
       "barrierefreiheit.spec.ts",
       "bank-sortierung.spec.ts",
+      "bankverbindungen.spec.ts",
       "basiszinssatz.spec.ts",
       "bestaetigung.spec.ts",
       "layouts.spec.ts",

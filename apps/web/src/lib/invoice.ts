@@ -40,12 +40,13 @@ interface DraftContact<S, L> {
   leitwegId: string | null;
   language: L;
   skonto: S[] | null;
+  bankverbindungId?: string | null;
 }
 
 /**
  * Neuer Entwurf für einen Kunden (Kontaktseite, #1557; Schlussrechnung) mit seinen Vorgaben wie beim Wählen im Editor
  * (chooseContact in use-invoice-editor-figures.ts): Format (mit Leitweg-ID XRechnung), Sprache, Skonto ohne Fristen über das
- * Zahlungsziel hinaus, der einzige aktive Ansprechpartner (einzigerAnsprechpartner). null, wenn der Kontakt fehlt (archiviert, unbekannt) oder kein Kunde ist.
+ * Zahlungsziel hinaus, der einzige aktive Ansprechpartner (einzigerAnsprechpartner), das bevorzugte Zahlungskonto (#1887). null, wenn der Kontakt fehlt (archiviert, unbekannt) oder kein Kunde ist.
  */
 export function customerDraft<S extends { days: number }, L, D extends { format: InvoiceFormat; paymentTermDays: number }>(
   draft: D,
@@ -53,6 +54,8 @@ export function customerDraft<S extends { days: number }, L, D extends { format:
   contactId: string | null | undefined,
   companySkonto: readonly S[],
   persons: readonly DraftPerson[] = [],
+  /** Weitere Zahlungskonten (#1887): das bevorzugte des Kunden, solange es das Konto gibt */
+  bankverbindungen: readonly { id: string }[] = [],
 ):
   | (Omit<D, "contactId" | "language" | "format" | "skonto"> & {
       contactId: string;
@@ -60,6 +63,7 @@ export function customerDraft<S extends { days: number }, L, D extends { format:
       format: InvoiceFormat;
       skonto: S[];
       contactPersonId: string;
+      bankverbindungId: string | null;
     })
   | null {
   const contact = contacts.find((c) => c.id === contactId && c.isCustomer);
@@ -71,5 +75,6 @@ export function customerDraft<S extends { days: number }, L, D extends { format:
     format: contact.defaultFormat ?? (contact.leitwegId ? ("xrechnung-cii" as const) : draft.format),
     skonto: (contact.skonto ?? companySkonto).filter((s) => s.days <= draft.paymentTermDays),
     contactPersonId: einzigerAnsprechpartner(persons, contact.id),
+    bankverbindungId: bankverbindungen.some((b) => b.id === contact.bankverbindungId) ? contact.bankverbindungId! : null,
   };
 }
