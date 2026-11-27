@@ -101,6 +101,8 @@ describe("eigene E-Rechnungen zurücklesen", () => {
       })),
     );
     if (credit) expect(invoice.gross).toBeLessThan(0);
+    // Vorausgegangene Rechnung (BT-25, BT-26): Storno und Korrektur nennen die Rechnung, die sie ändern (#1900)
+    expect(invoice.precedingInvoices).toEqual(doc.corrects ? [{ number: doc.corrects.number, issueDate: doc.corrects.issueDate }] : undefined);
   });
 });
 

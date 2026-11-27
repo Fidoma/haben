@@ -42,6 +42,25 @@ function negatedLines(lines: InvoiceLine[]): LineInput[] {
 const negatedDiscount = (invoice: Invoice) => negateDiscount(discountFromColumns(invoice.discountPercent, invoice.discountAmount));
 
 /**
+ * Was ein Storno der ganzen Rechnung ausschließt, auch beim Storno aus einem Fremdsystem (#1900). Ein Storno nimmt die
+ * ganze Rechnung samt Umsatzsteuer zurück; eine Ausbuchung hat einen Teil davon schon gemindert (doppelt bei Soll) und wäre
+ * im Storno als Erstattung offen, obwohl kein Geld geflossen ist. Ebenso eine Verrechnung mit einer Korrektur (#877): Sie
+ * zählt als erledigt, ohne dass Geld geflossen ist, und stünde nach dem Storno als Erstattung an den Kunden und als
+ * Forderung aus der Korrektur offen.
+ */
+export async function assertNichtAusgebucht(tx: Tx, ids: string[]): Promise<void> {
+  if ((await invoiceWrittenOff(ids, tx)).size > 0) {
+    throw new InvoiceError(
+      "Die Rechnung ist teilweise ausgebucht (Skonto oder Forderungsausfall). Hebe die Ausbuchung zuerst auf, dann lässt sie sich stornieren.",
+    );
+  }
+  const verrechnet = await tx.execute(sql`select 1 from invoice_settlements where invoice_id in ${ids} group by invoice_id having sum(amount) <> 0 limit 1`);
+  if ([...verrechnet].length > 0) {
+    throw new InvoiceError("Die Rechnung ist mit einer Korrektur verrechnet. Hebe die Verrechnung zuerst auf, dann lässt sie sich stornieren.");
+  }
+}
+
+/**
  * Stornorechnung mit allen Positionen negativ, sofort festgeschrieben; festgeschriebene Korrekturen der Rechnung
  * bekommen je ein eigenes Storno. Entwurf und Festschreiben in einer Transaktion:
  * Schlägt das Festschreiben fehl oder bricht der Server ab, bleibt kein Storno-Entwurf zurück.
@@ -73,21 +92,7 @@ export async function cancelInvoice(actor: string, id: string, today: string): P
     for (const contactId of new Set([invoice, ...corrections].map((beleg) => beleg.contactId!))) {
       await lockNumbering(tx, "rechnung", circle, circleContact(jeKunde, contactId));
     }
-    // Ein Storno nimmt die ganze Rechnung samt Umsatzsteuer zurück; eine Ausbuchung hat einen Teil davon schon gemindert
-    // (doppelt bei Soll) und wäre im Storno als Erstattung offen, obwohl kein Geld geflossen ist
-    if ((await invoiceWrittenOff([id, ...corrections.map((c) => c.id)], tx)).size > 0) {
-      throw new InvoiceError(
-        "Die Rechnung ist teilweise ausgebucht (Skonto oder Forderungsausfall). Hebe die Ausbuchung zuerst auf, dann lässt sie sich stornieren.",
-      );
-    }
-    // Ebenso eine Verrechnung mit einer Korrektur (#877): Sie zählt als erledigt, ohne dass Geld geflossen ist, und stünde
-    // nach dem Storno als Erstattung an den Kunden und als Forderung aus der Korrektur offen
-    const verrechnet = await tx.execute(
-      sql`select 1 from invoice_settlements where invoice_id in ${[id, ...corrections.map((c) => c.id)]} group by invoice_id having sum(amount) <> 0 limit 1`,
-    );
-    if ([...verrechnet].length > 0) {
-      throw new InvoiceError("Die Rechnung ist mit einer Korrektur verrechnet. Hebe die Verrechnung zuerst auf, dann lässt sie sich stornieren.");
-    }
+    await assertNichtAusgebucht(tx, [id, ...corrections.map((c) => c.id)]);
     const stornoOf = async (target: Invoice, targetLines: InvoiceLine[]) => {
       const draft = await insertDraft(
         tx,

@@ -155,4 +155,5 @@ export {
   type ForeignInvoiceInput,
   type ForeignInvoiceProposal,
 } from "./fremdrechnung.ts";
+export { adoptForeignCancellationFile, foreignCancellationSchema, type ForeignCancellationInput } from "./fremdstorno.ts";
 export { nummernformateUebernehmen, standardanhaengeUebernehmen } from "./uebernahme.ts";

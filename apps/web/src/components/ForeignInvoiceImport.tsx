@@ -7,6 +7,7 @@ import { EMPTY_DETAILS } from "./OutgoingTaxFields.tsx";
 import { ContactCombobox, savedAsChoice } from "./ContactCombobox.tsx";
 import { Field } from "./Field.tsx";
 import { FilePicker } from "./FilePicker.tsx";
+import { ForeignCancellationForm } from "./ForeignCancellationForm.tsx";
 import { FOREIGN, nurNetto, startZeilen, TaxSection, type TaxRow } from "./ForeignInvoiceTax.tsx";
 import { NewContactDialog } from "./NewContactDialog.tsx";
 import { UmsatzgrenzeDialog } from "./UmsatzgrenzeDialog.tsx";
@@ -39,8 +40,8 @@ export function ForeignInvoiceImport({ onClose }: { onClose: () => void }) {
       <div className="form-card-head">
         <h2 id="fremdrechnung-heading">Ausgangsrechnung hochladen</h2>
         <p className="muted">
-          Für Rechnungen, die ein anderes Programm geschrieben und verschickt hat. Nummer und PDF bleiben unverändert, die Rechnung wird wie eine eigene gebucht
-          und läuft danach durch Bankabgleich und Mahnwesen.
+          Für Rechnungen, die ein anderes Programm geschrieben und verschickt hat, und deren Stornos. Nummer und PDF bleiben unverändert, die Rechnung wird wie
+          eine eigene gebucht und läuft danach durch Bankabgleich und Mahnwesen.
         </p>
       </div>
       <div className="form-section">
@@ -49,11 +50,19 @@ export function ForeignInvoiceImport({ onClose }: { onClose: () => void }) {
             {error}
           </div>
         )}
-        <Field label="Original der Rechnung (PDF, auch ZUGFeRD)">
+        <Field label="Original der Rechnung oder des Stornos (PDF, auch ZUGFeRD)">
           {(control) => <FilePicker {...control} accept="application/pdf,.pdf" onChange={(e) => void choose(e.target.files?.[0] ?? null)} />}
         </Field>
       </div>
-      {read ? (
+      {read?.data.proposal.cancels ? (
+        <ForeignCancellationForm
+          key={read.file.name + read.file.size + read.file.lastModified}
+          file={read.file}
+          proposal={read.data.proposal}
+          cancels={read.data.proposal.cancels}
+          onClose={onClose}
+        />
+      ) : read ? (
         <ForeignInvoiceForm key={read.file.name + read.file.size + read.file.lastModified} file={read.file} read={read.data} onClose={onClose} />
       ) : (
         <div className="actions form-footer">
@@ -178,11 +187,11 @@ function ForeignInvoiceForm({ file, read, onClose }: { file: File; read: Read; o
           onRows={setRows}
         />
         <div className="actions form-footer">
-          <button type="submit" className="btn btn-primary" disabled={busy}>
-            Übernehmen
-          </button>
           <button type="button" className="btn" onClick={onClose}>
             Abbrechen
+          </button>
+          <button type="submit" className="btn btn-primary" disabled={busy}>
+            Übernehmen
           </button>
         </div>
       </form>

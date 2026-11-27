@@ -1,4 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
+import { buildEInvoice } from "@haben/einvoice";
+import { sampleDocument } from "../../../packages/einvoice/src/samples.ts";
 import { day } from "./daten.ts";
 import { axeVerstoesse, CUSTOMERS, durchlaufSeite, einrichten, gehe, INVOICES, kontaktAnlegen, kundeWaehlen, rechnungFestschreiben } from "./einrichtung.ts";
 import { datei, formularOeffnen, fremdesPdf } from "./fremdrechnung-formular.ts";
@@ -180,6 +182,38 @@ test("Ein negativer Betrag wird schon im Formular abgefangen", async () => {
   await page.getByRole("button", { name: "Übernehmen" }).click();
   await expect(page.getByRole("alert")).toContainText("Trag Netto und Steuer als Betrag ab 0 ein, etwa 1.000,00.");
   await expect(page).toHaveURL(/\/rechnungen$/);
+});
+
+test("Storno aus dem Fremdsystem: E-Rechnung mit Bezug (BT-25) auf eine übernommene Rechnung (#1900)", async () => {
+  // Rechnung und Storno als ZUGFeRD aus einem anderen Programm; das Storno nennt die Rechnung als vorausgegangene
+  const leistung = { issueDate: day(-20), dueDate: day(-6), serviceFrom: day(-20), serviceTo: day(-20) };
+  const rechnung = { ...sampleDocument({ number: "SHOP-R1" }), ...leistung };
+  const storno = {
+    ...sampleDocument({ kind: "storno", number: "SHOP-S1" }),
+    ...leistung,
+    issueDate: day(-5),
+    corrects: { number: "SHOP-R1", issueDate: day(-20) },
+  };
+  const rechnungPdf = Buffer.from((await buildEInvoice(rechnung)).pdf);
+  const stornoPdf = Buffer.from((await buildEInvoice(storno)).pdf);
+
+  await formularOeffnen(page);
+  await datei(page, "SHOP-R1.pdf", rechnungPdf);
+  await kundeWaehlen(page, KUNDE);
+  await page.getByRole("button", { name: "Übernehmen" }).click();
+  await page.waitForURL(/rechnungen\/[0-9a-f-]{36}$/);
+
+  await formularOeffnen(page);
+  await page.locator("input[type=file]").setInputFiles({ name: "SHOP-S1.pdf", mimeType: "application/pdf", buffer: stornoPdf });
+  const form = page.getByRole("form", { name: "Storno aus dem Fremdsystem" });
+  await expect(form.getByRole("status").filter({ hasText: "Die Datei storniert" })).toContainText("Die Datei storniert die Rechnung SHOP-R1");
+  await expect(form).toContainText("SHOP-S1");
+  // Kein Rechnungsformular mit negativen Beträgen
+  await expect(page.getByRole("form", { name: "Angaben zur Rechnung" })).toHaveCount(0);
+  expect(await axeVerstoesse(page), "Storno aus dem Fremdsystem").toEqual([]);
+  await form.getByRole("button", { name: "Storno übernehmen" }).click();
+  await page.waitForURL(/rechnungen\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(/Stornorechnung\s+SHOP-S1/);
 });
 
 test("Keine Seitenfehler im ganzen Durchlauf", () => {

@@ -25,6 +25,9 @@ import { pruefeUmsatzgrenze, type UmsatzStand } from "./umsatzgrenze.ts";
 import { rebuildInvoiceLines } from "./positionen-nachbilden.ts";
 import { createTakenOverInvoice } from "./rechnung-uebernehmen.ts";
 import { outgoingTaxDetailsSchema } from "./tax-details.ts";
+import { FREMDSYSTEM, fremdNummerSchema, looksLikePdf } from "./fremdsystem.ts";
+import { cancellationProposal } from "./fremdstorno.ts";
+import { isCancellation } from "./fremdstorno-pruefung.ts";
 
 /*
  * Ausgangsrechnung aus einem Fremdsystem übernehmen (#660): Die Rechnung ist dort geschrieben und verschickt worden und
@@ -40,20 +43,12 @@ import { outgoingTaxDetailsSchema } from "./tax-details.ts";
  * https://www.gesetze-im-internet.de/ustg_1980/__13.html, https://www.gesetze-im-internet.de/ustg_1980/__14b.html
  */
 
-/** Herkunft der übernommenen Rechnungen in der externen Referenz (zusammen mit der Nummer eindeutig) */
-const SOURCE = "fremdsystem";
-
 /** Nur Rechnungen: Gutschriften sind in Haben keine Rechnung, negative Beträge also ausgeschlossen */
 const cents = z.number().int().min(0).max(2_147_483_647);
 
 export const foreignInvoiceSchema = z.object({
   /** Nummer aus dem Fremdsystem; sie bleibt unverändert */
-  number: z
-    .string()
-    .trim()
-    .min(1, "Rechnungsnummer fehlt")
-    .max(100)
-    .regex(/^[^\p{Cc}/\x5c]+$/u, "Rechnungsnummer ohne Steuerzeichen, Schrägstrich und Rückstrich"),
+  number: fremdNummerSchema,
   issueDate: z.iso.date(),
   dueDate: z.iso.date(),
   serviceFrom: z.iso.date().nullable().default(null),
@@ -98,10 +93,6 @@ function rebuild(taxes: { rate: number; net: number; tax: number }[], number: st
   throw new InvoiceError(
     `Die Steuer lässt sich nicht centgenau nachbilden (Rechnung ${formatEuro(taxes.reduce((n, t) => n + t.tax, 0))}, Haben ${formatEuro(result.netTax)}). Netto und Steuer je Satz bitte wie auf der Rechnung eintragen.`,
   );
-}
-
-function looksLikePdf(bytes: Uint8Array): boolean {
-  return new TextDecoder("latin1").decode(bytes.subarray(0, 1024)).includes("%PDF-");
 }
 
 type AdoptInput = z.output<typeof foreignInvoiceSchema>;
@@ -191,7 +182,7 @@ export async function adoptForeignInvoice(
         pdf,
         pdfSha256: sha256(pdf),
         xml,
-        origin: { externalSource: SOURCE, externalId: input.number },
+        origin: { externalSource: FREMDSYSTEM, externalId: input.number },
       });
       const id = invoice.id;
 
@@ -236,6 +227,11 @@ export interface ForeignInvoiceProposal {
   buyerName: string | null;
   /** Hinweise zum Prüfen, etwa dass der Verkäufer nicht die eigene Firma ist */
   warnings: string[];
+  /**
+   * Storno einer übernommenen Rechnung (#1900): die Rechnung, auf die sich die Gutschrift mit BT-25 bezieht, und was schon
+   * beim Einlesen gegen die Übernahme spricht (`problem`)
+   */
+  cancels: Awaited<ReturnType<typeof cancellationProposal>>;
 }
 
 /** Liest, was die Datei selbst über die Rechnung sagt; ohne E-Rechnung bleibt der Vorschlag leer */
@@ -252,6 +248,7 @@ export async function foreignInvoiceProposal(file: { bytes: Uint8Array; filename
     contactId: null,
     buyerName: null,
     warnings: [],
+    cancels: null,
   };
   let read: Awaited<ReturnType<typeof readEInvoice>> = null;
   try {
@@ -266,7 +263,13 @@ export async function foreignInvoiceProposal(file: { bytes: Uint8Array; filename
   const sellerUst = invoice.seller.ustId?.replace(/\s/g, "").toUpperCase();
   if (sellerUst && company.ustId && sellerUst !== company.ustId.replace(/\s/g, "").toUpperCase())
     warnings.push(`Die Rechnung nennt die USt-IdNr. ${sellerUst}, in den Firmendaten steht eine andere. Ist es wirklich deine Rechnung?`);
-  if (invoice.isCreditNote) warnings.push("Das ist eine Gutschrift; Haben übernimmt hier nur Rechnungen.");
+  const cancelled = isCancellation(invoice) ? await cancellationProposal(invoice) : null;
+  if (isCancellation(invoice) && !cancelled)
+    warnings.push(
+      invoice.precedingInvoices?.length
+        ? `Das ist eine Gutschrift zu ${invoice.precedingInvoices.map((ref) => ref.number).join(", ")}; eine solche Rechnung aus dem Fremdsystem gibt es in Haben nicht.`
+        : "Das ist eine Gutschrift ohne Bezug auf eine Rechnung (BT-25); Haben übernimmt hier nur Rechnungen und Stornos übernommener Rechnungen.",
+    );
   if (invoice.currency !== "EUR") warnings.push(`Die Rechnung lautet auf ${invoice.currency}; Haben übernimmt hier nur Rechnungen in Euro.`);
   if (invoice.typeCode === PREPAYMENT) warnings.push(PREPAYMENT_TEXT);
   const taxes = groupByRate(invoice.taxes.map((t) => ({ rate: t.rate, net: t.base, tax: t.tax })));
@@ -290,6 +293,7 @@ export async function foreignInvoiceProposal(file: { bytes: Uint8Array; filename
     contactId: matches.length === 1 ? matches[0]!.id : null,
     buyerName,
     warnings,
+    cancels: cancelled,
   };
 }
 

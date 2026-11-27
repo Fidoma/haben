@@ -720,13 +720,21 @@ Die Rechnung steht danach festgeschrieben in der Liste, mit Nummer und PDF aus d
 
 Anders als bei [übernommenen Rechnungen](#übernommene-rechnungen) aus dem Umzug gibt es keinen Stichtag: Der Erlös steht in Haben, nicht in alten Büchern. Übernimm eine Rechnung deshalb nur, wenn sie in keinem anderen Programm mehr verbucht wird. Es gelten dieselben Prüfungen wie beim Festschreiben: vollständige Firmendaten, die Versteuerungsart des Jahres und bei Kleinunternehmern die Umsatzgrenze. Könnte sie überschritten werden oder lag der Vorjahresumsatz schon über der Grenze, fragt Haben nach und übernimmt die Rechnung erst nach deiner Bestätigung.
 
-- Nur Rechnungen in Euro über mehr als 0 €, mit 19 %, 7 % oder 0 %. Eine E-Rechnung als Gutschrift, als Anzahlungsrechnung oder in Fremdwährung warnt Haben beim Einlesen und lehnt sie beim Übernehmen ab. Ohne E-Rechnung erkennt Haben eine Anzahlungsrechnung nicht: Übernimm hier nur Rechnungen über erbrachte Leistungen.
+- Nur Rechnungen in Euro über mehr als 0 €, mit 19 %, 7 % oder 0 %. Eine E-Rechnung als Anzahlungsrechnung oder in Fremdwährung warnt Haben beim Einlesen und lehnt sie beim Übernehmen ab, ebenso eine Gutschrift, die kein Storno einer aus dem Fremdsystem übernommenen Rechnung ist (siehe unten). Ohne E-Rechnung erkennt Haben eine Anzahlungsrechnung nicht: Übernimm hier nur Rechnungen über erbrachte Leistungen.
 - Das Zahlungsziel beträgt höchstens 365 Tage, die Fälligkeit liegt nicht vor dem Rechnungsdatum, die Datei ist höchstens 20 MB groß.
 - Bei „Regulär“ trägst du Netto und Steuer je Satz wie auf der Rechnung ein, jeden Satz einmal (nennt eine E-Rechnung denselben Satz in mehreren Zeilen, rechnet Haben sie im Vorschlag zusammen); lässt sich die Steuer nicht centgenau nachbilden, lehnt Haben ab. Das gilt auch, wenn das Fremdsystem die Steuer je Position rundet. Bei jeder anderen Behandlung gilt 0 %, und du trägst nur den Nettobetrag ein; Beträge mehrerer Sätze rechnet Haben beim Wechsel der Behandlung zusammen.
 - Eine Rechnungsnummer, die es in Haben schon gibt, lässt sich nicht übernehmen; ein Schrägstrich, ein Rückstrich oder ein Sonderzeichen wie ein Zeilenumbruch in der Nummer lehnt Haben ab. Gleicht die fremde Nummer dem Muster deiner eigenen, meldet Haben später beim Festschreiben, dass die Nummer vergeben ist; wähle dann ein anderes Nummernformat.
 - Margenbesteuerung (§ 25 UStG), Dreiecksgeschäfte, inländische Leistungen mit Steuerschuld des Leistungsempfängers (§ 13b UStG) und Rechnungen mit steuerpflichtigen und steuerfreien Positionen zugleich (etwa Gutachten zu 19 % und Heilbehandlung nach § 4 Nr. 14 UStG) bildet das Formular nicht ab; solche Rechnungen erfasst du von Hand. Als Kleinunternehmer übernimmst du hier Rechnungen nach § 19 UStG und Leistungen ins Ausland; eine eigene Befreiung (§ 4 Nr. 14 Buchst. a oder Nr. 21 UStG, siehe [Umsatzsteuer auf der Rechnung](#umsatzsteuer-auf-der-rechnung)) erfasst du im Editor.
 
 Rechtsgrundlagen: Entstehung der Steuer nach [§ 13 UStG](https://www.gesetze-im-internet.de/ustg_1980/__13.html), Aufbewahrung der Rechnung in der ausgestellten Form nach [§ 14b UStG](https://www.gesetze-im-internet.de/ustg_1980/__14b.html) und § 147 AO.
+
+### Storno aus dem Fremdsystem
+
+Storniert das andere Programm eine hier übernommene Rechnung, lädst du das Storno auf demselben Weg hoch (**Ausgangsrechnung hochladen**). Es muss eine E-Rechnung im PDF sein, als Gutschrift oder mit negativem Betrag, die die Rechnung als vorausgegangene Rechnung nennt (BT-25). Haben erkennt das Storno, nennt die Rechnung mit Datum, Betrag und Kunde und übernimmt es mit **Storno übernehmen**: festgeschrieben, mit Nummer und PDF aus dem Fremdsystem, gebucht wie ein [Storno](#storno-und-rechnungskorrektur) in Haben zum Datum der Gutschrift. Die Rechnung gilt danach als storniert.
+
+Haben übernimmt nur das volle Storno: Netto und Steuer je Satz müssen die Rechnung genau aufheben. Abgelehnt wird auch, wenn die Rechnung schon storniert ist, eine festgeschriebene Korrektur hat, teilweise ausgebucht oder mit einer Korrektur verrechnet ist, oder wenn das Storno älter ist als die Rechnung. Ein Teilstorno und ein Storno ohne E-Rechnung bildet Haben noch nicht ab.
+
+Rechtsgrundlage: Berichtigung der Steuer im Zeitraum der Änderung nach [§ 17 Abs. 1 UStG](https://www.gesetze-im-internet.de/ustg_1980/__17.html), bei schon Bezahltem erst mit der Rückzahlung (siehe [Bereits bezahlte Rechnung](#bereits-bezahlte-rechnung)); vorausgegangene Rechnung BT-25 und Gutschrift (Code 381) nach EN 16931.
 
 ## Übernommene Rechnungen
 

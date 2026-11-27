@@ -32,6 +32,8 @@ export interface IncomingInvoice {
   iban?: string;
   /** Zahlungsbedingungen (BT-20), mehrere Angaben je Zeile; darin Skonto nach XRechnung (#SKONTO#…) */
   paymentTerms?: string;
+  /** Vorausgegangene Rechnungen (BG-3: Nummer BT-25, Datum BT-26), etwa die Rechnung, die ein Storno aufhebt */
+  precedingInvoices?: { number: string; issueDate?: string }[];
 }
 
 export interface IncomingSeller {
@@ -331,6 +333,7 @@ function parseCii(root: unknown): IncomingInvoice {
     paymentReference: textAt(settlement, "PaymentReference"),
     iban,
     paymentTerms: textsAt(settlement, "SpecifiedTradePaymentTerms", "Description"),
+    precedingInvoices: ciiPreceding(settlement),
   };
 }
 
@@ -416,7 +419,31 @@ function parseUbl(root: unknown, creditNote: boolean): IncomingInvoice {
     paymentReference: paymentMeans.map((m) => textAt(m, "PaymentID")).find(Boolean),
     iban,
     paymentTerms: textsAt(root, "PaymentTerms", "Note"),
+    precedingInvoices: ublPreceding(root),
   };
+}
+
+/** BG-3 in CII: InvoiceReferencedDocument mit IssuerAssignedID (BT-25) und FormattedIssueDateTime (BT-26) */
+function ciiPreceding(settlement: unknown): IncomingInvoice["precedingInvoices"] {
+  return preceding(
+    all(settlement, "InvoiceReferencedDocument").map((ref) => ({
+      number: textAt(ref, "IssuerAssignedID"),
+      issueDate: isoDate(textAt(ref, "FormattedIssueDateTime", "DateTimeString")),
+    })),
+  );
+}
+
+/** BG-3 in UBL: cac:BillingReference/cac:InvoiceDocumentReference mit cbc:ID (BT-25) und cbc:IssueDate (BT-26) */
+function ublPreceding(root: unknown): IncomingInvoice["precedingInvoices"] {
+  return preceding(
+    all(root, "BillingReference", "InvoiceDocumentReference").map((ref) => ({ number: textAt(ref, "ID"), issueDate: isoDate(textAt(ref, "IssueDate")) })),
+  );
+}
+
+/** BG-3 ohne Einträge ohne Nummer; fehlt BG-3, bleibt das Feld weg */
+function preceding(refs: { number: string | undefined; issueDate: string | undefined }[]): IncomingInvoice["precedingInvoices"] {
+  const found = refs.flatMap(({ number, issueDate }) => (number ? [{ number, ...(issueDate ? { issueDate } : {}) }] : []));
+  return found.length > 0 ? found : undefined;
 }
 
 // ---------- Dateien ----------
