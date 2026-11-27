@@ -1,11 +1,11 @@
 import { createHash } from "node:crypto";
 import type { ParsedTransaction } from "./types.ts";
 
-type HashInput = Pick<ParsedTransaction, "bookingDate" | "amount" | "counterpartyIban" | "purpose">;
+type HashInput = Pick<ParsedTransaction, "bookingDate" | "amount" | "counterpartyIban" | "purpose" | "hashPurpose">;
 
 function key(t: HashInput): string {
   const iban = (t.counterpartyIban ?? "").replace(/\s+/g, "").toUpperCase();
-  const purpose = t.purpose.toLowerCase().replace(/\s+/g, " ").trim();
+  const purpose = (t.hashPurpose ?? t.purpose).toLowerCase().replace(/\s+/g, " ").trim();
   return [t.bookingDate, String(t.amount), iban, purpose].join("|");
 }
 

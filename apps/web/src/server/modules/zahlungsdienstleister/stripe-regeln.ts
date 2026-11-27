@@ -13,3 +13,17 @@ export const STRIPE_OVERLAP_DAYS = 3;
 export function stripeNaechsterStart(fetchFrom: string, now: Date): string {
   return [minusDays(utcDay(now), STRIPE_OVERLAP_DAYS), fetchFrom].sort().at(-1)!;
 }
+
+/** Ein Schlüssel der Metadaten hat bei Stripe höchstens 40 Zeichen (https://docs.stripe.com/api/metadata) */
+export const STRIPE_MAX_SCHLUESSEL_LAENGE = 40;
+/** Mehr Schlüssel passen kaum in einen Verwendungszweck */
+export const STRIPE_MAX_SCHLUESSEL = 10;
+
+/** „invoice_number, customer_number“ → die Schlüssel in dieser Reihenfolge, ohne leere und doppelte */
+export function stripeMetadatenSchluessel(text: string): string[] {
+  const keys = text
+    .split(/[,\n]/)
+    .map((key) => key.trim())
+    .filter(Boolean);
+  return [...new Set(keys)];
+}

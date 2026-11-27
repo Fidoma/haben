@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { abrufFaellig, minusDays } from "./regeln.ts";
-import { STRIPE_OVERLAP_DAYS as OVERLAP_DAYS, stripeNaechsterStart as naechsterAbrufStart } from "./stripe-regeln.ts";
+import { STRIPE_OVERLAP_DAYS as OVERLAP_DAYS, stripeMetadatenSchluessel, stripeNaechsterStart as naechsterAbrufStart } from "./stripe-regeln.ts";
+
+describe("stripeMetadatenSchluessel", () => {
+  it("behält die Reihenfolge und lässt leere und doppelte weg", () => {
+    expect(stripeMetadatenSchluessel(" invoice_number,, invoice_id\ninvoice_number, ")).toEqual(["invoice_number", "invoice_id"]);
+    expect(stripeMetadatenSchluessel("")).toEqual([]);
+  });
+});
 
 describe("naechsterAbrufStart", () => {
   it("beginnt drei Tage vor heute", () => {

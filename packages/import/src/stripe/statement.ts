@@ -1,6 +1,7 @@
 import { parseStripe } from "../psp.ts";
 import type { ParsedStatement } from "../types.ts";
 import type { StripeBalanceTransaction } from "./client.ts";
+import { metadatenZweck } from "./zweck.ts";
 
 /*
  * Ein Abruf der Balance Transactions als Kontoauszug, zugleich zur Lieferung von `stripeBatch` (Importvertrag, #306,
@@ -9,6 +10,9 @@ import type { StripeBalanceTransaction } from "./client.ts";
  * dieselbe Funktion beide: Die Balance Transactions werden zu den Zeilen des Exports (Spalten `balance_transaction_id`,
  * `created_utc`, `reporting_category`, `gross`, `fee`, `net`, `currency`, `description`, `customer_name`), und
  * `parseStripe` macht daraus die Umsätze: Bruttobetrag und Gebühr getrennt, die Gebühr mit der Referenz `<txn>-gebuehr`.
+ *
+ * Sind Schlüssel der Metadaten gewählt und trägt die Zahlung Werte dazu, zeigt der Umsatz diese als Zweck (zweck.ts); der Dubletten-Hash bleibt beim Zweck des
+ * Exports (`hashPurpose`), damit Abruf und CSV einander weiter erkennen.
  *
  * Grenze: Der Zweck enthält die Art der Zeile und geht in den Dubletten-Hash. Der Abruf nimmt die `reporting_category` wie der
  * aktuelle Balance-Bericht. Der ältere Export führt die Spalte `Type`; wo sie anders heißt (`payment`, `payment_refund`,
@@ -22,7 +26,7 @@ const utc = (unixSeconds: number) => new Date(unixSeconds * 1000).toISOString().
 
 const HEADER = ["balance_transaction_id", "created_utc", "reporting_category", "gross", "fee", "net", "currency", "description", "customer_name"];
 
-export function stripeStatement(transactions: StripeBalanceTransaction[]): ParsedStatement {
+export function stripeStatement(transactions: StripeBalanceTransaction[], metadataKeys: readonly string[] = []): ParsedStatement {
   const rows = [
     HEADER,
     ...transactions.map((t) => [
@@ -37,7 +41,22 @@ export function stripeStatement(transactions: StripeBalanceTransaction[]): Parse
       t.customerName ?? "",
     ]),
   ];
-  return { ...parseStripe(rows, 0), format: "stripe-api" };
+  const statement = parseStripe(rows, 0);
+  const zwecke = new Map(
+    transactions.flatMap((t) => {
+      const zweck = metadatenZweck(t, metadataKeys);
+      return zweck ? [[t.id, zweck] as const] : [];
+    }),
+  );
+  return {
+    ...statement,
+    format: "stripe-api",
+    // Nur der Hauptbetrag zeigt die Metadaten; die Gebührenzeile trägt die Referenz `<txn>-gebuehr` und bleibt, wie sie ist
+    transactions: statement.transactions.map((row) => {
+      const zweck = row.bankReference ? zwecke.get(row.bankReference) : undefined;
+      return zweck ? { ...row, purpose: zweck, hashPurpose: row.purpose } : row;
+    }),
+  };
 }
 
 /** Bankreferenz der Gebührenzeile, wie `parseStripe` sie vergibt */

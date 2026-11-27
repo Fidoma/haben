@@ -36,7 +36,13 @@ function bewegungen() {
       fee: 400,
       net: 11500,
       reporting_category: "charge",
-      source: { id: "ch_e2eZahlung", object: "charge", billing_details: { name: "Studio Süd", email: null }, description: "Rechnung 2026-101" },
+      source: {
+        id: "ch_e2eZahlung",
+        object: "charge",
+        billing_details: { name: "Studio Süd", email: null },
+        description: "Rechnung 2026-101",
+        metadata: { invoice_id: "1042", invoice_number: "RE-2026-0117" },
+      },
       status: "available",
       type: "charge",
     },
@@ -69,6 +75,8 @@ async function stripeAttrappe(): Promise<Server> {
     if (request.headers.authorization !== `Bearer ${SCHLUESSEL}`)
       return json(401, { error: { message: "Invalid API Key provided", type: "invalid_request_error" } });
     if (url.pathname === "/v1/account") return json(200, { id: KONTO, object: "account" });
+    // Der Schlüssel darf Zahlungen nicht auflisten: Mit gewählten Metadaten sagt das schon die Prüfung
+    if (url.pathname === "/v1/charges") return json(403, { error: { message: "The provided key does not have the required permissions" } });
     if (url.pathname === "/v1/balance_transactions") return json(200, { object: "list", data: bewegungen(), has_more: false });
     json(404, { error: { message: "nicht nachgebaut" } });
   });
@@ -145,10 +153,12 @@ test("Zugang prüfen nennt das Konto bei Stripe und speichert nichts; Name und Z
   await zugang().getByLabel("API-Schlüssel").fill(SCHLUESSEL);
   // Die Eingabe nimmt die Meldung der letzten Prüfung weg
   await expect(zugang().getByRole("alert")).toHaveCount(0);
+  await zugang().getByLabel("Metadaten im Verwendungszweck").fill(" invoice_number,, invoice_id, invoice_number");
   await zugang().getByRole("button", { name: "Zugang prüfen" }).click();
   await expect(geprueft()).toContainText(`Stripe-Konto ${KONTO} (Schlüssel …4711).`);
   await expect(geprueft()).toContainText("OK");
-  expect(anfragen.map((a) => a.pfad)).toEqual(["GET /v1/account"]);
+  await expect(geprueft()).toContainText("Der Schlüssel darf Zahlungen nicht lesen");
+  expect(anfragen.map((a) => a.pfad)).toEqual(["GET /v1/account", "GET /v1/charges?limit=1"]);
   expect(await mitDatenbank((sql) => sql`select count(*)::int as n from psp_connections`)).toEqual([{ n: 0 }]);
   await zugang().getByRole("button", { name: "Weiter" }).click();
 
@@ -185,6 +195,7 @@ test("Zugang prüfen nennt das Konto bei Stripe und speichert nichts; Name und Z
       ["txn_e2eZahlung-gebuehr", -400],
     ]);
     expect(umsaetze.find((u) => u.bank_reference === "txn_e2eZahlung")?.counterparty_name).toBe("Studio Süd");
+    expect(await sql`select purpose from bank_transactions where bank_reference = 'txn_e2eZahlung'`).toEqual([{ purpose: "RE-2026-0117 1042" }]);
   });
 
   // „Zum Konto“: die Bankseite mit der Karte des neuen Kontos gewählt; Weg und Stand stehen über der Liste, ohne Karte
@@ -277,6 +288,8 @@ test("Verbindungen: Jetzt abrufen an der Zeile, Bearbeiten im Dialog zeigt den S
   await page.getByRole("menuitem", { name: "Bearbeiten …" }).click();
   const dialog = page.getByRole("dialog", { name: "Shop DE bearbeiten" });
   await expect(dialog.getByLabel("API-Schlüssel (leer lassen zum Behalten)")).toHaveValue("");
+  // Das Feld zeigt die gespeicherten Schlüssel: bereinigt, ohne Doppelte
+  await expect(dialog.getByLabel("Metadaten im Verwendungszweck")).toHaveValue("invoice_number, invoice_id");
   await dialog.getByRole("button", { name: "Abbrechen" }).click();
   await expect(dialog).toHaveCount(0);
 });

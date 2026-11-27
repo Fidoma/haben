@@ -71,6 +71,11 @@ export interface ParsedTransaction {
   counterpartyName: string;
   counterpartyIban?: string;
   purpose: string;
+  /**
+   * Zweck, aus dem der Dubletten-Hash gebildet wird, wenn er vom gezeigten abweicht: Der Abruf von Stripe zeigt die Metadaten
+   * der Zahlung, erkennt dieselbe Zeile des CSV-Exports aber an dessen Zweck wieder (`stripeStatement`). Fehlt er, gilt `purpose`.
+   */
+  hashPurpose?: string;
   /** Buchungsart der Bank, z. B. "Überweisung", "Lastschrift" */
   type?: string;
   /** Referenz der Bank, falls vorhanden (CAMT AcctSvcrRef, EndToEndId) */

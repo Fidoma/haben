@@ -2,7 +2,7 @@
 
 Was die gemeinsame Anbindung schon kann, steht in `docs/entwicklung.md`, „Neuer Zahlungsdienstleister“. Ein Anbieter bringt den Client in `packages/import`, einen Adapter und die Einträge in den festen Listen unten.
 
-Vorlagen: Stripe (ein Schlüssel, Fenster in UTC, keine Konfiguration) und PayPal (Client-ID und Secret, Sandbox und Zeitzone als `config`, ausstehende Zahlungen über `offenSeit`).
+Vorlagen: Stripe (ein Schlüssel, Fenster in UTC, Schlüssel der Metadaten als `config`) und PayPal (Client-ID und Secret, Sandbox und Zeitzone als `config`, ausstehende Zahlungen über `offenSeit`).
 
 ## 1. Client und Lieferung in `packages/import/src/<anbieter>/`
 

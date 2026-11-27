@@ -32,6 +32,11 @@ const chargeDetailsShape = {
   billing_details: z.looseObject({ name: z.string().nullish(), email: z.string().nullish() }).nullish(),
   receipt_email: z.string().nullish(),
   description: z.string().nullish(),
+  /**
+   * Eigene Angaben des Shops am Charge (https://docs.stripe.com/api/charges/object); Stripe kopiert die Metadaten des
+   * Payment Intents einmal auf den Charge (https://docs.stripe.com/metadata)
+   */
+  metadata: z.record(z.string(), z.string()).nullish(),
   /** Stripe-Rechnung, zu der die Zahlung gehört: ID, aufgeklappt das Objekt */
   invoice: z.union([z.string(), z.looseObject({ id: z.string(), number: z.string().nullish() })]).nullish(),
 };
@@ -100,6 +105,8 @@ export interface StripeBalanceTransaction {
   customerName?: string;
   /** Beschreibung des Charge, falls die Balance Transaction keine hat */
   chargeDescription?: string;
+  /** Metadaten des Charge ohne leere Werte (etwa `invoice_number`); welche im Zweck stehen, wählt der Betreiber */
+  metadata?: Record<string, string>;
   /** Nummer der Stripe-Rechnung, aufgeklappt, sonst ihre ID (`in_…`) */
   invoice?: string;
 }
@@ -108,6 +115,7 @@ type ChargeDetails = {
   billing_details?: { name?: string | null; email?: string | null } | null;
   receipt_email?: string | null;
   description?: string | null;
+  metadata?: Record<string, string> | null;
   invoice?: string | { id: string; number?: string | null } | null;
 };
 
@@ -117,7 +125,13 @@ function chargeInfo(charge: ChargeDetails | null | undefined) {
   const name = charge.billing_details?.name?.trim() || charge.billing_details?.email?.trim() || charge.receipt_email?.trim();
   const description = charge.description?.trim();
   const invoice = typeof charge.invoice === "object" && charge.invoice ? charge.invoice.number?.trim() || charge.invoice.id : charge.invoice || undefined;
+  const metadata = Object.fromEntries(
+    Object.entries(charge.metadata ?? {})
+      .map(([key, value]) => [key, value.trim()] as const)
+      .filter(([, value]) => value !== ""),
+  );
   return {
+    ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
     ...(name ? { customerName: name } : {}),
     ...(description ? { chargeDescription: description } : {}),
     ...(invoice ? { invoice } : {}),
@@ -131,17 +145,31 @@ function normalize(raw: z.infer<typeof balanceTransactionSchema>): StripeBalance
   const bt = charge?.balance_transaction;
   const related = typeof bt === "string" ? bt : bt?.id;
   // Zahlung: der Charge ist die Quelle selbst; Erstattung und Streit verweisen mit `charge` auf die Zahlung
-  return { ...rest, source: source.id, ...chargeInfo(charge ?? source), ...(related ? { relatedTransactionId: related } : {}) };
+  // Metadaten nur von einem Charge: dem aufgeklappten der Zahlung oder der Quelle, wenn sie selbst eine Zahlung ist (`ch_`,
+  // `py_`). Eine Auszahlung, ein Transfer oder eine Erstattung ohne aufgeklappte Zahlung trägt eigene, andere Angaben.
+  const istCharge = charge !== null || /^(ch|py)_/.test(source.id);
+  const { metadata, ...angaben } = chargeInfo(charge ?? source);
+  return {
+    ...rest,
+    source: source.id,
+    ...angaben,
+    ...(istCharge && metadata ? { metadata } : {}),
+    ...(related ? { relatedTransactionId: related } : {}),
+  };
 }
 
 const listSchema = z.looseObject({ data: z.array(balanceTransactionSchema), has_more: z.boolean() });
 const accountSchema = z.looseObject({ id: z.string() });
+const anyListSchema = z.looseObject({ data: z.array(z.unknown()) });
 
 /** Schutz gegen eine Endlosschleife; bei 100 je Seite sind das eine Million Bewegungen */
 const MAX_PAGES = 10_000;
 const PAGE_SIZE = 100;
 /** Wiederholungen lesender Abrufe bei 429/502/503/504 und Netzwerkfehlern */
 const MAX_RETRIES = 3;
+
+/** Was der Abruf aufklappt */
+const EXPAND = ["data.source", "data.source.charge"];
 
 const startOfDay = (date: string) => Math.floor(Date.parse(`${date}T00:00:00Z`) / 1000);
 
@@ -193,6 +221,24 @@ export class StripeClient {
     }
   }
 
+  /**
+   * Ob der Schlüssel Zahlungen lesen darf, ohne etwas abzurufen, das übernommen wird: die Liste der Zahlungen
+   * (https://docs.stripe.com/api/charges/list), auch bei einem Konto ohne Bewegungen, und die jüngsten Balance Transactions
+   * so aufgeklappt wie beim Abruf. `false` bei 403, andere Fehler gehen an den Aufrufer.
+   */
+  async darfZahlungenLesen(): Promise<boolean> {
+    const query = new URLSearchParams({ limit: String(PAGE_SIZE) });
+    for (const feld of EXPAND) query.append("expand[]", feld);
+    try {
+      await this.#json("/v1/charges?limit=1", anyListSchema);
+      await this.#json(`/v1/balance_transactions?${query}`, listSchema);
+      return true;
+    } catch (error) {
+      if (error instanceof StripeApiError && error.status === 403) return false;
+      throw error;
+    }
+  }
+
   async #alle(dateFrom: string, dateTo: string, details: boolean): Promise<StripeBalanceTransaction[]> {
     const all: StripeBalanceTransaction[] = [];
     const seen = new Set<string>();
@@ -206,10 +252,7 @@ export class StripeClient {
       });
       // `source` klappt bei einer Zahlung den Charge mit Name, E-Mail und Beschreibung des Kunden auf, `source.charge`
       // bei Erstattung und Streit die Zahlung, auf die sie sich beziehen. Andere Arten haben keinen Charge.
-      if (details) {
-        query.append("expand[]", "data.source");
-        query.append("expand[]", "data.source.charge");
-      }
+      if (details) for (const feld of EXPAND) query.append("expand[]", feld);
       if (startingAfter) query.set("starting_after", startingAfter);
       const result = await this.#json(`/v1/balance_transactions?${query}`, listSchema);
       // Eine Bewegung, die auf zwei Seiten steht, zählt einmal; der Importvertrag lehnte sonst die ganze Lieferung ab

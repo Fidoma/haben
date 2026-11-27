@@ -100,6 +100,19 @@ describe("StripeClient", () => {
     expect(c.ohneZahlungsdetails).toBe(true);
   });
 
+  it("sagt vorab, ob der Schlüssel Zahlungen lesen und aufklappen darf", async () => {
+    const leer = () => json({ object: "list", data: [], has_more: false });
+    const verboten = () => json({ error: { message: "keine Rechte" } }, 403);
+    const { client: darf, calls } = client([leer(), leer()]);
+    expect(await darf.darfZahlungenLesen()).toBe(true);
+    expect(calls.map((c) => c.url.pathname)).toEqual(["/v1/charges", "/v1/balance_transactions"]);
+    expect(calls[1]!.url.searchParams.getAll("expand[]")).toEqual(["data.source", "data.source.charge"]);
+    // Auch ein Konto ohne Bewegungen zeigt das fehlende Recht an den Zahlungen
+    expect(await client([verboten()]).client.darfZahlungenLesen()).toBe(false);
+    expect(await client([leer(), verboten()]).client.darfZahlungenLesen()).toBe(false);
+    await expect(client([json({ error: { message: "Invalid API Key" } }, 401)]).client.darfZahlungenLesen()).rejects.toMatchObject({ status: 401 });
+  });
+
   it("meldet 403 auch ohne Aufklappen und fällt bei 401 nicht zurück", async () => {
     const { client: c } = client([json({ error: { message: "keine Rechte" } }, 403), json({ error: { message: "keine Rechte" } }, 403)]);
     await expect(c.balanceTransactions("2026-10-01", "2026-10-31")).rejects.toMatchObject({ status: 403, message: "Zugriff abgelehnt: keine Rechte" });
