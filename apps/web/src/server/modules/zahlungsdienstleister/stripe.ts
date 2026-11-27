@@ -1,5 +1,6 @@
 import {
   type StripeBalanceTransaction,
+  StripeApiError,
   StripeClient,
   type StripeClientOptions,
   STRIPE_NICHT_UNTERSTUETZT,
@@ -34,6 +35,9 @@ import {
  */
 
 export class StripeError extends UserError {}
+
+/** Fehler am Schlüssel: die Einrichtung zeigt ihn am Feld „API-Schlüssel“ */
+const AM_SCHLUESSEL = { felder: ["apiKey"] };
 
 /** Für Tests austauschbar: baut den API-Client */
 let clientFactory = (options: StripeClientOptions): StripeClient => new StripeClient(options);
@@ -122,13 +126,17 @@ export const stripeAdapter: PspAdapter<StripeZugang, StripeConfig> = {
   zugangAusEingabe(eingabe, _config, bisher) {
     const apiKey = eingabe.apiKey?.trim();
     if (!apiKey) {
-      if (!bisher) throw new StripeError("Der API-Schlüssel von Stripe fehlt.");
+      if (!bisher) throw new StripeError("Der API-Schlüssel von Stripe fehlt.", AM_SCHLUESSEL);
       return null;
     }
     // Testdaten kämen sonst ins Konto des Zahlungsdienstleisters und in den Bankabgleich (Entscheidung des Maintainers in #1237)
-    if (/^(rk|sk)_test_/.test(apiKey)) throw new StripeError("Haben ruft nur Live-Umsätze ab; bitte einen Live-Schlüssel mit Leserechten eintragen.");
+    if (/^(rk|sk)_test_/.test(apiKey))
+      throw new StripeError("Haben ruft nur Live-Umsätze ab; bitte einen Live-Schlüssel mit Leserechten eintragen.", AM_SCHLUESSEL);
     if (!KEY.test(apiKey)) {
-      throw new StripeError("Das ist kein API-Schlüssel von Stripe (er beginnt mit rk_live_ oder sk_live_). Der öffentliche Schlüssel pk_ reicht nicht.");
+      throw new StripeError(
+        "Das ist kein API-Schlüssel von Stripe (er beginnt mit rk_live_ oder sk_live_). Der öffentliche Schlüssel pk_ reicht nicht.",
+        AM_SCHLUESSEL,
+      );
     }
     return { art: "schluessel", apiKey };
   },
@@ -139,7 +147,12 @@ export const stripeAdapter: PspAdapter<StripeZugang, StripeConfig> = {
       const hinweise = stripeMetadatenSchluessel(config.metadataKeys ?? "").length > 0 ? await leserechtHinweise(client) : [];
       return { accountId, keyHint: zugang.apiKey.slice(-4), ...(hinweise.length > 0 ? { hinweise } : {}) };
     } catch (error) {
-      throw new StripeError(`Stripe nimmt den Schlüssel nicht an: ${error instanceof Error ? error.message : String(error)}`);
+      // Am Feld nur, wenn Stripe den Schlüssel ablehnt (401) oder ihm das Recht fehlt (403), nicht bei Netz- oder Serverfehlern
+      const amSchluessel = error instanceof StripeApiError && (error.status === 401 || error.status === 403);
+      throw new StripeError(
+        `Stripe nimmt den Schlüssel nicht an: ${error instanceof Error ? error.message : String(error)}`,
+        amSchluessel ? AM_SCHLUESSEL : {},
+      );
     }
   },
   // Der gewählte Start ist ein Tag in Deutschland, das Fenster läuft in UTC: Zwischen 0 und 2 Uhr deutscher Zeit liegt der

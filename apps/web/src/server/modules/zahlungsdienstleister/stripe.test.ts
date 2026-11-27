@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import type postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { StripeBalanceTransaction, StripeClient } from "@haben/import";
+import { type StripeBalanceTransaction, StripeApiError, type StripeClient } from "@haben/import";
 import { setupTestDb, testDatabaseUrl } from "../../test-db.ts";
 import { alsStripe } from "./test-verbindung.ts";
 
@@ -209,6 +209,28 @@ describe.skipIf(!testDatabaseUrl)("Stripe-Abruf (Postgres)", () => {
       stripe.setStripeClientFactory(() => fake());
     }
     expect((await stripe.stripeSummary()).keyHint).toBe("mnop");
+  });
+
+  it("zeigt nur einen abgelehnten Schlüssel am Feld, nicht ein Netz- oder Serverproblem bei Stripe", async () => {
+    const fehlerBeim = async (fehler: Error) => {
+      stripe.setStripeClientFactory(
+        () =>
+          ({
+            accountId: async () => {
+              throw fehler;
+            },
+          }) as unknown as StripeClient,
+      );
+      try {
+        return await stripe.saveStripeConnection(actor, { apiKey: "rk_live_zzzzzzzzzzzzzzzz", fetchFrom: "2026-10-01" }).catch((e: unknown) => e);
+      } finally {
+        stripe.setStripeClientFactory(() => fake());
+      }
+    };
+    await expect(fehlerBeim(new StripeApiError("Zugriff abgelehnt: Invalid API Key", 401, "/v1/account"))).resolves.toMatchObject({ felder: ["apiKey"] });
+    await expect(fehlerBeim(new StripeApiError("Zugriff abgelehnt: fehlendes Recht", 403, "/v1/account"))).resolves.toMatchObject({ felder: ["apiKey"] });
+    await expect(fehlerBeim(new StripeApiError("Stripe nicht erreichbar: fetch failed", 0, "/v1/account"))).resolves.toMatchObject({ felder: [] });
+    await expect(fehlerBeim(new StripeApiError("HTTP 500", 500, "/v1/account"))).resolves.toMatchObject({ felder: [] });
   });
 
   it("beginnt bei einem Schlüssel eines anderen Kontos wieder am gewählten Tag", async () => {

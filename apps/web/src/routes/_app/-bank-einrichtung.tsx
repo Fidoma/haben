@@ -15,6 +15,7 @@ import {
   type PspDaten,
   RHYTHMUS_LABELS,
   ZugangFelder,
+  useZugangFehler,
 } from "../../components/ZahlungsdienstleisterFormular.tsx";
 import { errorMessage, formatDate } from "../../lib/format.ts";
 import { quelleZuAnbieter } from "../../lib/import-quelle.ts";
@@ -135,12 +136,13 @@ export function ZugangSchritt({
 }) {
   const pruefen = useServerFn(checkPspAccessFn);
   const { busy, notice, setNotice, run } = useAction();
+  const zugangFehler = useZugangFehler(anbieter, busy);
   const weiter = pruefung !== null && !pruefung.schonVerbunden;
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const eingabe = geheimeEingabe(anbieter, event.currentTarget);
-    void run(async () => onGeprueft(await pruefen({ data: { provider: anbieter.provider, eingabe, config } }), eingabe));
+    void run(() => zugangFehler.abfangen(async () => onGeprueft(await pruefen({ data: { provider: anbieter.provider, eingabe, config } }), eingabe)));
   }
 
   return (
@@ -149,16 +151,18 @@ export function ZugangSchritt({
       {/* Jede Eingabe macht die Prüfung ungültig; onInput, nicht onChange: Das change beim Verlassen des Felds nähme die
           Meldung erst beim Klick auf „Zugang prüfen“ weg, der Knopf rückte unter dem Zeiger weg, und der Klick ginge daneben */}
       <form
+        ref={zugangFehler.form}
         className="stack"
         onSubmit={onSubmit}
         onInput={() => {
           if (pruefung) onGeprueft(null, {});
           setNotice(null);
+          zugangFehler.zuruecksetzen();
         }}
         aria-label="Zugang"
         noValidate
       >
-        <ZugangFelder anbieter={anbieter} gespeichert={false} config={config} setConfig={setConfig} />
+        <ZugangFelder anbieter={anbieter} gespeichert={false} config={config} setConfig={setConfig} fehler={zugangFehler.fehler} />
         {pruefung && <PruefErgebnis anbieter={anbieter} pruefung={pruefung} />}
         <NoticeBanner notice={notice} />
         <div className="actions">

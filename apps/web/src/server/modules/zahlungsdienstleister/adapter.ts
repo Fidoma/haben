@@ -90,10 +90,14 @@ export interface PspAdapter<Zugang = unknown, Config = unknown> {
   configSchema: z.ZodType<Config>;
   /**
    * Prüft die Eingabe und baut den Zugang. `eingabe` enthält die geheimen Felder (leer: nicht geändert), `bisher` den
-   * gespeicherten Zugang mit seiner config; null, wenn die Eingabe den Zugang nicht ändert. Wirft einen UserError mit verständlicher Meldung.
+   * gespeicherten Zugang mit seiner config; null, wenn die Eingabe den Zugang nicht ändert. Wirft einen UserError mit verständlicher Meldung,
+   * mit `felder`, wenn die Meldung ein Feld aus `felder` betrifft (Einrichtung und Bearbeiten zeigen sie dort).
    */
   zugangAusEingabe(eingabe: Record<string, string>, config: Config, bisher: { zugang: Zugang; config: Config } | null): Zugang | null;
-  /** Fragt den Anbieter nach dem Konto: prüft so den Zugang */
+  /**
+   * Fragt den Anbieter nach dem Konto: prüft so den Zugang. Lehnt der Anbieter die Zugangsdaten ab, mit `felder` wie bei
+   * `zugangAusEingabe`; Netz- und Serverfehler liegen nicht an einem Feld und kommen ohne.
+   */
   pruefen(zugang: Zugang, config: Config): Promise<Pruefung>;
   /** Weitere Prüfung der Einstellungen ohne Anbieter, etwa wie weit der Start zurückliegen darf; Meldung oder null */
   einstellungFehler?(einstellung: { fetchFrom: string; config: Config }, heute: string): string | null;

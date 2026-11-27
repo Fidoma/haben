@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import type postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { PayPalClient } from "@haben/import";
+import { PayPalApiError, PayPalClient } from "@haben/import";
 import { setupTestDb, testDatabaseUrl } from "../../test-db.ts";
 import { alsPayPal } from "./test-verbindung.ts";
 
@@ -152,6 +152,8 @@ describe.skipIf(!testDatabaseUrl)("PayPal-Abruf (Postgres)", () => {
 
   it("lehnt unvollständige oder unbrauchbare Eingaben ab und behält sonst die gespeicherten Zugangsdaten", async () => {
     await expect(paypal.savePayPalConnection(actor, { clientId: ID, fetchFrom: "2026-10-01" })).rejects.toThrow("gehören zusammen");
+    // Die Einrichtung zeigt einen Fehler an den Zugangsdaten am Feld der Client-ID
+    await expect(paypal.savePayPalConnection(actor, { clientId: ID, fetchFrom: "2026-10-01" })).rejects.toMatchObject({ felder: ["clientId"] });
     await expect(speichern({ fetchFrom: "2999-01-01" })).rejects.toThrow("Zukunft");
     await expect(speichern({ fetchFrom: "2019-01-01" })).rejects.toThrow("drei Jahre");
     await expect(speichern({ zeitzone: "Mars/Olympus" })).rejects.toThrow("keine Zeitzone");
@@ -341,6 +343,31 @@ describe.skipIf(!testDatabaseUrl)("PayPal-Abruf (Postgres)", () => {
       paypal.setPayPalClientFactory(factory);
     }
     expect((await paypal.paypalSummary()).keyHint).toBe(ID.slice(-4));
+  });
+
+  it("zeigt nur abgelehnte Zugangsdaten am Feld, nicht ein fehlendes Recht der App oder ein Netzproblem", async () => {
+    const fehlerBeim = async (fehler: Error) => {
+      paypal.setPayPalClientFactory(
+        () =>
+          ({
+            accountId: async () => {
+              throw fehler;
+            },
+          }) as unknown as PayPalClient,
+      );
+      try {
+        return await paypal
+          .savePayPalConnection(actor, { clientId: "zzzzzzzzzzzz", clientSecret: "yyyyyyyyyyyy", fetchFrom: "2026-10-01" })
+          .catch((e: unknown) => e);
+      } finally {
+        paypal.setPayPalClientFactory(factory);
+      }
+    };
+    await expect(fehlerBeim(new PayPalApiError("Anmeldung abgelehnt", 401, "/v1/oauth2/token"))).resolves.toMatchObject({ felder: ["clientId"] });
+    await expect(fehlerBeim(new PayPalApiError("Zugriff abgelehnt (Transaction Search)", 403, "/v1/reporting/balances"))).resolves.toMatchObject({
+      felder: [],
+    });
+    await expect(fehlerBeim(new PayPalApiError("PayPal nicht erreichbar: fetch failed", 0, "/v1/reporting/balances"))).resolves.toMatchObject({ felder: [] });
   });
 
   it("beginnt bei Zugangsdaten eines anderen Kontos wieder am gewählten Tag", async () => {

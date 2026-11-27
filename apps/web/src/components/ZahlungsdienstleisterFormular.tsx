@@ -1,6 +1,7 @@
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState, type FormEvent } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
+import { errorMessage, fehlerFelder } from "../lib/format.ts";
 import { useAction } from "../lib/use-action.ts";
 import { datumFehler, useSubmitCheck } from "../lib/use-submit-check.ts";
 import { Field } from "./Field.tsx";
@@ -130,6 +131,7 @@ export function VerbindungFormular({
   });
   const [config, setConfig] = useState<Config>(verbindung.config);
   const { busy, notice, run } = useAction();
+  const zugangFehler = useZugangFehler(anbieter, busy);
   const belegt = new Set(daten.verbindungen.filter((v) => v.id !== verbindung.id).map((v) => v.bankAccountId));
   const konten = daten.konten.filter((k) => k.provider === verbindung.provider && !belegt.has(k.id));
   const pruefung = useSubmitCheck(einstellungFehler(werte, daten.heute));
@@ -139,19 +141,31 @@ export function VerbindungFormular({
     if (!pruefung.check()) return;
     const form = event.currentTarget;
     const eingabe = geheimeEingabe(anbieter, form);
-    void run(async () => {
-      await save({
-        data: { id: verbindung.id, provider: verbindung.provider, ...werte, bankAccountId: werte.bankAccountId || null, eingabe, config },
-      });
-      form.reset();
-      await router.invalidate();
-      // Die Meldung zeigt, wer das Formular geöffnet hat: es schließt sich gleich
-      onFertig(true);
-    });
+    void run(() =>
+      zugangFehler.abfangen(async () => {
+        await save({
+          data: { id: verbindung.id, provider: verbindung.provider, ...werte, bankAccountId: werte.bankAccountId || null, eingabe, config },
+        });
+        form.reset();
+        await router.invalidate();
+        // Die Meldung zeigt, wer das Formular geöffnet hat: es schließt sich gleich
+        onFertig(true);
+      }),
+    );
   }
 
   return (
-    <form ref={pruefung.form} className="stack" onSubmit={onSubmit} noValidate aria-label={`Verbindung ${verbindung.name} bearbeiten`}>
+    <form
+      ref={(element) => {
+        pruefung.form(element);
+        zugangFehler.form.current = element;
+      }}
+      className="stack"
+      onSubmit={onSubmit}
+      onInput={zugangFehler.zuruecksetzen}
+      noValidate
+      aria-label={`Verbindung ${verbindung.name} bearbeiten`}
+    >
       <EinstellungFelder
         werte={werte}
         setWerte={setWerte}
@@ -160,7 +174,7 @@ export function VerbindungFormular({
         heute={daten.heute}
         fehler={pruefung.error}
       />
-      {anbieter && <ZugangFelder anbieter={anbieter} gespeichert config={config} setConfig={setConfig} />}
+      {anbieter && <ZugangFelder anbieter={anbieter} gespeichert config={config} setConfig={setConfig} fehler={zugangFehler.fehler} />}
       <div className="actions">
         <button type="button" className="btn" disabled={busy} onClick={() => onFertig()}>
           Abbrechen
@@ -186,24 +200,69 @@ export function AnbieterHinweis({ anbieter }: { anbieter: PspAnbieter }) {
   );
 }
 
-/** Die Felder des Zugangs und der config, wie der Adapter sie beschreibt */
+/**
+ * Fachfehler des Servers an einem Feld des Adapters (`felder` am UserError); `ansagen`, wenn der Fokus schon im Feld stand
+ * (mit Enter abgeschickt): Dann liest ihn nur `role="alert"` vor (DESIGN.md, Felder: `announceError`)
+ */
+export type ZugangFehler = { feld: string; text: string; ansagen: boolean } | null;
+
+/**
+ * Fehler des Servers am Feld des Adapters statt als Meldung unter dem Formular (DESIGN.md, Felder): `abfangen` nimmt
+ * einen Fehler, der ein Feld des Adapters nennt, und gibt jeden anderen an `useAction` weiter. Ist die Aktion durch, bekommt
+ * das Feld den Fokus; gesperrt nähme es ihn nicht an. `form` an das Formular hängen, `zuruecksetzen` bei jeder Eingabe.
+ */
+export function useZugangFehler(anbieter: PspAnbieter | undefined, busy: boolean) {
+  const form = useRef<HTMLFormElement | null>(null);
+  const [fehler, setFehler] = useState<ZugangFehler>(null);
+  const [fokus, setFokus] = useState(false);
+  useEffect(() => {
+    if (busy || !fokus || !fehler) return;
+    (form.current?.elements.namedItem(fehler.feld) as HTMLElement | null)?.focus();
+    setFokus(false);
+  }, [busy, fokus, fehler]);
+  async function abfangen(work: () => Promise<unknown>) {
+    setFehler(null);
+    try {
+      await work();
+    } catch (error) {
+      const feld = fehlerFelder(error).find((name) => anbieter?.felder.some((f) => f.name === name));
+      if (!feld) throw error;
+      const ansagen = form.current?.elements.namedItem(feld) === document.activeElement;
+      setFehler({ feld, text: errorMessage(error), ansagen });
+      setFokus(true);
+    }
+  }
+  return { form, fehler, abfangen, zuruecksetzen: () => setFehler(null) };
+}
+
+/** Die Felder des Zugangs und der config, wie der Adapter sie beschreibt; `fehler` steht an seinem Feld */
 export function ZugangFelder({
   anbieter,
   gespeichert,
   config,
   setConfig,
+  fehler = null,
 }: {
   anbieter: PspAnbieter;
   gespeichert: boolean;
   config: Config;
   setConfig: (config: Config) => void;
+  fehler?: ZugangFehler;
 }) {
+  const fehlerAm = (name: string) => (fehler?.feld === name ? fehler.text : undefined);
+  const ansagen = (name: string) => fehler?.feld === name && fehler.ansagen;
   return (
     <>
       {anbieter.felder.map((feld) => {
         if (feld.art === "geheim") {
           return (
-            <Field key={feld.name} label={gespeichert ? `${feld.label} (leer lassen zum Behalten)` : feld.label} hint={feld.hint}>
+            <Field
+              key={feld.name}
+              label={gespeichert ? `${feld.label} (leer lassen zum Behalten)` : feld.label}
+              hint={feld.hint}
+              error={fehlerAm(feld.name)}
+              announceError={ansagen(feld.name)}
+            >
               {(control) => <input {...control} name={feld.name} type="password" autoComplete="off" />}
             </Field>
           );
@@ -212,7 +271,7 @@ export function ZugangFelder({
           const optionen = feld.optionen ?? [];
           const aktuell = String(config[feld.name] ?? optionen[0]?.wert ?? "");
           return (
-            <Field key={feld.name} label={feld.label} hint={feld.hint}>
+            <Field key={feld.name} label={feld.label} hint={feld.hint} error={fehlerAm(feld.name)} announceError={ansagen(feld.name)}>
               {(control) => (
                 <select
                   {...control}
@@ -231,7 +290,7 @@ export function ZugangFelder({
           );
         }
         return (
-          <Field key={feld.name} label={feld.label} hint={feld.hint}>
+          <Field key={feld.name} label={feld.label} hint={feld.hint} error={fehlerAm(feld.name)} announceError={ansagen(feld.name)}>
             {(control) => (
               <input
                 {...control}
