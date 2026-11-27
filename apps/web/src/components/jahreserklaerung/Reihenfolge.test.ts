@@ -96,7 +96,9 @@ describe("Reihenfolge", () => {
 
   it("sagt bei der nicht geschuldeten Umsatzsteuererklärung „Keine Erklärung nötig“ statt „Noch nicht übermittelt“", () => {
     const markup = html(stand(ustNichtGeschuldet, offen, estUnbekannt));
-    expect(markup).toMatch(/<span class="status status-ok status-inline"><span class="status-label">Keine Erklärung nötig<\/span>/);
+    expect(markup).toMatch(
+      /<span class="status status-ok status-inline"><span class="status-label"><span class="status-text">Keine Erklärung nötig<\/span><\/span>/,
+    );
     expect(markup.match(/Noch nicht übermittelt/g)).toHaveLength(1);
     // Trotzdem übermittelt (etwa auf Aufforderung des Finanzamts): der Stand der Sendung
     expect(html(stand({ ...ustNichtGeschuldet, sent: gesendet.sent }, offen, estUnbekannt))).toContain("Übermittelt am 01.03.2026");

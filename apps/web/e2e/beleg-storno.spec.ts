@@ -355,13 +355,9 @@ test("Belegliste: ohne Sortierung ungebuchte zuerst, Spaltenkopf sortiert und ne
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/belege");
   const zeilen = page.locator("a.table-row.document-cols");
-  // Ohne Sortierung stehen ungebuchte Belege oben, auch wenn ihr Datum älter ist (docs/belege.md, „Liste und Status“).
-  // Mehrere ungebuchte Belege sind möglich, deshalb die Reihenfolge prüfen statt den ersten Namen:
-  const texte = await zeilen.allInnerTexts();
-  const altpapier = texte.findIndex((t) => t.includes("Altpapier Ahrens"));
-  const gebuchtL4711 = texte.findIndex((t) => t.includes("L-4711"));
-  expect(altpapier).toBeGreaterThanOrEqual(0);
-  expect(gebuchtL4711).toBeGreaterThan(altpapier);
+  // Ohne Sortierung nach dem Hochladen, der neueste oben, gleich ob gebucht oder nicht (docs/belege.md, „Liste und Status“, #1735)
+  const hochgeladen = (await sql`select id from documents order by uploaded_at desc, id desc`).map((d) => `/belege/${d.id}`);
+  await expect.poll(async () => zeilen.evaluateAll((links) => links.map((a) => a.getAttribute("href")))).toEqual(hochgeladen);
 
   // Die Richtung steht im Namen des Links wie in der Bankliste (BankSortierKopf), damit Screenreader sie vorlesen.
   // Keine festen Namen: in dieser Datei entstehen im Lauf mehrere Belege, teils mit gleichem Lieferanten (R-2 steht zu

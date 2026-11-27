@@ -3,6 +3,7 @@ import { UserError } from "../../errors.ts";
 import type { DocumentKind } from "../../storage.ts";
 import { describeAnthropicError, extractWithAnthropic } from "./extraction-anthropic.ts";
 import { extractionConfig, extractionSettings as settingsOf, type ExtractionConfig, type ExtractionSettings } from "./extraction-config.ts";
+import { isPaused, openGate, type RequestGate } from "./extraction-limits.ts";
 import { extractWithOpenAiCompatible } from "./extraction-openai.ts";
 import { ExtractionError, toFields, type ExtractedFields, type Extraction, type ProviderResult } from "./extraction-schema.ts";
 
@@ -15,7 +16,12 @@ import { ExtractionError, toFields, type ExtractedFields, type Extraction, type 
 export { decimalToCents, toFields, type ExtractedFields, type Extraction } from "./extraction-schema.ts";
 
 export type ExtractDeps = {
-  [P in ExtractionConfig["provider"]]: (config: Extract<ExtractionConfig, { provider: P }>, bytes: Uint8Array, kind: DocumentKind) => Promise<ProviderResult>;
+  [P in ExtractionConfig["provider"]]: (
+    config: Extract<ExtractionConfig, { provider: P }>,
+    bytes: Uint8Array,
+    kind: DocumentKind,
+    gate: RequestGate,
+  ) => Promise<ProviderResult>;
 };
 
 const PROVIDERS: ExtractDeps = { anthropic: extractWithAnthropic, "openai-compatible": extractWithOpenAiCompatible };
@@ -33,18 +39,24 @@ export function extractionSettings(): ExtractionSettings {
   return settingsOf(activeConfig());
 }
 
-/** Liest einen Beleg (PDF oder Bild) aus. Das Ergebnis wird immer vom Nutzer bestätigt. */
+/**
+ * Liest einen Beleg (PDF oder Bild) aus. Das Ergebnis wird immer vom Nutzer bestätigt. `gate` hält jede Anfrage an den
+ * Dienst an, bis sie die eingestellten Grenzen einhält (extraction-limits.ts).
+ */
 export async function extractDocument(
   bytes: Uint8Array,
   kind: DocumentKind,
   config: ExtractionConfig | null = activeConfig(),
   providers: ExtractDeps = PROVIDERS,
+  gate: RequestGate = openGate,
 ): Promise<{ extraction: Extraction; fields: ExtractedFields }> {
   if (!config) throw new ExtractionError("Die KI-Auslesung ist nicht eingerichtet.", "nicht-eingerichtet");
   let result: ProviderResult;
   try {
-    result = await callProvider(config, bytes, kind, providers);
+    result = await callProvider(config, bytes, kind, providers, gate);
   } catch (error) {
+    // Angehalten ist kein Fehlschlag: Der Beleg wartet weiter
+    if (isPaused(error)) throw error;
     // Nachvollziehbar ohne Beleginhalt, Meldung des Dienstes oder Schlüssel: nur Anbieter, Modell und Fehlerart
     console.warn(`KI-Auslesung fehlgeschlagen (${config.provider}, ${config.model}): ${failureReason(error)}`);
     throw error;
@@ -53,8 +65,8 @@ export async function extractDocument(
   return { extraction: result.extraction, fields: { ...fields, warnings: [...result.warnings, ...fields.warnings] } };
 }
 
-function callProvider(config: ExtractionConfig, bytes: Uint8Array, kind: DocumentKind, providers: ExtractDeps): Promise<ProviderResult> {
-  return config.provider === "anthropic" ? providers.anthropic(config, bytes, kind) : providers["openai-compatible"](config, bytes, kind);
+function callProvider(config: ExtractionConfig, bytes: Uint8Array, kind: DocumentKind, providers: ExtractDeps, gate: RequestGate): Promise<ProviderResult> {
+  return config.provider === "anthropic" ? providers.anthropic(config, bytes, kind, gate) : providers["openai-compatible"](config, bytes, kind, gate);
 }
 
 function failureReason(error: unknown): string {

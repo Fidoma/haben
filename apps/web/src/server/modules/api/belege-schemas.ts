@@ -56,8 +56,10 @@ const documentSummaryShape = {
   status: z.enum(["neu", "gebucht"]).describe("neu = „Zu prüfen“ in Haben; gebucht = geprüft, gebucht und unveränderlich"),
   booked: z.boolean().describe("Ob der Beleg gebucht ist"),
   extractionStatus: z
-    .enum(["keine", "laeuft", "fertig", "fehler"])
-    .describe("Auslesung der Felder: keine, läuft (KI im Hintergrund), fertig oder fehler (dann in Haben von Hand)"),
+    .enum(["keine", "wartet", "laeuft", "fertig", "fehler"])
+    .describe(
+      "Auslesung der Felder: keine, wartet (in der Warteschlange der KI-Auslesung), läuft (KI im Hintergrund), fertig oder fehler (dann in Haben von Hand)",
+    ),
   supplierName: z.string().describe("Lieferant, leer bis ausgelesen oder eingetragen"),
   invoiceNumber: z.string(),
   documentDate: isoDate.nullable().describe("Belegdatum"),

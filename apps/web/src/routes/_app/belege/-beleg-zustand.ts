@@ -25,7 +25,8 @@ export function useDocumentForm({ data, inhaber, onDirtyChange }: { data: Detail
   const locked = doc.status === "gebucht";
   // Die Steuerberatung sieht den Beleg wie einen gebuchten: alle Felder gesperrt, keine Knöpfe
   const readOnly = locked || !inhaber;
-  const running = doc.extractionStatus === "laeuft";
+  // Wartet der Beleg auf die KI-Auslesung (#1735), füllen sich die Felder wie beim Auslesen gleich von selbst
+  const running = doc.extractionStatus === "laeuft" || doc.extractionStatus === "wartet";
   // Alte Entwürfe können noch manuell eingegebene Steuer enthalten; festgeschriebene Beträge bleiben unverändert.
   const calculateInitialTax = !readOnly && !running && Boolean(doc.reverseCharge);
 

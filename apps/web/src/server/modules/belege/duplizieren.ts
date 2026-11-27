@@ -64,7 +64,8 @@ function duplicateFields(original: Document, amounts: DocumentAmount[], splits: 
 export async function duplicateDocument(actor: string, id: string, file: { bytes: Uint8Array; filename: string }): Promise<UploadResult> {
   const [original] = await db.select().from(schema.documents).where(eq(schema.documents.id, id));
   if (!original) throw new DocumentError("Beleg nicht gefunden.");
-  if (original.extractionStatus === "laeuft") throw new DocumentError("Der Beleg wird gerade ausgelesen. Dupliziere ihn, wenn die Felder da sind.");
+  if (original.extractionStatus === "laeuft" || original.extractionStatus === "wartet")
+    throw new DocumentError("Der Beleg wird gerade ausgelesen. Dupliziere ihn, wenn die Felder da sind.");
   const amounts = await db.select().from(schema.documentAmounts).where(eq(schema.documentAmounts.documentId, id)).orderBy(desc(schema.documentAmounts.taxRate));
   // Was sich heute am Beleg nicht mehr wählen ließe, fällt weg, statt das Duplikat abzulehnen: ein archivierter Kontakt oder
   // einer, der kein Lieferant mehr ist (wie listContactChoices), und ein archiviertes oder unpassendes eigenes Konto (dann

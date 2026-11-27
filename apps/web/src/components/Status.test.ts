@@ -16,12 +16,16 @@ const text = (markup: string) => markup.replace(/<[^>]+>/g, "");
 describe("Status", () => {
   it("ruhig: Klasse des Tons, ohne Stufe", () => {
     const markup = html(el(Status, { tone: "ok" }, "Bezahlt"));
-    expect(markup).toBe('<span class="status status-ok"><span class="status-label">Bezahlt</span></span>');
+    expect(markup).toBe('<span class="status status-ok"><span class="status-label"><span class="status-text">Bezahlt</span></span></span>');
   });
 
   it("Stufe, Entwurf und Zeile kommen als Klassen dazu", () => {
     const markup = html(el(Status, { tone: "warn", emphasis: "urgent", draft: true, inline: true }, "Überfällig"));
     expect(markup).toContain('class="status status-warn status-urgent status-draft status-inline"');
+  });
+
+  it("pulse: der Punkt pulsiert, etwa bei „Wird ausgelesen“ (#1735)", () => {
+    expect(html(el(Status, { tone: "info", pulse: true }, "Wird ausgelesen"))).toContain('class="status status-info status-pulse"');
   });
 
   it("ohne Ton neutral", () => {

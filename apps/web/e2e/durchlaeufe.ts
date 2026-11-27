@@ -61,6 +61,8 @@ export const DURCHLAEUFE = {
   "rechnungen-artikel": 47,
   "rechnungen-kasse": 48,
   "rechnungen-angebote": 49,
+  // Warteschlange der KI-Auslesung (#1735): nur dieser Server liest Belege mit dem nachgebauten Dienst auf KI_PORT aus
+  "ki-warteschlange": 50,
 } as const;
 export type Durchlauf = keyof typeof DURCHLAEUFE;
 
@@ -100,7 +102,7 @@ export const TEILE = {
   rechnungen: ["rechnungen", "rechnungen-kontakte", "rechnungen-artikel", "rechnungen-kasse", "rechnungen-angebote"],
   ablauf: ["ablauf", "abzug", "mit-daten", "fremdrechnung-kleinunternehmer", "fints-abruf", "etsy-abruf"],
   "ablauf-2": ["ablauf", "abzug", "mit-daten-2", "zahlung-gebuehr", "bank-dubletten", "bank-bestaetigen"],
-  "ablauf-3": ["ablauf", "abzug", "mit-daten-3", "paypal-abruf", "stripe-abruf"],
+  "ablauf-3": ["ablauf", "abzug", "mit-daten-3", "paypal-abruf", "stripe-abruf", "ki-warteschlange"],
   gmbh: ["gmbh", "rueckfragen", "belegimport", "bb-import", "beleg-storno", "dauerfrist-euer", "verrechnung", "firmen", "passwort", "fastbill-import"],
   importe: [
     "wiso-import",
@@ -146,6 +148,9 @@ export const EVATR_PORT = PORT + 34;
 
 /** Nachgebaute Transaction Search von PayPal in paypal-abruf.spec.ts (PAYPAL_API_URL) */
 export const PAYPAL_PORT = PORT + 39;
+
+/** Nachgebauter OpenAI-kompatibler KI-Dienst in ki-warteschlange.spec.ts (EXTRACTION_BASE_URL) */
+export const KI_PORT = PORT + 51;
 
 /** Platzhalter für FINTS_PRODUKT_ID im Durchlauf „fints-abruf“; eine echte Registrierungsnummer steht nie im Repository */
 export const FINTS_PRODUKT_E2E = "HABENE2ETESTPRODUKT";

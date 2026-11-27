@@ -22,20 +22,33 @@ export interface StatusProps {
   inline?: boolean;
   /** Steht rechts an der Kante einer Zeile, etwa in Karten: am Handy das Wort am Ende, die Auskunft davor (DESIGN.md › Status) */
   edge?: boolean;
+  /** Der Punkt pulsiert: Gerade passiert etwas, etwa „Wird ausgelesen“ (DESIGN.md › Status) */
+  pulse?: boolean;
   children: ReactNode;
 }
 
 /** Aussehen eines Status in einer Tabelle Zustand → Aussehen, etwa LOOK in InvoiceStatus */
-export type StatusLook = { text: string } & Pick<StatusProps, "tone" | "emphasis" | "draft">;
+export type StatusLook = { text: string } & Pick<StatusProps, "tone" | "emphasis" | "draft" | "pulse">;
 
 /** Zustand eines Objekts: Punkt, Wort und eine Auskunft darunter */
-export function Status({ tone = "neutral", emphasis, draft = false, detail, inline = false, edge = false, children }: StatusProps) {
-  const className = ["status", `status-${tone}`, emphasis && `status-${emphasis}`, draft && "status-draft", inline && "status-inline", edge && "status-edge"]
+export function Status({ tone = "neutral", emphasis, draft = false, detail, inline = false, edge = false, pulse = false, children }: StatusProps) {
+  const className = [
+    "status",
+    `status-${tone}`,
+    emphasis && `status-${emphasis}`,
+    draft && "status-draft",
+    inline && "status-inline",
+    edge && "status-edge",
+    pulse && "status-pulse",
+  ]
     .filter(Boolean)
     .join(" ");
   return (
     <span className={className}>
-      <span className="status-label">{children}</span>
+      {/* Das Wort in eigenem Element: Wo die Spalte zu schmal ist, endet es mit „…“ statt überzustehen */}
+      <span className="status-label">
+        <span className="status-text">{children}</span>
+      </span>
       {detail != null && detail !== "" && (
         <>
           {/* Leerzeichen für Screenreader und Kopieren; im Flex-Container unsichtbar */} <span className="status-detail">{detail}</span>

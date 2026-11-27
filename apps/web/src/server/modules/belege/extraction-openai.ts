@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { DocumentKind } from "../../storage.ts";
 import { publicEndpoint, type ExtractionConfig } from "./extraction-config.ts";
+import { estimateTokens, openGate, type RequestGate } from "./extraction-limits.ts";
 import {
   EXTRACTION_INSTRUCTIONS,
   EXTRACTION_REQUEST,
@@ -46,13 +47,19 @@ export async function extractWithOpenAiCompatible(
   config: OpenAiConfig,
   bytes: Uint8Array,
   kind: DocumentKind,
+  gate: RequestGate = openGate,
   deps: OpenAiDeps = defaultDeps,
 ): Promise<ProviderResult> {
   const { images, text, warnings } = await modelInput(config, bytes, readableKind(kind), deps);
+  let body = requestBody(config, images, text, true);
+  await gate(requestTokens(body, images));
+  // Die Wartezeit erst ab dem Senden: Das Warten auf die Grenzen zählt nicht mit
   const signal = AbortSignal.timeout(config.timeoutMs);
-  let response = await post(config, deps, requestBody(config, images, text, true), signal);
+  let response = await post(config, deps, body, signal);
   if (!response.ok && (await rejectsStructuredOutput(response))) {
-    response = await post(config, deps, requestBody(config, images, text, false), signal);
+    body = requestBody(config, images, text, false);
+    await gate(requestTokens(body, images));
+    response = await post(config, deps, body, signal);
   }
   if (!response.ok) throw await httpError(config, response);
   const content = await answerText(response, signal, config);
@@ -98,6 +105,12 @@ async function modelInput(config: OpenAiConfig, bytes: Uint8Array, readable: Rea
   const { pages, truncated } = await deps.pdfToImages(bytes, config.maxPages);
   if (truncated) warnings.push(truncatedWarning(config.maxPages));
   return { images: pages.map((page) => dataUrl("image/png", page)), text, warnings };
+}
+
+/** Geschätzte Tokens: der Text der Anfrage ohne die Bilder, die einzeln zählen */
+function requestTokens(body: unknown, images: string[]): number {
+  const imageChars = images.reduce((sum, url) => sum + url.length, 0);
+  return estimateTokens({ textChars: JSON.stringify(body).length - imageChars, images: images.length });
 }
 
 function dataUrl(mediaType: string, bytes: Uint8Array): string {

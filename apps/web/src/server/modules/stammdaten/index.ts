@@ -43,6 +43,7 @@ export {
   type Company,
   type CompanyInput,
 } from "./company.ts";
+export { extractionLimitsSchema, saveExtractionLimits, setExtractionPaused, type ExtractionLimitsInput } from "./ki-grenzen.ts";
 export { editorContext } from "./editor-context.ts";
 export {
   contactRoleProblem,

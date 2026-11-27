@@ -161,6 +161,10 @@ Den Zustand eines Objekts (Rechnung, Angebot, Beleg, Umsatz, Bankverbindung, Fri
 | `warn` | Etwas fehlt oder ist abgelaufen | Überfällig, Beleg fehlt, Zu prüfen, Abgelaufen, Prüfen |
 | `danger` | Aufgehoben oder fehlgeschlagen | Storniert, Abgelehnt, Fehler, Fehlgeschlagen |
 
+**Läuft gerade (`pulse`):** Der Punkt pulsiert, solange etwas im Hintergrund passiert, auf das man schaut, etwa „Wird ausgelesen“ an Belegen. So sieht man in einer langen Liste auf einen Blick, wo gerade gearbeitet wird. Was nur wartet („Wartet auf Auslesung“), pulsiert nicht. Mit „Bewegung reduzieren“ steht der Punkt still; das Wort trägt die Bedeutung.
+
+**Lange Wörter:** In Tabellenspalten endet ein Wort oder eine Auskunft, die nicht hineinpasst, mit „…“ (`.status-text`), statt in die Nachbarspalte zu ragen.
+
 **Entwurf (`draft`):** Der Punkt wird ein leerer Ring: noch nicht festgeschrieben. Nach dem Festschreiben ist er voll. Das gilt für jeden Entwurf, ob Rechnung, Angebot, Voranmeldung oder Lohn. Der Ring sagt das schon, eine Auskunft „noch nicht festgeschrieben“ gibt es deshalb nicht.
 
 **Stufe (`emphasis`):** Sie entscheidet, wie laut der Status ist. Weil fast alles ruhig ist, springt das Dringende heraus; deshalb ist „dringend“ selten.

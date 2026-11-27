@@ -31,7 +31,7 @@ function DocumentPage() {
   const { geprueft, ...duplikat } = Route.useSearch();
   const inhaber = Route.useRouteContext().user.role === "inhaber";
   const { document: doc, navigation } = data;
-  const running = doc.extractionStatus === "laeuft";
+  const running = doc.extractionStatus === "laeuft" || doc.extractionStatus === "wartet";
   // Das Formular meldet ungespeicherte Änderungen
   const [dirty, setDirty] = useState(false);
   // Ungespeicherte Änderungen: erst nachfragen, der Dialog wechselt und verwirft sie

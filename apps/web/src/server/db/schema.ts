@@ -11,6 +11,7 @@ import {
   jsonb,
   numeric,
   pgEnum,
+  pgSequence,
   pgTable,
   primaryKey,
   smallint,
@@ -224,12 +225,27 @@ export const company = pgTable(
     navLogo: boolean("nav_logo").notNull().default(false),
     /** Archiv aus dem Umzug in der Schnellsuche mitdurchsuchen (#617); Vorgabe an */
     archiveSearch: boolean("archive_search").notNull().default(true),
+    /**
+     * KI-Auslesung (#1735): Warteschlange angehalten, und die Grenzen des Dienstes; null = keine Grenze. Haben schickt die
+     * nächste Anfrage erst, wenn sie alle gesetzten Grenzen einhält.
+     */
+    extractionPaused: boolean("extraction_paused").notNull().default(false),
+    extractionMaxTokensPerRequest: integer("extraction_max_tokens_per_request"),
+    extractionRequestsPerMinute: integer("extraction_requests_per_minute"),
+    extractionTokensPerMinute: integer("extraction_tokens_per_minute"),
+    /** Höchstens so viele Belege liest Haben gleichzeitig aus */
+    extractionMaxParallel: smallint("extraction_max_parallel").notNull().default(4),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     check("company_single_row", sql`${t.id} = 1`),
     check("company_rechtsform", sql`${t.rechtsform} in ('einzelunternehmen', 'gmbh', 'ug')`),
     check("company_nav_color", sql`${t.navColor} ~ '^#[0-9A-F]{6}$'`),
+    check("company_extraction_max_parallel", sql`${t.extractionMaxParallel} between 1 and 20`),
+    check(
+      "company_extraction_limits",
+      sql`coalesce(${t.extractionMaxTokensPerRequest}, 1) > 0 and coalesce(${t.extractionRequestsPerMinute}, 1) > 0 and coalesce(${t.extractionTokensPerMinute}, 1) > 0`,
+    ),
   ],
 );
 
@@ -2206,7 +2222,11 @@ export const recurringDocuments = pgTable(
 );
 
 export const documentStatusEnum = pgEnum("document_status", ["neu", "gebucht"]);
-export const extractionStatusEnum = pgEnum("extraction_status", ["keine", "laeuft", "fertig", "fehler"]);
+/** wartet: in der Warteschlange der KI-Auslesung (#1735) */
+export const extractionStatusEnum = pgEnum("extraction_status", ["keine", "laeuft", "fertig", "fehler", "wartet"]);
+
+/** Reihenfolge der Warteschlange der KI-Auslesung (#1735); ein vorgezogener Beleg bekommt den negativen Wert */
+export const documentsExtractionQueueSeq = pgSequence("documents_extraction_queue_seq");
 
 /**
  * Belege (Eingangsrechnungen, Quittungen). Die Datei liegt im Dateisystem unter ihrem SHA-256;
@@ -2226,6 +2246,8 @@ export const documents = pgTable(
     extractedBy: text("extracted_by", { enum: ["zugferd", "xrechnung", "ki", "manuell"] }),
     extractionStatus: extractionStatusEnum("extraction_status").notNull().default("keine"),
     extractionError: text("extraction_error"),
+    /** Platz in der Warteschlange der KI-Auslesung (#1735), kleiner kommt zuerst; null, solange der Beleg nicht wartet oder ausgelesen wird */
+    extractionQueuePosition: bigint("extraction_queue_position", { mode: "number" }),
     /** Rohdaten der Auslesung zum Nachvollziehen */
     extraction: jsonb("extraction").$type<Record<string, unknown>>(),
     supplierName: text("supplier_name").notNull().default(""),
@@ -2309,6 +2331,7 @@ export const documents = pgTable(
     index("documents_invoice_number_trgm_idx").using("gin", sql`haben_unaccent(${t.invoiceNumber}) gin_trgm_ops`),
     index("documents_filename_trgm_idx").using("gin", sql`haben_unaccent(${t.filename}) gin_trgm_ops`),
     index("documents_gross_search_idx").on(t.gross),
+    index("documents_extraction_queue_idx").on(t.extractionQueuePosition).where(sql`${t.extractionQueuePosition} is not null`),
     check("documents_private_share_range", sql`${t.privateShare} between 0 and 100`),
     check("documents_vorsteuer_anteil_range", sql`${t.vorsteuerAnteil} between 0 and 10000`),
     foreignKey({ name: "documents_lexoffice_voucher_fk", columns: [t.lexofficeVoucherId], foreignColumns: [lexofficeVouchers.id] }),

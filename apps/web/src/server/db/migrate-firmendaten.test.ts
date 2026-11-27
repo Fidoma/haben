@@ -67,7 +67,8 @@ describe.skipIf(!testDatabaseUrl)("Firmendaten-Bestätigung bei einer bestehende
       ]);
       expect(
         await sql`select to_jsonb(company) - 'firmendaten_gespeichert_at' - 'nav_color' - 'nav_logo' - 'ohne_vorsteuerabzug'
-          - 'archive_search' - 'founded_on' - 'invoice_counter_per_customer' - 'quote_counter_per_customer' as value from company`,
+          - 'archive_search' - 'founded_on' - 'invoice_counter_per_customer' - 'quote_counter_per_customer'
+          - 'extraction_paused' - 'extraction_max_tokens_per_request' - 'extraction_requests_per_minute' - 'extraction_tokens_per_minute' - 'extraction_max_parallel' as value from company`,
       ).toEqual(before.company);
       // Bisherige Einträge unverändert; neu sind nur die Zeile der Prüfung beim Update (Migration 0275, #1116) und das
       // Briefkopf-Profil mit dem bisherigen Layout für die eingerichtete Firma (Migration 0312, #113)

@@ -1,12 +1,14 @@
 import { formatDayMonth } from "../lib/format.ts";
 import { Status } from "./Status.tsx";
 
-type Zustand = { status: "neu" | "gebucht"; extractionStatus: "keine" | "laeuft" | "fertig" | "fehler"; cancelled?: boolean };
+type ExtractionStatus = "keine" | "wartet" | "laeuft" | "fertig" | "fehler";
+type Zustand = { status: "neu" | "gebucht"; extractionStatus: ExtractionStatus; cancelled?: boolean };
 
 /** Das Wort des Status; die Belegliste sortiert nach demselben Text, den die Zelle zeigt */
 export function documentStatusText({ status, extractionStatus, cancelled = false }: Zustand): string {
   if (status === "gebucht") return cancelled ? "Storniert" : "Gebucht";
   if (extractionStatus === "laeuft") return "Wird ausgelesen";
+  if (extractionStatus === "wartet") return "Wartet auf Auslesung";
   return extractionStatus === "fehler" ? "Prüfen" : "Zu prüfen";
 }
 
@@ -19,7 +21,7 @@ export function DocumentStatus({
   uploadedAt,
 }: {
   status: "neu" | "gebucht";
-  extractionStatus: "keine" | "laeuft" | "fertig" | "fehler";
+  extractionStatus: ExtractionStatus;
   /** Gebucht und per Gegenbuchung storniert (#237) */
   cancelled?: boolean;
   /** Für die Auskunft unter dem Status, soweit bekannt */
@@ -40,7 +42,14 @@ export function DocumentStatus({
         {text}
       </Status>
     );
-  if (extractionStatus === "laeuft") return <Status tone="info">{text}</Status>;
+  // Läuft: Der Punkt pulsiert, so sieht man auf einen Blick, welche Belege gerade ausgelesen werden
+  if (extractionStatus === "laeuft")
+    return (
+      <Status tone="info" pulse>
+        {text}
+      </Status>
+    );
+  if (extractionStatus === "wartet") return <Status tone="info">{text}</Status>;
   // Ohne Auslesung bleibt der Beleg liegen, bis jemand die Angaben von Hand einträgt
   if (extractionStatus === "fehler")
     return (

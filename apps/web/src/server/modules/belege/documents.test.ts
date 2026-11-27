@@ -143,7 +143,7 @@ describe.skipIf(!testDatabaseUrl)("Belege (Postgres)", () => {
       amounts: [{ taxRate: 1900, net: 1_000, tax: 190 }],
     });
     // Die Auslesung (Mock) liefert „Telekom Deutschland GmbH“: der Beleg zeigt nicht mehr auf Hetzner
-    await documents.runExtraction(actor, id);
+    await (await documents.queueExtraction(actor, [id], { first: true })).work;
     const { document } = (await documents.getDocument(id))!;
     expect(document.supplierName).toBe("Telekom Deutschland GmbH");
     expect(document.supplierContactId).toBeNull();
@@ -168,7 +168,7 @@ describe.skipIf(!testDatabaseUrl)("Belege (Postgres)", () => {
     });
     expect((await documents.getDocument(id))!.document.ownAccountId).toBe(own);
     // Die Auslesung (Mock) liefert „telefon“: das Konto der Elternkategorie „software“ passt nicht mehr
-    await documents.runExtraction(actor, id);
+    await (await documents.queueExtraction(actor, [id], { first: true })).work;
     const { document } = (await documents.getDocument(id))!;
     expect(document).toMatchObject({ category: "telefon", ownAccountId: null });
   });
@@ -555,7 +555,7 @@ describe.skipIf(!testDatabaseUrl)("Belege (Postgres)", () => {
         warnings: [],
       },
     });
-    await documents.runExtraction(actor, id);
+    await (await documents.queueExtraction(actor, [id], { first: true })).work;
     const doc = (await documents.getDocument(id))!;
     expect(doc.document.reverseCharge).toBe("drittland");
     // 100,00 USD / 1,0812 = 92,49 €; § 13b: 19 % davon = 17,57 € in Kz 85, gezahlt wird netto
@@ -592,7 +592,7 @@ describe.skipIf(!testDatabaseUrl)("Belege (Postgres)", () => {
       extraction: { quelle: "test" } as unknown as import("./extraction.ts").Extraction,
       fields: etsy,
     });
-    await documents.runExtraction(actor, id);
+    await (await documents.queueExtraction(actor, [id], { first: true })).work;
     expect((await documents.getDocument(id))!.document.reverseCharge).toBe("drittland");
   });
 

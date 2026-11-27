@@ -23,7 +23,10 @@ import {
   supplierPayment,
   listDocuments,
   MAX_DOCUMENT_SIZE,
-  runExtraction,
+  queueExtraction,
+  queueOverview,
+  resumeExtractionQueue,
+  loadExtractionLimits,
   updateDocument,
   uploadDocument,
 } from "../modules/belege/index.ts";
@@ -39,7 +42,7 @@ import {
 } from "../modules/bank/index.ts";
 import { authMiddleware, readMiddleware } from "../middleware.ts";
 import { ownAccountsOverview } from "../modules/eigene-konten/index.ts";
-import { listContactChoices, loadCompany } from "../modules/stammdaten/index.ts";
+import { extractionLimitsSchema, listContactChoices, loadCompany, saveExtractionLimits, setExtractionPaused } from "../modules/stammdaten/index.ts";
 import { documentBankAllocations, documentIbanCheck, documentSepaTransfers } from "../modules/bank/index.ts";
 import { buchungenZu } from "../modules/buchhaltung/index.ts";
 import { db, schema } from "../db/index.ts";
@@ -63,6 +66,7 @@ export const getDocuments = createServerFn({ method: "GET" })
     return {
       documents: await listDocuments(),
       aiAvailable: extractionAvailable(),
+      queue: await queueOverview(),
       inbox: inbox?.enabled ? { username: inbox.username, folder: inbox.folder, lastRunAt: inbox.lastRunAt, lastError: inbox.lastError } : null,
     };
   });
@@ -218,14 +222,50 @@ export const deleteDocumentFn = createServerFn({ method: "POST" })
 /** Einstellungen › KI-Assistenten und API: welcher Anbieter Belege ausliest; ohne Schlüssel */
 export const getExtractionSettings = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
-  .handler(() => extractionSettings());
+  .handler(async () => ({ ...extractionSettings(), limits: await loadExtractionLimits() }));
 
+/** Grenzen des KI-Dienstes (#1735): Tokens je Anfrage, Anfragen und Tokens pro Minute; leer = keine Grenze */
+export const saveExtractionLimitsFn = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator(extractionLimitsSchema)
+  .handler(async ({ data, context }) => {
+    await saveExtractionLimits(context.user.id, data);
+    // Mehr Arbeiter erlaubt: Sie fangen gleich an
+    inBackground(resumeExtractionQueue());
+    return { ok: true };
+  });
+
+const extractionMissing = () => new UserError("Die KI-Auslesung ist nicht eingerichtet (ANTHROPIC_API_KEY oder EXTRACTION_BASE_URL).");
+
+/** „Mit KI neu auslesen“ an einem Beleg: vor allen Wartenden, denn wer auf den Beleg schaut, wartet darauf */
 export const reextractDocument = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator(z.uuid())
   .handler(async ({ data, context }) => {
-    if (!extractionAvailable()) throw new UserError("Die KI-Auslesung ist nicht eingerichtet (ANTHROPIC_API_KEY oder EXTRACTION_BASE_URL).");
-    inBackground(runExtraction(context.user.id, data));
+    if (!extractionAvailable()) throw extractionMissing();
+    const { work } = await queueExtraction(context.user.id, [data], { first: true });
+    inBackground(work);
+    return { ok: true };
+  });
+
+/** „Neu auslesen“ und „Fehlgeschlagene neu auslesen“ in der Belegliste: in der Reihenfolge der Liste beim Klick */
+export const reextractDocuments = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator(z.array(z.uuid()).min(1).max(10_000))
+  .handler(async ({ data, context }) => {
+    if (!extractionAvailable()) throw extractionMissing();
+    const { queued, work } = await queueExtraction(context.user.id, data);
+    inBackground(work);
+    return { queued };
+  });
+
+/** Warteschlange der KI-Auslesung anhalten oder fortsetzen; ein laufender Beleg wird noch fertig */
+export const pauseExtraction = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator(z.boolean())
+  .handler(async ({ data, context }) => {
+    await setExtractionPaused(context.user.id, data);
+    if (!data) inBackground(resumeExtractionQueue());
     return { ok: true };
   });
 

@@ -28,8 +28,8 @@ describe("documents.ts als Einstieg", () => {
   it("lädt den Modulring, ohne an der Belegobergrenze zu scheitern", { timeout: 60_000 }, () => {
     // Import wie im Repro des Issues: dieses Modul zuerst, ohne Barrel davor
     const skript = [
-      `import { MAX_DOCUMENT_SIZE, runExtraction } from ${JSON.stringify(eintritt)};`,
-      `if (typeof runExtraction !== "function") throw new Error("runExtraction fehlt");`,
+      `import { MAX_DOCUMENT_SIZE, queueExtraction } from ${JSON.stringify(eintritt)};`,
+      `if (typeof queueExtraction !== "function") throw new Error("queueExtraction fehlt");`,
       `if (MAX_DOCUMENT_SIZE !== 20 * 1024 * 1024) throw new Error("Belegobergrenze: " + MAX_DOCUMENT_SIZE);`,
     ].join(" ");
     expect(() =>

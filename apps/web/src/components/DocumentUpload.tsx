@@ -103,14 +103,17 @@ export function DocumentUpload({ aiAvailable }: { aiAvailable: boolean }) {
           </UploadButton>
         </div>
       </div>
+      {/* Die Rolle am Umschlag: An der Liste selbst nähme sie den Einträgen ihre Liste (axe: listitem) */}
       {messages.length > 0 && (
-        <ul className="upload-messages" role="status">
-          {messages.map((m, i) => (
-            <li key={i} className={`banner banner-${m.tone === "warn" ? "info" : m.tone}`}>
-              {m.text}
-            </li>
-          ))}
-        </ul>
+        <div role="status">
+          <ul className="upload-messages">
+            {messages.map((m, i) => (
+              <li key={i} className={`banner banner-${m.tone === "warn" ? "info" : m.tone}`}>
+                {m.text}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </section>
   );

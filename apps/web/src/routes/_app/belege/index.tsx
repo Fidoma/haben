@@ -9,8 +9,9 @@ import { DocumentUpload } from "../../../components/DocumentUpload.tsx";
 import { BelegFilterChips, BelegeLeer, filterBelege, filterName, sucheBelege } from "../../../components/BelegeFilter.tsx";
 import { Field } from "../../../components/Field.tsx";
 import { formatDate, formatDateTime } from "../../../lib/format.ts";
-import { getDocuments } from "../../../server/functions/documents.ts";
 import { menueGruppe } from "../../../lib/menue-gruppe.ts";
+import { getDocuments } from "../../../server/functions/documents.ts";
+import { AuslesungLeiste, BelegMarkierung, auslesungAktiv, useAuslesung } from "./-belege-auslesung.tsx";
 
 export const Route = createFileRoute("/_app/belege/")({
   validateSearch: z.object({
@@ -36,8 +37,31 @@ const kategorieText = (doc: { category: string | null; splitCount: number }, kon
 const statusText = (doc: Parameters<typeof documentStatusText>[0] & { cancelledOn: string | null }) =>
   documentStatusText({ ...doc, cancelled: doc.cancelledOn !== null });
 
+type Spalte = "datum" | "lieferant" | "kategorie" | "brutto" | "status";
+type Zeile = Awaited<ReturnType<typeof getDocuments>>["documents"][number];
+
+/** Nach der gewählten Spalte; ohne Wahl bleibt die Reihenfolge des Servers */
+function sortiere(rows: Zeile[], sort: Spalte | undefined, dir: "auf" | "ab", kontenrahmen: Kontenrahmen): Zeile[] {
+  if (!sort) return rows;
+  const richtung = dir === "auf" ? 1 : -1;
+  return [...rows].sort((a, b) => {
+    switch (sort) {
+      case "lieferant":
+        return richtung * lieferantText(a).localeCompare(lieferantText(b), "de");
+      case "kategorie":
+        return richtung * kategorieText(a, kontenrahmen).localeCompare(kategorieText(b, kontenrahmen), "de");
+      case "brutto":
+        return richtung * (a.gross - b.gross);
+      case "status":
+        return richtung * statusText(a).localeCompare(statusText(b), "de");
+      default:
+        return richtung * (a.documentDate ?? "").localeCompare(b.documentDate ?? "");
+    }
+  });
+}
+
 function DocumentsPage() {
-  const { documents, aiAvailable, inbox } = Route.useLoaderData();
+  const { documents, aiAvailable, inbox, queue } = Route.useLoaderData();
   const { user, kontenrahmen } = Route.useRouteContext();
   const inhaber = user.role === "inhaber";
   const router = useRouter();
@@ -51,24 +75,8 @@ function DocumentsPage() {
   // Spaltenkopf sortiert: erster Klick absteigend, derselbe Kopf nochmal dreht die Richtung (#1112). Ohne gewählte Spalte
   // bleibt die Reihenfolge von listDocuments: ungebuchte zuerst, dann nach Belegdatum, wie die Navigation am Beleg.
   const { sort, dir = "ab" } = Route.useSearch();
-  const richtung = dir === "auf" ? 1 : -1;
-  const sorted = !sort
-    ? shown
-    : [...shown].sort((a, b) => {
-        switch (sort) {
-          case "lieferant":
-            return richtung * lieferantText(a).localeCompare(lieferantText(b), "de");
-          case "kategorie":
-            return richtung * kategorieText(a, kontenrahmen).localeCompare(kategorieText(b, kontenrahmen), "de");
-          case "brutto":
-            return richtung * (a.gross - b.gross);
-          case "status":
-            return richtung * statusText(a).localeCompare(statusText(b), "de");
-          default:
-            return richtung * (a.documentDate ?? "").localeCompare(b.documentDate ?? "");
-        }
-      });
-  const kopf = (feld: "datum" | "lieferant" | "kategorie" | "brutto" | "status", text: string, klasse = "sort-head") => {
+  const sorted = sortiere(shown, sort, dir, kontenrahmen);
+  const kopf = (feld: Spalte, text: string, klasse = "sort-head") => {
     const aktiv = sort === feld;
     const naechste: "auf" | "ab" = aktiv && dir === "ab" ? "auf" : "ab";
     return (
@@ -85,10 +93,13 @@ function DocumentsPage() {
       </Link>
     );
   };
-  const running = documents.some((d) => d.extractionStatus === "laeuft");
+  const running = auslesungAktiv(queue);
   const open = documents.filter((d) => d.status === "neu").length;
+  // Neu auslesen in der Reihenfolge, die die Liste gerade zeigt (#1735)
+  const auslesung = useAuslesung(sorted);
+  const markieren = inhaber && aiAvailable;
 
-  // Solange die KI liest, die Liste regelmäßig auffrischen
+  // Solange die KI liest oder Belege warten, die Liste regelmäßig auffrischen
   useEffect(() => {
     if (!running) return;
     const timer = setInterval(() => void router.invalidate(), 3000);
@@ -153,6 +164,7 @@ function DocumentsPage() {
           <BelegFilterChips openCount={open} />
         </div>
       )}
+      {markieren && <AuslesungLeiste queue={queue} a={auslesung} />}
       <section className="card" aria-label="Belegliste">
         {documents.length === 0 ? (
           <BelegeLeer filter={undefined} inhaber={inhaber} hatPostfach={Boolean(inbox)} />
@@ -172,31 +184,34 @@ function DocumentsPage() {
               {kopf("status", "Status")}
             </div>
             {sorted.map((doc) => (
-              <Link key={doc.id} to="/belege/$id" params={{ id: doc.id }} className="table-row document-cols">
-                <div className="muted small">{doc.documentDate ? formatDate(doc.documentDate) : "–"}</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
-                  <span className="ellipsis">{lieferantText(doc)}</span>
-                  <span className="small muted ellipsis">
-                    {doc.invoiceNumber || doc.filename}
-                    {doc.recurringDocumentId ? " · Dauerbeleg" : doc.extractedBy ? ` · ${SOURCE_LABEL[doc.extractedBy]}` : ""}
-                  </span>
-                </div>
-                <div className="small">
-                  {kategorieText(doc, kontenrahmen)}
-                  {doc.ownAccount && <div className="muted">{doc.ownAccount}</div>}
-                </div>
-                <div className="num">{doc.gross ? formatEuro(doc.gross) : "–"}</div>
-                <div>
-                  <DocumentStatus
-                    status={doc.status}
-                    extractionStatus={doc.extractionStatus}
-                    cancelled={doc.cancelledOn !== null}
-                    cancelledOn={doc.cancelledOn}
-                    lockedAt={doc.lockedAt}
-                    uploadedAt={doc.uploadedAt}
-                  />
-                </div>
-              </Link>
+              <div key={doc.id} className="doc-wrap">
+                {markieren && <BelegMarkierung id={doc.id} a={auslesung} label={lieferantText(doc)} />}
+                <Link to="/belege/$id" params={{ id: doc.id }} className="table-row document-cols">
+                  <div className="muted small">{doc.documentDate ? formatDate(doc.documentDate) : "–"}</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+                    <span className="ellipsis">{lieferantText(doc)}</span>
+                    <span className="small muted ellipsis">
+                      {doc.invoiceNumber || doc.filename}
+                      {doc.recurringDocumentId ? " · Dauerbeleg" : doc.extractedBy ? ` · ${SOURCE_LABEL[doc.extractedBy]}` : ""}
+                    </span>
+                  </div>
+                  <div className="small">
+                    {kategorieText(doc, kontenrahmen)}
+                    {doc.ownAccount && <div className="muted">{doc.ownAccount}</div>}
+                  </div>
+                  <div className="num">{doc.gross ? formatEuro(doc.gross) : "–"}</div>
+                  <div>
+                    <DocumentStatus
+                      status={doc.status}
+                      extractionStatus={doc.extractionStatus}
+                      cancelled={doc.cancelledOn !== null}
+                      cancelledOn={doc.cancelledOn}
+                      lockedAt={doc.lockedAt}
+                      uploadedAt={doc.uploadedAt}
+                    />
+                  </div>
+                </Link>
+              </div>
             ))}
           </div>
         )}

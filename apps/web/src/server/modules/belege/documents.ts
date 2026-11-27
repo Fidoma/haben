@@ -47,6 +47,8 @@ import { db, schema, type Db, type Tx } from "../../db/index.ts";
 import { fileInUse } from "../../db/file-in-use.ts";
 import { today } from "../../today.ts";
 import { describeExtractionError, extractDocument, extractionAvailable, type ExtractedFields } from "./extraction.ts";
+import { isPaused, type RequestGate } from "./extraction-limits.ts";
+import { enqueue, isRunning, kick, requeueInterrupted, SYSTEM_ACTOR } from "./extraction-queue.ts";
 import { loadFile, removeFile, sniff, storeFile } from "../../storage.ts";
 import { findDocumentByReference, type DocumentReference } from "./external-reference.ts";
 import { MAX_DOCUMENT_SIZE } from "../../grenzen.ts";
@@ -286,6 +288,7 @@ async function applyFields(
         ...(reverseCharge && !doc.reverseCharge ? { reverseCharge } : {}),
         extractedBy,
         extractionStatus: "fertig",
+        extractionQueuePosition: null,
         extractionError: warnings.length > 0 ? warnings.join(" · ") : null,
         extraction: hint ? { ...raw, eigeneRechnung: ownInvoiceRecord(ownInvoice) } : raw,
         updatedAt: new Date(),
@@ -322,39 +325,43 @@ function textLinesOf(bytes: Uint8Array, kind: string) {
   return kind === "pdf" ? pdfTextLines(bytes) : Promise.resolve(null);
 }
 
-async function setExtractionState(actor: string, id: string, status: "laeuft" | "fehler" | "keine", error: string | null) {
+async function setExtractionState(actor: string, id: string, status: "fehler" | "wartet", error: string | null) {
   await withActor(actor, (tx) =>
     tx
       .update(schema.documents)
-      .set({ extractionStatus: status, extractionError: error, updatedAt: new Date() })
+      // Nur ein wartender Beleg behält seinen Platz in der Warteschlange
+      .set({ extractionStatus: status, extractionError: error, ...(status === "wartet" ? {} : { extractionQueuePosition: null }), updatedAt: new Date() })
       .where(and(eq(schema.documents.id, id), sql`${schema.documents.lockedAt} is null`)),
   );
 }
 
-/** Auslesungen, die in diesem Prozess laufen; was sonst auf „läuft“ steht, hat ein Neustart abgebrochen */
-const runningExtractions = new Set<string>();
-
-/** KI-Auslesung; läuft im Hintergrund, der Beleg zeigt solange „wird ausgelesen“. */
-export async function runExtraction(actor: string, id: string): Promise<void> {
-  // Vor dem ersten await eintragen, damit getDocument den Lauf nie für abgebrochen hält
-  runningExtractions.add(id);
-  try {
-    const [doc] = await db.select().from(schema.documents).where(eq(schema.documents.id, id));
-    if (!doc || doc.lockedAt) return;
-    await extract(actor, doc);
-  } finally {
-    runningExtractions.delete(id);
-  }
+/**
+ * Reiht Belege zur KI-Auslesung ein (extraction-queue.ts) und stößt die Warteschlange an; mit `first` vor allen
+ * Wartenden. Gibt die Zahl der eingereihten Belege und den Durchgang zurück, der sie ausliest.
+ */
+export async function queueExtraction(actor: string, ids: readonly string[], options: { first?: boolean } = {}) {
+  const queued = await enqueue(actor, ids, options);
+  return { queued, work: kick(extractQueued) };
 }
 
-async function extract(actor: string, doc: Document): Promise<void> {
-  const id = doc.id;
-  await setExtractionState(actor, id, "laeuft", null);
+/** Nach einem Neustart oder „Fortsetzen“: abgebrochene Auslesungen wieder einreihen und die Warteschlange weiterlaufen lassen */
+export async function resumeExtractionQueue(): Promise<void> {
+  await requeueInterrupted();
+  await kick(extractQueued);
+}
+
+/** Ein Beleg aus der Warteschlange, schon auf „läuft“; Fehler stehen danach am Beleg */
+async function extractQueued(id: string, gate: RequestGate): Promise<void> {
+  const [doc] = await db.select().from(schema.documents).where(eq(schema.documents.id, id));
+  if (!doc || doc.lockedAt) return;
   try {
     const bytes = await loadFile(doc.sha256);
     const sniffed = sniff(bytes);
     if (!sniffed) throw new DocumentError("Dateityp unbekannt");
-    const [{ extraction, fields }, lines] = await Promise.all([extractDocument(bytes, sniffed.kind), textLinesOf(bytes, sniffed.kind)]);
+    const [{ extraction, fields }, lines] = await Promise.all([
+      extractDocument(bytes, sniffed.kind, undefined, undefined, gate),
+      textLinesOf(bytes, sniffed.kind),
+    ]);
     const gross = totalsOf(fields.amounts).gross;
     const ownInvoice = await detectOwnInvoiceFor({
       parties: partiesOfExtraction(extraction),
@@ -363,9 +370,11 @@ async function extract(actor: string, doc: Document): Promise<void> {
       gross,
       currency: fields.currency,
     });
-    await applyFields(actor, id, fields, "ki", extraction, true, ownInvoice);
+    await applyFields(SYSTEM_ACTOR, id, fields, "ki", extraction, true, ownInvoice);
   } catch (error) {
-    await setExtractionState(actor, id, "fehler", describeExtractionError(error));
+    // Angehalten, während die Anfrage auf ihren Platz in den Grenzen wartete: Der Beleg wartet an seinem Platz weiter
+    if (isPaused(error)) await setExtractionState(SYSTEM_ACTOR, id, "wartet", null);
+    else await setExtractionState(SYSTEM_ACTOR, id, "fehler", describeExtractionError(error));
   }
 }
 
@@ -496,9 +505,8 @@ export async function uploadDocument(
   }
 
   if (extractionAvailable() && (type.kind === "pdf" || type.kind === "jpeg" || type.kind === "png" || type.kind === "webp")) {
-    runningExtractions.add(id);
-    await setExtractionState(actor, id, "laeuft", null);
-    const work = runExtraction(actor, id);
+    // Vorn in die Warteschlange, wie die Liste ihn oben zeigt: Ausgelesen wird dort von oben nach unten
+    const { work } = await queueExtraction(actor, [id], { first: true });
     if (options.background) options.background(work);
     else await work;
   }
@@ -570,8 +578,9 @@ export async function getDocument(id: string) {
   let [doc] = await db.select().from(schema.documents).where(eq(schema.documents.id, id));
   if (!doc) return null;
   // Nur lesend (Steuerberatung) bleibt der Beleg, wie er ist; freigeben darf ihn erst der Inhaber beim Öffnen
-  if (doc.extractionStatus === "laeuft" && !runningExtractions.has(id) && !isReadOnly()) {
-    // Server während der Auslesung neu gestartet: Beleg wieder freigeben statt ewig „läuft“
+  if (doc.extractionStatus === "laeuft" && doc.extractionQueuePosition === null && !isRunning(id) && !isReadOnly()) {
+    // Vor der Warteschlange (#1735) begonnen und vom Neustart abgebrochen: Beleg wieder freigeben statt ewig „läuft“.
+    // Was mit Platz in der Warteschlange abbrach, reiht resumeExtractionQueue beim Start wieder ein
     [doc] = await withActor("system:auslesung", (tx) =>
       tx
         .update(schema.documents)
@@ -860,36 +869,39 @@ export async function deleteDocument(actor: string, id: string): Promise<void> {
 }
 
 export async function listDocuments() {
-  return db
-    .select({
-      id: schema.documents.id,
-      filename: schema.documents.filename,
-      mimeType: schema.documents.mimeType,
-      status: schema.documents.status,
-      extractedBy: schema.documents.extractedBy,
-      extractionStatus: schema.documents.extractionStatus,
-      supplierName: schema.documents.supplierName,
-      invoiceNumber: schema.documents.invoiceNumber,
-      documentDate: schema.documents.documentDate,
-      category: schema.documents.category,
-      /** Eigenes Sachkonto (#270): Nummer und Name statt des Kontos der Kategorie; null ohne eigenes Konto */
-      ownAccount: sql<string | null>`(select o.account || ' ' || o.name from own_accounts o where o.id = ${schema.documents.ownAccountId})`,
-      /** Zahl der Kontierungszeilen (#271); 0 = die Kategorie gilt für den ganzen Beleg */
-      splitCount: sql<number>`(select count(*)::int from document_splits s where s.document_id = ${schema.documents.id})`,
-      gross: schema.documents.gross,
-      currency: schema.documents.currency,
-      externalSource: schema.documents.externalSource,
-      externalId: schema.documents.externalId,
-      lockedAt: schema.documents.lockedAt,
-      uploadedAt: schema.documents.uploadedAt,
-      /** Aus einem Dauerbeleg angelegt */
-      recurringDocumentId: schema.documents.recurringDocumentId,
-      /** Storniert am (#237); der Beleg bleibt gebucht */
-      cancelledOn: schema.documentCancellations.date,
-    })
-    .from(schema.documents)
-    .leftJoin(schema.documentCancellations, eq(schema.documentCancellations.documentId, schema.documents.id))
-    .orderBy(sql`${schema.documents.status} = 'gebucht'`, desc(schema.documents.documentDate), desc(schema.documents.uploadedAt), desc(schema.documents.id));
+  return (
+    db
+      .select({
+        id: schema.documents.id,
+        filename: schema.documents.filename,
+        mimeType: schema.documents.mimeType,
+        status: schema.documents.status,
+        extractedBy: schema.documents.extractedBy,
+        extractionStatus: schema.documents.extractionStatus,
+        supplierName: schema.documents.supplierName,
+        invoiceNumber: schema.documents.invoiceNumber,
+        documentDate: schema.documents.documentDate,
+        category: schema.documents.category,
+        /** Eigenes Sachkonto (#270): Nummer und Name statt des Kontos der Kategorie; null ohne eigenes Konto */
+        ownAccount: sql<string | null>`(select o.account || ' ' || o.name from own_accounts o where o.id = ${schema.documents.ownAccountId})`,
+        /** Zahl der Kontierungszeilen (#271); 0 = die Kategorie gilt für den ganzen Beleg */
+        splitCount: sql<number>`(select count(*)::int from document_splits s where s.document_id = ${schema.documents.id})`,
+        gross: schema.documents.gross,
+        currency: schema.documents.currency,
+        externalSource: schema.documents.externalSource,
+        externalId: schema.documents.externalId,
+        lockedAt: schema.documents.lockedAt,
+        uploadedAt: schema.documents.uploadedAt,
+        /** Aus einem Dauerbeleg angelegt */
+        recurringDocumentId: schema.documents.recurringDocumentId,
+        /** Storniert am (#237); der Beleg bleibt gebucht */
+        cancelledOn: schema.documentCancellations.date,
+      })
+      .from(schema.documents)
+      .leftJoin(schema.documentCancellations, eq(schema.documentCancellations.documentId, schema.documents.id))
+      // Nur nach dem Hochladen, der neueste oben: Ändert sich der Status (ausgelesen, gebucht), bleibt die Zeile, wo sie ist (#1735)
+      .orderBy(desc(schema.documents.uploadedAt), desc(schema.documents.id))
+  );
 }
 
 /** Vorsteuer aus gebuchten Belegen eines Monats oder Quartals (nach Belegdatum), für Kz 66; ohne die vorgetragene aus einer Eröffnung */

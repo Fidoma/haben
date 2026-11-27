@@ -93,7 +93,11 @@ function BelegHinweise({ data, locked, running }: { data: Detail; locked: boolea
       {running && (
         <div className="banner banner-info" role="status">
           <Icon name="info" />
-          <span>Die KI liest den Beleg gerade aus. Die Felder füllen sich gleich.</span>
+          <span>
+            {doc.extractionStatus === "wartet"
+              ? "Der Beleg wartet auf die KI-Auslesung. Die Felder füllen sich, sobald er dran ist."
+              : "Die KI liest den Beleg gerade aus. Die Felder füllen sich gleich."}
+          </span>
         </div>
       )}
       {doc.extractionError && !locked && (

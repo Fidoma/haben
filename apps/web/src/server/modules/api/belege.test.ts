@@ -188,7 +188,7 @@ describe.skipIf(!testDatabaseUrl)("REST-API /api/v1/belege (Postgres)", () => {
       const created = await upload(t, jpeg(3));
       expect(created.status).toBe(201);
       const id = created.json!.id as string;
-      expect(["laeuft", "fertig"]).toContain(created.json!.extractionStatus);
+      expect(["wartet", "laeuft", "fertig"]).toContain(created.json!.extractionStatus);
       await vi.waitFor(async () => expect((await send(t, "GET", `/belege/${id}`)).json!.extractionStatus).toBe("fertig"));
       expect((await send(t, "GET", `/belege/${id}`)).json).toMatchObject({ extractedBy: "ki", supplierName: "Telekom Deutschland GmbH", status: "neu" });
     });
