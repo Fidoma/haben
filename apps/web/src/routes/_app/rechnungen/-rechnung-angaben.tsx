@@ -5,12 +5,14 @@ import { BuchungLinks } from "../../../components/Ledger.tsx";
 import { formatDate } from "../../../lib/format.ts";
 import { FORMAT_LABEL } from "../../../lib/invoice.ts";
 import { legacySource } from "../../../lib/altbestand.ts";
+import { useBereichAktiv } from "../../../lib/use-bereich.ts";
 import type { Detail } from "./-rechnung-daten.ts";
 
 /** Angaben einer festgeschriebenen Rechnung: Kunde, Daten, Beträge, Bezüge und Archiv */
 export function RechnungAngaben({ data, cancelled }: { data: Detail; cancelled: Detail["correctedBy"][number] | undefined }) {
   const { invoice, corrects } = data;
   const buyer = invoice.buyer as { name: string } | null;
+  const schreiben = useBereichAktiv("rechnungserstellung");
   return (
     <section className="card" aria-labelledby="facts-heading">
       <h2 id="facts-heading">Angaben</h2>
@@ -104,7 +106,7 @@ export function RechnungAngaben({ data, cancelled }: { data: Detail; cancelled: 
                     {d.number ?? "Entwurf"}
                   </Link>
                 ))
-              ) : cancelled ? (
+              ) : cancelled || !schreiben ? (
                 "–"
               ) : (
                 <Link to="/rechnungen/neu" search={{ schluss: invoice.id }}>

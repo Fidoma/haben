@@ -1,12 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import type { loadCompany } from "../../server/modules/stammdaten/index.ts";
 import { FORMAT_LABEL, FORMATS } from "../../lib/invoice.ts";
+import { useBereichAktiv } from "../../lib/use-bereich.ts";
 import { Field } from "../Field.tsx";
 import { SkontoFields, type SkontoRow } from "../SkontoFields.tsx";
 
 type Firma = Awaited<ReturnType<typeof loadCompany>>;
 
 export function RechnungenAngebote({ company, skontoRows, onSkonto }: { company: Firma; skontoRows: SkontoRow[]; onSkonto: (rows: SkontoRow[]) => void }) {
+  const textbausteine = useBereichAktiv("textbausteine");
   return (
     <section className="form-section" aria-labelledby="company-invoices">
       <h3 id="company-invoices">Rechnungen und Angebote</h3>
@@ -32,10 +34,12 @@ export function RechnungenAngebote({ company, skontoRows, onSkonto }: { company:
         onChange={onSkonto}
         hint="Vorgabe für neue Rechnungen, z. B. 2 % bei Zahlung innerhalb von 10 Tagen; am Kunden und in der Rechnung änderbar. Die Frist zählt ab dem Rechnungsdatum und endet spätestens mit dem Zahlungsziel."
       />
-      <p className="field-hint">
-        Standard-Texte für neue Rechnungen, Angebote und Mahnungen sowie für Auftragsbestätigung und Lieferschein legst du unter{" "}
-        <Link to="/textbausteine">Textbausteine</Link> fest: ein Baustein je Belegart, bei Mahnungen je Stufe, als „Standard für“ markiert.
-      </p>
+      {textbausteine && (
+        <p className="field-hint">
+          Standard-Texte für neue Rechnungen, Angebote und Mahnungen sowie für Auftragsbestätigung und Lieferschein legst du unter{" "}
+          <Link to="/textbausteine">Textbausteine</Link> fest: ein Baustein je Belegart, bei Mahnungen je Stufe, als „Standard für“ markiert.
+        </p>
+      )}
     </section>
   );
 }

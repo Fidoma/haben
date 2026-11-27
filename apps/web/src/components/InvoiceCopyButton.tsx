@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import type { useAction } from "../lib/use-action.ts";
+import { useBereichAktiv } from "../lib/use-bereich.ts";
 import { copyInvoiceAsDraft, copyInvoiceAsReplacementDraft } from "../server/functions/invoices.ts";
 import { copyQuoteFn } from "../server/functions/quotes.ts";
 
@@ -22,8 +23,11 @@ export function useInvoiceCopy(invoice: CopySource | null, action: ActionState, 
   const copyInvoice = useServerFn(replacement ? copyInvoiceAsReplacementDraft : copyInvoiceAsDraft);
   const copyQuote = useServerFn(copyQuoteFn);
   const navigate = useNavigate();
+  const schreiben = useBereichAktiv("rechnungserstellung");
   if (!invoice || (invoice.kind === "rechnung" ? invoice.variant !== null : invoice.kind !== "angebot")) return null;
   const quote = invoice.kind === "angebot";
+  // Ohne „Rechnungen schreiben“ keine Kopie einer Rechnung; die Ersatzrechnung nach einem Storno bleibt, sie berichtigt
+  if (!schreiben && !quote && !replacement) return null;
   return () => {
     if (prepare && !prepare.pruefe()) return;
     void action.run(async () => {

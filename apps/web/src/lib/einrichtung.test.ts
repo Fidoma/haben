@@ -65,7 +65,18 @@ describe("antwortenAus", () => {
       voranmeldung: "vierteljaehrlich",
       ohneVorsteuerabzug: false,
       kontenrahmen: "SKR04",
-      bereiche: { angebote: true, personal: false, kasse: false, lastschriften: true, anlagen: true },
+      bereiche: {
+        rechnungserstellung: true,
+        mahnwesen: true,
+        artikel: true,
+        zeiteintraege: true,
+        textbausteine: true,
+        angebote: true,
+        personal: false,
+        kasse: false,
+        lastschriften: true,
+        anlagen: true,
+      },
     });
   });
 

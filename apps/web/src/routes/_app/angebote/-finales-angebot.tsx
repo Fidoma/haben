@@ -11,6 +11,7 @@ import { SendMailForm } from "../../../components/SendMail.tsx";
 import { formatDate, formatDateTime } from "../../../lib/format.ts";
 import { NoticeBanner } from "../../../components/NoticeBanner.tsx";
 import { useAction } from "../../../lib/use-action.ts";
+import { useBereichAktiv } from "../../../lib/use-bereich.ts";
 import { copyQuoteFn, decideQuote, type getQuoteDetail, invoiceFromQuote } from "../../../server/functions/quotes.ts";
 import { OutcomeStatus } from "../../../components/Status.tsx";
 
@@ -26,6 +27,7 @@ export function FinalQuote({ data }: { data: Detail }) {
   const toInvoice = useServerFn(invoiceFromQuote);
   const copy = useServerFn(copyQuoteFn);
   const { busy, notice, run } = useAction();
+  const schreiben = useBereichAktiv("rechnungserstellung");
   // Auswahl optionaler und alternativer Positionen; fest, sobald eine Rechnung zum Angebot festgeschrieben ist
   const hasChoices = data.lines.some((l) => l.kind !== null);
   const choicesLocked = billing.some((b) => b.status === "final" && !b.cancelled);
@@ -96,7 +98,7 @@ export function FinalQuote({ data }: { data: Detail }) {
             <QuotePlan
               plan={data.plan}
               taxed={quote.taxTreatment === "regulaer"}
-              canBill={quote.decision !== "abgelehnt" && !invoice}
+              canBill={schreiben && quote.decision !== "abgelehnt" && !invoice}
               busy={busy}
               onAbschlag={(row) => void onPlanRow(row)}
               onSchluss={() => void onInvoice("schluss")}
@@ -301,6 +303,7 @@ function AnswerCard({
   onInvoice: (variant?: "abschlag" | "schluss" | null) => void;
 }) {
   const { quote, invoice, listStatus } = data;
+  const schreiben = useBereichAktiv("rechnungserstellung");
   return (
     <section className="card" aria-labelledby="answer-heading">
       <h2 id="answer-heading">
@@ -318,10 +321,12 @@ function AnswerCard({
         <>
           <p className="small muted" style={{ margin: 0 }}>
             {listStatus === "abgelaufen"
-              ? `Das Angebot ist seit dem ${formatDate(quote.validUntil)} abgelaufen. Nimmt der Kunde trotzdem an, kannst du es weiter abrechnen.`
+              ? `Das Angebot ist seit dem ${formatDate(quote.validUntil)} abgelaufen.${schreiben ? " Nimmt der Kunde trotzdem an, kannst du es weiter abrechnen." : ""}`
               : listStatus === "abgelehnt"
                 ? "Als abgelehnt markiert."
-                : "Nimmt der Kunde an, entsteht aus dem Angebot ein Rechnungsentwurf mit denselben Positionen, den du vor dem Festschreiben noch anpassen kannst."}
+                : schreiben
+                  ? "Nimmt der Kunde an, entsteht aus dem Angebot ein Rechnungsentwurf mit denselben Positionen, den du vor dem Festschreiben noch anpassen kannst."
+                  : "Halte hier die Antwort des Kunden fest."}
           </p>
           <div className="actions" style={{ flexWrap: "wrap" }}>
             {quote.decision !== null && (
@@ -329,7 +334,7 @@ function AnswerCard({
                 Antwort zurücknehmen
               </button>
             )}
-            {quote.decision !== "abgelehnt" && (
+            {schreiben && quote.decision !== "abgelehnt" && (
               <>
                 <button type="button" className="btn" onClick={() => void onInvoice("abschlag")} disabled={busy}>
                   Abschlagsrechnung erstellen

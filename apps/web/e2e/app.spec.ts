@@ -536,6 +536,46 @@ test("Mahnung: Einleitung und Schluss lassen sich mit den Knöpfen auszeichnen (
   ).toBe("%PDF-");
 });
 
+test("Ausgeblendete Rechnungsbereiche lassen Korrekturen und den Mahnverlauf sichtbar", async () => {
+  await go("/rechnungen/mahnwesen");
+  await page.getByRole("link", { name: "Zahlungserinnerung", exact: true }).first().click();
+  await page.waitForURL(/mahnwesen\/[0-9a-f-]{36}$/);
+  const mahnseite = new URL(page.url()).pathname;
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: "Zahlungserinnerung erstellen" }).click();
+  await page.waitForURL(/rechnungen\/[0-9a-f-]{36}$/);
+  const rechnungsseite = new URL(page.url()).pathname;
+  const mahnungen = page.getByRole("region", { name: "Mahnungen" });
+  await expect(mahnungen.getByRole("button", { name: "per E-Mail" })).toBeVisible();
+
+  const bereiche = "/einstellungen?bereich=bereiche";
+  const schalter = (name: string) => page.getByRole("checkbox", { name, exact: true });
+  const aendern = async (sichtbar: boolean) => {
+    await go(bereiche);
+    for (const name of ["Mahnwesen", "Rechnungen schreiben"]) {
+      await schalter(name).setChecked(sichtbar);
+      await expect(schalter(name)).toBeEnabled();
+    }
+  };
+  await aendern(false);
+  try {
+    await go(rechnungsseite);
+    await expect(mahnungen.getByRole("link", { name: /^Zahlungserinnerung vom/ })).toBeVisible();
+    await expect(mahnungen.getByRole("button", { name: "per E-Mail" })).toHaveCount(0);
+    await expect(mahnungen.getByRole("link", { name: "Nächste Mahnstufe" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Kopieren", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Stornieren", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Rechnungskorrektur anlegen" })).toBeVisible();
+    await go("/rechnungen/mahnwesen");
+    await expect(page.getByRole("heading", { level: 1, name: "Mahnwesen" })).toBeVisible();
+    await expect(page.locator('a[href^="/rechnungen/mahnwesen/"]')).toHaveCount(0);
+    await go(mahnseite);
+    await expect(page.getByRole("button", { name: /erstellen$/ })).toBeVisible();
+  } finally {
+    await aendern(true);
+  }
+});
+
 /** IBAN des Lieferanten Funknetz Mobil GmbH, im Kontakt und im Kontoauszug */
 const SUPPLIER_IBAN = "DE02100100100006820101";
 /** EndToEndId der SEPA-Überweisung für den Mobilfunkbeleg; der Kontoauszug nennt sie als Kundenreferenz */

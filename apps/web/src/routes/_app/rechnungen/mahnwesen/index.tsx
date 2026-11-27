@@ -2,6 +2,7 @@ import { DUNNING_LEVELS, daysOverdue, formatEuro, type DunningLevel } from "@hab
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { InvoiceTabs } from "../../../../components/InvoiceTabs.tsx";
 import { formatDate } from "../../../../lib/format.ts";
+import { useBereichAktiv } from "../../../../lib/use-bereich.ts";
 import { getOverdue } from "../../../../server/functions/dunning.ts";
 
 export const Route = createFileRoute("/_app/rechnungen/mahnwesen/")({
@@ -12,6 +13,7 @@ export const Route = createFileRoute("/_app/rechnungen/mahnwesen/")({
 
 function DunningPage() {
   const { items, today } = Route.useLoaderData();
+  const mahnwesen = useBereichAktiv("mahnwesen");
   return (
     <>
       <div className="page-head">
@@ -81,9 +83,11 @@ function DunningPage() {
                   )}
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <Link to="/rechnungen/mahnwesen/$id" params={{ id: invoice.id }} className={invoice.waiting ? "btn" : "btn btn-primary"}>
-                    {DUNNING_LEVELS[invoice.nextLevel].label}
-                  </Link>
+                  {mahnwesen && (
+                    <Link to="/rechnungen/mahnwesen/$id" params={{ id: invoice.id }} className={invoice.waiting ? "btn" : "btn btn-primary"}>
+                      {DUNNING_LEVELS[invoice.nextLevel].label}
+                    </Link>
+                  )}
                 </div>
               </div>
             ))}
@@ -91,7 +95,8 @@ function DunningPage() {
         )}
       </section>
       <p className="small muted">
-        Läuft die Frist der letzten Mahnung noch, ist die nächste Stufe hell dargestellt. Mahngebühr, Frist und Basiszinssatz stellst du in den{" "}
+        {mahnwesen && "Läuft die Frist der letzten Mahnung noch, ist die nächste Stufe hell dargestellt. "}
+        Mahngebühr, Frist und Basiszinssatz stellst du in den{" "}
         <Link to="/einstellungen" search={{ bereich: "firma" }} hash="company-dunning">
           Einstellungen
         </Link>{" "}

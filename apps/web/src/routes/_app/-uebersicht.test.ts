@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const state = vi.hoisted(() => ({
   data: {} as Record<string, unknown>,
   einrichtung: null as { fehlt: boolean; offen: ("rechtsform" | "kleinunternehmer")[] } | null,
+  ausgeblendet: [] as string[],
 }));
 vi.mock("../../server/functions/backup.ts", () => ({}));
 vi.mock("../../server/functions/invoices.ts", () => ({}));
@@ -13,6 +14,7 @@ vi.mock("../../server/functions/vat.ts", () => ({}));
 vi.mock("../../server/functions/finanzamt.ts", () => ({ markPostfachDocument: () => undefined }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
 vi.mock("@tanstack/react-router", () => ({
+  useRouteContext: () => ({ ausgeblendet: state.ausgeblendet }),
   createFileRoute: () => (options: unknown) => ({
     options,
     useLoaderData: () => state.data,
@@ -127,6 +129,30 @@ describe("Übersicht: relevante Voranmeldungshinweise (#691)", () => {
     expect(html).toContain("/umsatzsteuer/$zeitraum");
     expect(html).not.toContain("Voranmeldung Oktober 2026 senden");
     expect(html).not.toContain("Voranmeldung fällig");
+  });
+});
+
+describe("Übersicht: ausgeblendete Bereiche", () => {
+  beforeEach(() => {
+    state.data = fixture();
+    (state.data.invoices as { overdueCount: number }).overdueCount = 2;
+    state.ausgeblendet = [];
+  });
+  afterEach(() => {
+    state.ausgeblendet = [];
+  });
+
+  it("zeigt sonst „Neue Rechnung“ und führt Überfälliges ins Mahnwesen", () => {
+    const html = render();
+    expect(html).toContain("Neue Rechnung");
+    expect(html).toContain(`href="/rechnungen/mahnwesen"`);
+  });
+
+  it("lässt ohne „Rechnungen schreiben“ die Knöpfe weg und führt ohne Mahnwesen zu den Rechnungen", () => {
+    state.ausgeblendet = ["rechnungserstellung", "mahnwesen"];
+    const html = render();
+    expect(html).toMatch(/<a [^>]*href="\/rechnungen"[^>]*>(?:(?!<\/a>)[\s\S])*2 Rechnungen überfällig(?:(?!<\/a>)[\s\S])*Ansehen/);
+    for (const fehlt of ["Neue Rechnung", "Erste Rechnung schreiben", "/rechnungen/neu", "/rechnungen/mahnwesen", "Mahnen"]) expect(html).not.toContain(fehlt);
   });
 });
 

@@ -10,6 +10,7 @@ import { AlleWaehlen, LeistungsFilter, LeistungsKopf, LeistungsSumme, LeistungsZ
 import { ServiceEntryForm, type ServiceEntryRow } from "../../components/ServiceEntryForm.tsx";
 import { errorMessage, formatDate } from "../../lib/format.ts";
 import type { Notice } from "../../lib/use-action.ts";
+import { useBereichAktiv } from "../../lib/use-bereich.ts";
 import { getServiceEntries, removeServiceEntry } from "../../server/functions/leistungen.ts";
 import { menueGruppe } from "../../lib/menue-gruppe.ts";
 
@@ -55,6 +56,7 @@ function ServiceEntriesPage() {
   const [confirm, setConfirm] = useState<ServiceEntryRow | null>(null);
   const names = new Map(customers.map((c) => [c.id, c.name]));
   const formOpen = creating || editing !== null || billing;
+  const schreiben = useBereichAktiv("rechnungserstellung");
   /** Öffnet das Formular zum Anlegen oder das zum Abrechnen und schließt das andere */
   const openForm = (form: "creating" | "billing") => {
     setEditing(null);
@@ -100,16 +102,18 @@ function ServiceEntriesPage() {
         </div>
         {!formOpen && (
           <div className="actions">
-            <button
-              type="button"
-              className="btn"
-              onClick={() => {
-                openForm("billing");
-                filter({ stand: "offen" });
-              }}
-            >
-              Abrechnen
-            </button>
+            {schreiben && (
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  openForm("billing");
+                  filter({ stand: "offen" });
+                }}
+              >
+                Abrechnen
+              </button>
+            )}
             {newButton}
           </div>
         )}

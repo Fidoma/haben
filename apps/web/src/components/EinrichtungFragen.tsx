@@ -213,7 +213,7 @@ export function BereichFragen({ bereiche, setzen }: { bereiche: Antworten["berei
         <Frage
           key={bereich.id}
           frage={bereich.frage}
-          hinweis={`Im Menü: ${bereich.menue}`}
+          hinweis={bereich.wirkung}
           optionen={JA_NEIN}
           wert={bereiche[bereich.id] ?? null}
           onChange={(wert) => setzen(bereich.id, wert)}

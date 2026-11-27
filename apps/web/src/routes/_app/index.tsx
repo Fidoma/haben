@@ -10,6 +10,7 @@ import { getBackupStatus } from "../../server/functions/backup.ts";
 import { getInvoiceSummary } from "../../server/functions/invoices.ts";
 import { getOverview } from "../../server/functions/vat.ts";
 import { einrichtungsAufgaben } from "../../lib/einrichtung.ts";
+import { useBereichAktiv } from "../../lib/use-bereich.ts";
 
 export const Route = createFileRoute("/_app/")({
   loader: async () => {
@@ -220,15 +221,17 @@ function OverviewPage() {
   const key = periodKey(data.period);
   const { sent, vatRequired, vorStart, zahllast, periodOpen, showVatPeriod, zahllastOffen, taxAccount, taxShortfall } = voranmeldungStand(data);
 
+  const schreiben = useBereichAktiv("rechnungserstellung");
+  const mahnwesen = useBereichAktiv("mahnwesen");
   const todos: Todo[] = [...einrichtungsAufgaben(Route.useRouteContext().einrichtung), ...ustIdAufgaben(data.ustIdUngueltig)];
   todos.push(...umsatzsteuerAufgaben(data, { sent, vatRequired, vorStart, taxAccount, taxShortfall }), ...bankAufgaben(data));
   if (data.invoices.overdueCount > 0) {
     todos.push({
       title: `${data.invoices.overdueCount} ${data.invoices.overdueCount === 1 ? "Rechnung" : "Rechnungen"} überfällig`,
       detail: "Zahlungseingang prüfen oder erinnern",
-      action: "Mahnen",
+      action: mahnwesen ? "Mahnen" : "Ansehen",
       tone: "warn",
-      to: "/rechnungen/mahnwesen",
+      to: mahnwesen ? "/rechnungen/mahnwesen" : "/rechnungen",
     });
   }
   for (const appeal of data.appeals) {
@@ -283,9 +286,11 @@ function OverviewPage() {
               {sent && " · abgegeben"}
             </Link>
           )}
-          <Link to="/rechnungen/neu" className="btn btn-primary">
-            Neue Rechnung
-          </Link>
+          {schreiben && (
+            <Link to="/rechnungen/neu" className="btn btn-primary">
+              Neue Rechnung
+            </Link>
+          )}
         </div>
       </div>
 
@@ -336,38 +341,48 @@ function OverviewPage() {
             </p>
           </section>
         )}
-        <section className="card" aria-labelledby="invoices-heading">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 id="invoices-heading">Letzte Rechnungen</h2>
-            <Link to="/rechnungen" className="small">
-              Alle anzeigen
-            </Link>
-          </div>
-          {data.invoices.recent.length === 0 ? (
-            <>
-              <p className="muted" style={{ margin: 0 }}>
-                Noch keine festgeschriebene Rechnung.
-              </p>
-              <Link to="/rechnungen/neu" className="btn" style={{ alignSelf: "flex-start" }}>
-                Erste Rechnung schreiben
-              </Link>
-            </>
-          ) : (
-            <div className="table">
-              {data.invoices.recent.map((invoice) => (
-                <Link key={invoice.id} to="/rechnungen/$id" params={{ id: invoice.id }} className="table-row invoice-cols-compact">
-                  <div className="mono small">{invoice.number}</div>
-                  <div title={invoice.customer}>{invoice.customer}</div>
-                  <div className="num">{formatEuro(invoice.gross)}</div>
-                  <div>
-                    <InvoiceStatus invoice={invoice} />
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </section>
+        <LetzteRechnungen recent={data.invoices.recent} schreiben={schreiben} />
       </div>
     </>
+  );
+}
+
+type Rechnungen = Awaited<ReturnType<typeof getInvoiceSummary>>["recent"];
+
+function LetzteRechnungen({ recent, schreiben }: { recent: Rechnungen; schreiben: boolean }) {
+  return (
+    <section className="card" aria-labelledby="invoices-heading">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h2 id="invoices-heading">Letzte Rechnungen</h2>
+        <Link to="/rechnungen" className="small">
+          Alle anzeigen
+        </Link>
+      </div>
+      {recent.length === 0 ? (
+        <>
+          <p className="muted" style={{ margin: 0 }}>
+            Noch keine festgeschriebene Rechnung.
+          </p>
+          {schreiben && (
+            <Link to="/rechnungen/neu" className="btn" style={{ alignSelf: "flex-start" }}>
+              Erste Rechnung schreiben
+            </Link>
+          )}
+        </>
+      ) : (
+        <div className="table">
+          {recent.map((invoice) => (
+            <Link key={invoice.id} to="/rechnungen/$id" params={{ id: invoice.id }} className="table-row invoice-cols-compact">
+              <div className="mono small">{invoice.number}</div>
+              <div title={invoice.customer}>{invoice.customer}</div>
+              <div className="num">{formatEuro(invoice.gross)}</div>
+              <div>
+                <InvoiceStatus invoice={invoice} />
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }

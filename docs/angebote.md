@@ -108,7 +108,7 @@ Auf der Seite des Angebots hältst du die Antwort des Kunden fest:
 | Abgelehnt | als abgelehnt markiert | – |
 | Abgerechnet | aus dem Angebot ist eine Rechnung entstanden | Nummer der Rechnung, sobald sie festgeschrieben ist |
 
-**Rechnung erstellen** legt einen Rechnungsentwurf an und markiert das Angebot als angenommen. Der Entwurf übernimmt:
+Bei eingeschaltetem **Rechnungen schreiben** unter [Einstellungen › Bereiche](einrichtung.md#bereiche-ausblenden) kannst du Angebote abrechnen. **Rechnung erstellen** legt einen Rechnungsentwurf an und markiert das Angebot als angenommen. Der Entwurf übernimmt:
 
 - Kunde, Einleitung, Positionen mit ihrem Text, Leistungszeitraum und Umsatzsteuer aus dem Angebot,
 - Bestell- und Lieferscheinnummer aus dem Angebot, als eigene Auftragsnummer (in der E-Rechnung BT-14) die des Angebots, sonst die Angebotsnummer,

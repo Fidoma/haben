@@ -21,6 +21,8 @@ Bevor du die erste Rechnung festschreibst, brauchst du:
 
 ## So gehst du vor
 
+Um eine Rechnung anzulegen, schalte **Rechnungen schreiben** unter [Einstellungen › Bereiche](einrichtung.md#bereiche-ausblenden) ein.
+
 1. Unter **Rechnungen** auf **Neue Rechnung** klicken.
 2. **Kunde** wählen: Das Feld sucht beim Tippen nach Name, Kundennummer und Ort (Serienrechnungen haben dieselbe Auswahl; bei Textbausteinen bedeutet ein leeres Feld „für alle Kunden“); Pfeiltasten und Enter wählen einen Treffer, Escape schließt die Liste. Ohne Auswahl bleibt der bisherige Kunde, ein geleertes Feld nimmt ihn weg. Hat der Kontakt ein Standardformat, wird es übernommen; hat er eine Leitweg-ID und kein Standardformat, stellt Haben auf XRechnung 3.0 (CII) um. Fehlt der Kunde noch, legst du ihn über den letzten Eintrag der Trefferliste an: **Neuen Kontakt anlegen**, oder nach dem Tippen **„…“ als neuen Kunden anlegen** mit dem getippten Namen. Beides geht, ohne den Entwurf zu verlassen: Im Dialog ist die Rolle **Kunde** angehakt, nach dem Speichern ist er gewählt, und die Eingaben im Entwurf bleiben stehen, auch wenn du abbrichst. Gibt es schon einen Kontakt mit derselben USt-IdNr., weist der Dialog darauf hin: Ist er ein Kunde und nicht archiviert, kannst du ihn wählen, statt eine Dublette anzulegen; sonst verweist der Hinweis auf den Kontakt, um dort die Rolle zu ergänzen oder ihn wiederherzustellen. Das gilt ebenso im Angebot.
 3. **Rechnungsdatum** und **Zahlungsziel in Tagen** (0 bis 120) eintragen. Darunter steht das errechnete Fälligkeitsdatum (siehe [Fälligkeit](rechnungen-zahlung.md#fälligkeit)). Vorgabe für das Zahlungsziel ist der Wert aus den Firmendaten.
@@ -137,6 +139,8 @@ Der Gesamtbetrag stimmt damit auf den Cent mit den Endpreisen überein. Weil die
 
 ### Artikelkatalog
 
+Den Menüpunkt **Artikel** blendest du unter [Einstellungen › Bereiche](einrichtung.md#bereiche-ausblenden) ein oder aus.
+
 Unter **Artikel** (Seitenleiste, Bereich Verkauf) legst du Positionen an, die du oft brauchst: Stundensatz, Tagessatz, Wartungspauschale.
 
 - Jeder Artikel hat eine Bezeichnung (eine Zeile), eine Einheit, einen Preis und einen Steuersatz, dazu optional einen **Text zur Position** (mehrzeilig, bis 2000 Zeichen), eine Artikelnummer, die Vorgabe **Kosten für § 35a EStG** ([Arbeits-, Maschinen- und Fahrtkosten](#arbeits--maschinen--und-fahrtkosten--35a-estg)) und eine interne Notiz. Unter **Preis ist** legst du fest, ob der Preis netto oder brutto inklusive Umsatzsteuer gilt; in der Liste steht bei Bruttopreisen „brutto“.
@@ -175,6 +179,8 @@ Die Formatierung gilt auch im Angebot, in eingefügten Textbausteinen und in der
 Die Zeichen zählen bei der Grenze von 2000 Zeichen mit. Bereits festgeschriebene PDFs und XML-Dateien werden nicht neu erzeugt.
 
 ### Textbausteine
+
+Den Menüpunkt **Textbausteine** blendest du unter [Einstellungen › Bereiche](einrichtung.md#bereiche-ausblenden) ein oder aus.
 
 Unter **Textbausteine** (Seitenleiste, Bereich Verkauf) legst du Kopf- und Fußtexte an, die du immer wieder brauchst: Pflichtangaben eines Kunden wie Bestellnummer oder Rahmenvertrag, eine Einleitung je Projekt, einen Dank zum Schluss.
 

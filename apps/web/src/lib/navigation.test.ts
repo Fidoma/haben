@@ -42,6 +42,16 @@ describe("navLinkSichtbar mit ausgeblendeten Bereichen", () => {
   it("ignoriert Unbekanntes aus älteren Ständen", () => {
     expect(navLinkSichtbar({ to: "/rechnungen" }, { gesellschaft: false, hatMitarbeiter: false, ausgeblendet: ["rechnungen"] })).toBe(true);
   });
+
+  it("lässt mit „Rechnungen schreiben“ und „Mahnwesen“ die Rechnungen im Menü, Artikel, Zeiteinträge und Textbausteine fallen weg", () => {
+    const kontext = {
+      gesellschaft: false,
+      hatMitarbeiter: false,
+      ausgeblendet: ["rechnungserstellung", "mahnwesen", "artikel", "zeiteintraege", "textbausteine"],
+    };
+    expect(navLinkSichtbar({ to: "/rechnungen" }, kontext)).toBe(true);
+    for (const to of ["/artikel", "/leistungen", "/textbausteine"]) expect(navLinkSichtbar({ to }, kontext)).toBe(false);
+  });
 });
 
 describe("BEREICHE", () => {

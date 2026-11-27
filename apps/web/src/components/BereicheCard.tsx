@@ -9,7 +9,7 @@ import { Status } from "./Status.tsx";
 
 /**
  * Einstellungen › Bereiche (#266): je Bereich ein Schalter. Ein Klick speichert sofort, die Navigation zeigt es gleich.
- * Ausgeblendet heißt nur ohne Menüpunkt; Daten, Auswertungen und Links bleiben.
+ * Daten, Auswertungen und direkte Links bleiben erreichbar.
  */
 export function BereicheCard({ ausgeblendet }: { ausgeblendet: readonly string[] }) {
   const router = useRouter();
@@ -28,7 +28,11 @@ export function BereicheCard({ ausgeblendet }: { ausgeblendet: readonly string[]
         await save({ data: { ausgeblendet: naechste } });
         await router.invalidate();
       },
-      sichtbar ? `${label} steht wieder im Menü.` : `${label} ist ausgeblendet.`,
+      sichtbar
+        ? id === "rechnungserstellung" || id === "mahnwesen"
+          ? `${label} ist wieder sichtbar.`
+          : `${label} steht wieder im Menü.`
+        : `${label} ist ausgeblendet.`,
     ).then((ok) => {
       if (!ok) setLokal(ausgeblendet);
     });
@@ -38,8 +42,8 @@ export function BereicheCard({ ausgeblendet }: { ausgeblendet: readonly string[]
     <section className="card stack" aria-labelledby="bereiche-heading">
       <h2 id="bereiche-heading">Bereiche im Menü</h2>
       <p className="small muted" style={{ margin: 0 }}>
-        Was du nicht brauchst, blendest du aus. Es verschwindet nur aus Menü und Schnellsuche; Daten, Auswertungen und Links bleiben. Rechnungen, Belege, Bank,
-        Umsatzsteuer und Jahreserklärung stehen immer im Menü.
+        Je nach Bereich blendest du Menüpunkte, Seiten in der Schnellsuche, Reiter oder Knöpfe aus. Daten, Auswertungen und direkte Links bleiben erreichbar.
+        Rechnungen, Belege, Bank, Umsatzsteuer und Jahreserklärung stehen immer im Menü.
       </p>
       <ul className="bereiche-liste">
         {BEREICHE.map((bereich) => {
@@ -61,7 +65,7 @@ export function BereicheCard({ ausgeblendet }: { ausgeblendet: readonly string[]
                     ·{" "}
                   </>
                 )}
-                Im Menü: {bereich.menue}
+                {bereich.wirkung}
               </span>
             </li>
           );

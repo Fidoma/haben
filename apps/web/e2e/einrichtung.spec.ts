@@ -104,6 +104,60 @@ test("Einstellungen › Bereiche schaltet sofort wieder ein", async () => {
   await expect(karte.getByRole("checkbox", { name: /Personal/ })).toBeChecked();
 });
 
+test("Die fünf neuen Bereiche sind sichtbar und lassen sich ein- und ausblenden", async () => {
+  await gehe(page, "/einstellungen?bereich=bereiche");
+  const karte = page.getByRole("region", { name: "Bereiche im Menü" });
+  const seiten = [
+    ["Artikel", "/artikel"],
+    ["Zeiteinträge", "/leistungen"],
+    ["Textbausteine", "/textbausteine"],
+  ] as const;
+  const bereiche = ["Rechnungen schreiben", "Mahnwesen", ...seiten.map(([name]) => name)];
+  for (const name of bereiche) {
+    const schalter = karte.getByRole("checkbox", { name, exact: true });
+    await expect(schalter).toBeChecked();
+    await schalter.uncheck();
+    await expect(page.getByText(`${name} ist ausgeblendet.`)).toBeVisible();
+  }
+
+  await page.keyboard.press("Control+k");
+  const palette = page.getByRole("dialog", { name: "Befehlspalette" });
+  await expect(palette).toBeVisible();
+  for (const [name] of seiten) {
+    await expect(menue().getByRole("link", { name, exact: true })).toHaveCount(0);
+    await palette.getByRole("combobox").fill(name);
+    await expect(palette.getByRole("option", { name: new RegExp(name) })).toHaveCount(0);
+  }
+  await page.keyboard.press("Escape");
+  for (const [name, pfad] of seiten) {
+    await gehe(page, pfad);
+    await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();
+  }
+  await gehe(page, "/leistungen");
+  await expect(page.getByRole("button", { name: "Abrechnen", exact: true })).toHaveCount(0);
+
+  await gehe(page, "/rechnungen");
+  const reiter = page.getByRole("navigation", { name: "Bereiche der Rechnungen" });
+  await expect(reiter.getByRole("link", { name: "Wiederkehrend" })).toBeVisible();
+  await expect(reiter.getByRole("link", { name: "Mahnwesen" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Neue Rechnung" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Ausgangsrechnung hochladen" })).toBeVisible();
+
+  await gehe(page, "/rechnungen/mahnwesen");
+  await expect(page.getByRole("heading", { name: "Mahnwesen", level: 1 })).toBeVisible();
+
+  await gehe(page, "/einstellungen?bereich=bereiche");
+  for (const name of bereiche) {
+    const schalter = karte.getByRole("checkbox", { name, exact: true });
+    await expect(schalter).not.toBeChecked();
+    await schalter.check();
+    await expect(schalter).toBeEnabled();
+  }
+  await gehe(page, "/rechnungen");
+  await expect(page.getByRole("link", { name: "Neue Rechnung" })).toHaveCount(2);
+  await expect(reiter.getByRole("link", { name: "Mahnwesen" })).toBeVisible();
+});
+
 test("Fragen erneut durchgehen: vorausgefüllt, geänderte Rechtsform erst nach Rückfrage", async () => {
   await gehe(page, "/einstellungen?bereich=bereiche");
   await page.getByRole("link", { name: "Fragen erneut durchgehen" }).click();

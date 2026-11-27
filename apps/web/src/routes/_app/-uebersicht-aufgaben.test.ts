@@ -12,6 +12,7 @@ vi.mock("../../server/functions/vat.ts", () => ({}));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
 vi.mock("../../server/functions/finanzamt.ts", () => ({ markPostfachDocument: () => undefined }));
 vi.mock("@tanstack/react-router", () => ({
+  useRouteContext: () => ({ ausgeblendet: [] }),
   createFileRoute: () => (options: unknown) => ({
     options,
     useLoaderData: () => state.data,

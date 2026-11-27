@@ -71,6 +71,8 @@ Gebucht wird beim Erzeugen nichts. Die Rechnung bleibt offen, bis der Bankabglei
 
 ## Mahnwesen
 
+Die folgenden Einstiege zum Mahnen erscheinen, wenn **Mahnwesen** unter [Einstellungen › Bereiche](einrichtung.md#bereiche-ausblenden) eingeschaltet ist. Bereits erstellte Mahnungen kannst du weiterhin als PDF öffnen.
+
 Unter **Rechnungen › Mahnwesen** stehen alle überfälligen Rechnungen: festgeschrieben, nicht storniert, mit offenem Betrag und abgelaufener Fälligkeit. Ob eine Rechnung bezahlt ist, ergibt sich aus den Zuordnungen im [Bankabgleich](bank.md) und den Bareinnahmen im [Kassenbuch](kasse.md#rechnung-bar-bezahlt). Je Rechnung siehst du, wie viele Tage sie überfällig ist, den offenen Betrag und die letzte Mahnung mit ihrer Frist.
 
 Der Knopf rechts schlägt die nächste Stufe vor:

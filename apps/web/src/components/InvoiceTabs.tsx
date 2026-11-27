@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { useBereichAktiv } from "../lib/use-bereich.ts";
 
 const TABS = [
   { to: "/rechnungen", label: "Alle Rechnungen", exact: true },
@@ -8,9 +9,10 @@ const TABS = [
 
 /** Reiter der Rechnungsseiten; Kopf und Reiter bleiben beim Wechsel stehen, nur der Inhalt darunter ändert sich */
 export function InvoiceTabs() {
+  const mahnwesen = useBereichAktiv("mahnwesen");
   return (
     <nav className="tabs" aria-label="Bereiche der Rechnungen">
-      {TABS.map((tab) => (
+      {TABS.filter((tab) => mahnwesen || tab.to !== "/rechnungen/mahnwesen").map((tab) => (
         <Link key={tab.to} to={tab.to} className="tab" activeOptions={{ exact: tab.exact }} activeProps={{ className: "active" }}>
           {tab.label}
         </Link>

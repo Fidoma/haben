@@ -13,6 +13,7 @@ import { UstIdBestaetigungCard } from "../../../components/UstIdBestaetigungCard
 import { formatDateTime } from "../../../lib/format.ts";
 import { ERSTES_JAHR, LETZTES_JAHR } from "../../../lib/jahre.ts";
 import { useAction } from "../../../lib/use-action.ts";
+import { useBereichAktiv } from "../../../lib/use-bereich.ts";
 import { archiveContact, getContactDetail, getContactHistory } from "../../../server/functions/contacts.ts";
 import { getContactPersons } from "../../../server/functions/contact-persons.ts";
 import { getCustomerNumbering } from "../../../server/functions/invoices.ts";
@@ -64,6 +65,8 @@ function ContactPage() {
   const [saved, setSaved] = useState(false);
   // Nach dem Anlegen (Suchparameter) oder Speichern einmal beim BZSt nachfragen
   const [pruefen, setPruefen] = useState(false);
+  const schreiben = useBereichAktiv("rechnungserstellung");
+  const zeiteintraege = useBereichAktiv("zeiteintraege");
   // Den Suchparameter gleich nehmen, solange die Seite den Kontakt zeigt; später träfe die Navigation die Seite, auf der man dann ist
   useEffect(() => {
     if (!bestaetigen) return;
@@ -81,14 +84,16 @@ function ContactPage() {
         </div>
         <div className="actions">
           {/* Zeiteinträge bei Kunden und bei jedem Kontakt mit Einträgen (#1557); offene führen gleich zum Stand „offen“ */}
-          {(contact.isCustomer || service.entries > 0) && (
+          {zeiteintraege && (contact.isCustomer || service.entries > 0) && (
             <Link to="/leistungen" search={{ kunde: contact.id, stand: service.openMinutes > 0 ? "offen" : undefined }} className="btn">
               Zeiteinträge{service.openMinutes > 0 && ` · ${formatDuration(service.openMinutes)} offen`}
             </Link>
           )}
-          <Link to="/rechnungen/neu" search={contact.isCustomer && !contact.archivedAt ? { kunde: contact.id } : {}} className="btn">
-            Rechnung schreiben
-          </Link>
+          {schreiben && (
+            <Link to="/rechnungen/neu" search={contact.isCustomer && !contact.archivedAt ? { kunde: contact.id } : {}} className="btn">
+              Rechnung schreiben
+            </Link>
+          )}
           <button
             type="button"
             className="btn"
