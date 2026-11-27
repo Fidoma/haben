@@ -15,6 +15,9 @@ mit mehr oder weniger Funktionen gibt es nicht. Nicht eingerichtet sind die
 [KI-Auslesung von Belegen](einrichtung.md#ki-auslesung-von-belegen) und der [Bankabruf über FinTS](bank-fints.md); Kontoauszüge
 liest du als Datei ein oder rufst sie über Enable Banking ab.
 
+Anbieter ist Teufel-IT, die Firma des Maintainers ([Impressum](https://teufel-it.de/de/impressum/)). Das Hosting finanziert die
+Entwicklung von Haben mit.
+
 ### Was du bekommst
 
 - **Eine eigene Instanz** unter `dein-name.haben.app`, mit eigener Datenbank, getrennt von allen
