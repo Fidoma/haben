@@ -1,10 +1,10 @@
 import {
   ACCOUNTS,
   abziehbareSteuer,
+  betrieblicherAnteil,
   gespeicherterAnteil,
   paidTaxShares,
   periodRange,
-  splitPrivateShare,
   type Cents,
   type VatPeriod,
   type Prozent,
@@ -24,7 +24,7 @@ export async function vorsteuerAusBelegen(period: VatPeriod, q: Db | Tx) {
   // kommen aus vorsteuer-leistungsdatum.ts; die gewöhnliche Abfrage lässt die Belege aus, sonst zählten sie doppelt
   const nachLeistungsdatum = await vorsteuerNachLeistungsdatum(period, q);
   // Mit Privatanteil zählt nur der betriebliche Teil (beim Storno derselbe wie beim Buchen); Kleinunternehmer ziehen keine Vorsteuer ab
-  const business = (amount: Cents, privateShare: Prozent, sign: number) => sign * splitPrivateShare(amount, privateShare).business;
+  const business = (amount: Cents, privateShare: Prozent, sign: number) => sign * betrieblicherAnteil(amount, privateShare);
   // Eine Gutschrift „erstattet bereits Bezahltes“ mindert die Vorsteuer erst mit dem Ausgleich (#690, #786, gutschrift.ts);
   // ohne die Angabe gilt wie bei jedem Beleg das Belegdatum
   const inputTax = amounts

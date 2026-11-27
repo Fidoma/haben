@@ -3,6 +3,7 @@ import {
   documentOpen,
   formatDecimal,
   geltendeIban,
+  hatPrivatanteil,
   type IbanEntscheidung,
   isEwrIban,
   isValidIban,
@@ -102,7 +103,8 @@ export async function transferCandidates(): Promise<TransferCandidate[]> {
       const payee = payees.get(doc.id);
       const account = payeeAccount(payee, decisions.get(doc.id) ?? []);
       // Erhaltenes Skonto bucht Haben nur ohne § 13b, Privatanteil und Anlagegut (write-offs.ts, writeOff); angeboten nur auf einen noch ganz offenen Beleg
-      const skontoAllowed = paidSoFar === 0 && doc.reverseCharge === null && doc.privateShare === 0 && doc.category !== "anlage" && doc.documentDate !== null;
+      const skontoAllowed =
+        paidSoFar === 0 && doc.reverseCharge === null && !hatPrivatanteil(doc.privateShare) && doc.category !== "anlage" && doc.documentDate !== null;
       return {
         documentId: doc.id,
         supplierName: doc.supplierName,

@@ -1,10 +1,10 @@
 import {
   abziehbarerAnteil,
   abziehbareSteuer,
+  betrieblicherAnteil,
   dauerbelegFaellig,
   dauerbelegSummen,
   folgeTermin,
-  splitPrivateShare,
   type BasisPoints,
   type Cents,
   type DauerbelegBetrag,
@@ -35,7 +35,7 @@ function erwarteteVorsteuer(vorlage: { category: string; amounts: DauerbelegBetr
     return anteil === VOLLER_ABZUG && vorlage.privateShare === 0 ? dauerbelegSummen(vorlage.amounts).gross : 0;
   }
   if (!vorlage.taxShown) return 0;
-  return vorlage.amounts.reduce((sum, a) => sum + abziehbareSteuer(splitPrivateShare(a.tax, vorlage.privateShare).business, anteil), 0);
+  return vorlage.amounts.reduce((sum, a) => sum + abziehbareSteuer(betrieblicherAnteil(a.tax, vorlage.privateShare), anteil), 0);
 }
 
 /** Höchstens so viele Termine je Vorlage; zwölf Monate mit monatlichem Intervall brauchen 13 */

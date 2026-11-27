@@ -1,6 +1,7 @@
 import type { EuerPayment } from "./euer.ts";
 import { allocateSplitTax } from "./document-split.ts";
-import { roundHalfAwayFromZero, splitPrivateShare, type BasisPoints, type Cents } from "./money.ts";
+import { betrieblicherAnteil, privaterAnteil } from "./beleg-anteile.ts";
+import { roundHalfAwayFromZero, type BasisPoints, type Cents } from "./money.ts";
 import { paidTaxShares, type ExpenseCategory, type TaxShare } from "./posting.ts";
 import { abziehbareSteuer, gespeicherterAnteil } from "./vorsteuerabzug.ts";
 
@@ -44,7 +45,7 @@ function documentShares(p: DocumentPayment, paid: Cents): Share[] {
     return paidTaxShares(p.totals, paid).map((share) => ({
       category: p.category,
       share,
-      deductible: abziehbareSteuer(splitPrivateShare(share.tax, p.privateShare ?? 0).business, anteil(share.rate)),
+      deductible: abziehbareSteuer(betrieblicherAnteil(share.tax, p.privateShare ?? 0), anteil(share.rate)),
     }));
   }
   const lines = p.splits;
@@ -69,8 +70,8 @@ function documentTarget(p: DocumentPayment, paid: Cents): DocumentEuerEffect {
   let vorsteuer = 0;
   let bewirtungNichtAbziehbar = 0;
   for (const { category, share, deductible } of documentShares(p, paid)) {
-    const base = splitPrivateShare(share.base, p.privateShare ?? 0).business;
-    const tax = splitPrivateShare(share.tax, p.privateShare ?? 0).business;
+    const base = betrieblicherAnteil(share.base, p.privateShare ?? 0);
+    const tax = betrieblicherAnteil(share.tax, p.privateShare ?? 0);
     // Die reine Bescheidkategorie verlangt vollen Abzug; nicht abziehbare Einfuhrumsatzsteuer gehört zur Ware/Anlage.
     if (category === "einfuhrumsatzsteuer") {
       vorsteuer += share.base + share.tax;
@@ -87,7 +88,7 @@ function documentTarget(p: DocumentPayment, paid: Cents): DocumentEuerEffect {
   }
   // Selbst geschuldete Steuer steckt nicht im Zahlbetrag an den Lieferanten; sie wirkt mit der Finanzamtszahlung.
   // Nur der private Teil zählt wie bisher als Umsatzsteuer auf die Entnahme (Anlage EÜR, Zeile 17).
-  const privat = (p.selbstGeschuldet ?? []).reduce((sum, steuer) => sum + splitPrivateShare(steuer, p.privateShare ?? 0).private, 0);
+  const privat = (p.selbstGeschuldet ?? []).reduce((sum, steuer) => sum + privaterAnteil(steuer, p.privateShare ?? 0), 0);
   const privateUst = p.totals.gross === 0 ? 0 : roundHalfAwayFromZero((privat * paid) / p.totals.gross);
   return { expenses, vorsteuer, bewirtungNichtAbziehbar, privateUst };
 }

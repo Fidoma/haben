@@ -3,6 +3,7 @@ import {
   documentPosting,
   EXPENSE_CATEGORIES,
   gespeicherterAnteil,
+  hatPrivatanteil,
   invoicePosting,
   leereEuerAusJournal,
   totalsFromTaxes,
@@ -62,7 +63,7 @@ export async function belegNebenbuecher(q: Db | Tx, ids: string[]): Promise<Map<
     // Teilabzug braucht die ursprüngliche Steuer je Satz: Der Betrag der Aufwandszeile enthält auch den nicht
     // abziehbaren Teil. Ein neuer Satzoverride darf deshalb nicht vom Boolean am Beleg übergangen werden.
     const noetig = docs.filter(
-      (doc) => doc.privateShare !== 0 || (amounts.get(doc.id) ?? []).some((a) => gespeicherterAnteil(doc, a.vorsteuerAnteil) !== 10_000),
+      (doc) => hatPrivatanteil(doc.privateShare) || (amounts.get(doc.id) ?? []).some((a) => gespeicherterAnteil(doc, a.vorsteuerAnteil) !== 10_000),
     );
     if (noetig.length === 0) continue;
     const noetigIds = noetig.map((doc) => doc.id);

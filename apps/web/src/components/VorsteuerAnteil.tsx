@@ -1,11 +1,11 @@
 import {
   abziehbarerAnteil,
   abziehbareSteuer,
+  betrieblicherAnteil,
   formatEuro,
   formatHundredths,
   gespeicherterAnteil,
   parsePercent,
-  splitPrivateShare,
   type Prozent,
   type SelfAssessedTax,
 } from "@haben/core";
@@ -119,13 +119,13 @@ export function VorsteuerAnteil(props: Props) {
     ? { deductible: rows.reduce((sum, row) => sum + (row.net ?? 0) + (row.tax ?? 0), 0), excluded: 0, cost: 0 }
     : rows.reduce(
         (sum, row) => {
-          const tax = splitPrivateShare(row.tax ?? 0, privat).business;
+          const tax = betrieblicherAnteil(row.tax ?? 0, privat);
           const share = zeilenAnteil(props, row.vorsteuerAnteil);
           const deductible = abziehbareSteuer(tax, share);
           return {
             deductible: sum.deductible + deductible,
             excluded: sum.excluded + tax - deductible,
-            cost: sum.cost + splitPrivateShare(row.net ?? 0, privat).business + tax - deductible,
+            cost: sum.cost + betrieblicherAnteil(row.net ?? 0, privat) + tax - deductible,
           };
         },
         { deductible: 0, excluded: 0, cost: 0 },

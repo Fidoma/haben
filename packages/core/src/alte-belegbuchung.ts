@@ -1,5 +1,6 @@
 import type { JournalZeile } from "./journal-kennzahlen.ts";
-import { splitPrivateShare, type Cents, type Prozent } from "./money.ts";
+import { privaterAnteil } from "./beleg-anteile.ts";
+import type { Cents, Prozent } from "./money.ts";
 import { ACCOUNTS, type Kontenrahmen } from "./posting.ts";
 
 /*
@@ -32,7 +33,7 @@ export function privatJeErwerbssatz(amounts: readonly { taxRate: number; net: Ce
   for (const a of amounts) {
     const code = a.taxRate === 1900 ? "IGE19" : a.taxRate === 700 ? "IGE7" : null;
     if (!code) continue;
-    const privat = splitPrivateShare(a.net, privateShare).private + splitPrivateShare(a.tax, privateShare).private;
+    const privat = privaterAnteil(a.net, privateShare) + privaterAnteil(a.tax, privateShare);
     result.set(code, (result.get(code) ?? 0) + privat);
   }
   return result;

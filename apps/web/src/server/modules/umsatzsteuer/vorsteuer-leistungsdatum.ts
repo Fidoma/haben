@@ -1,5 +1,6 @@
 import {
   abziehbareSteuer,
+  betrieblicherAnteil,
   gespeicherterAnteil,
   leistungsdatum,
   vorsteuerWartetAufAusfuehrung,
@@ -13,7 +14,7 @@ import {
 } from "@haben/core";
 import { and, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { db, schema, type Db, type Tx } from "../../db/index.ts";
-import { geschaeftlich, ZWISCHENKONTEN } from "./vorsteuer-anteile.ts";
+import { ZWISCHENKONTEN } from "./vorsteuer-anteile.ts";
 
 /*
  * Vorsteuer nach Leistungsdatum (#693, Stufe 2): Bei einem Eingangsbeleg ist die Vorsteuer in dem Zeitraum abziehbar, in
@@ -311,8 +312,8 @@ function anteilJeSatz(totals: InvoiceTotals, privateShare: Prozent, vorher: Cent
     const v = von.find((x) => x.rate === rate);
     return {
       rate,
-      base: geschaeftlich(n?.base ?? 0, privateShare) - geschaeftlich(v?.base ?? 0, privateShare),
-      tax: abziehbar(totals, rate, geschaeftlich(n?.tax ?? 0, privateShare)) - abziehbar(totals, rate, geschaeftlich(v?.tax ?? 0, privateShare)),
+      base: betrieblicherAnteil(n?.base ?? 0, privateShare) - betrieblicherAnteil(v?.base ?? 0, privateShare),
+      tax: abziehbar(totals, rate, betrieblicherAnteil(n?.tax ?? 0, privateShare)) - abziehbar(totals, rate, betrieblicherAnteil(v?.tax ?? 0, privateShare)),
     };
   });
 }

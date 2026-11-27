@@ -1,5 +1,6 @@
 import type { InvoiceTotals } from "./invoice.ts";
-import { splitPrivateShare, type BasisPoints, type Prozent } from "./money.ts";
+import { belegAnteile } from "./beleg-anteile.ts";
+import type { BasisPoints, Prozent } from "./money.ts";
 import { isKapitalgesellschaft, type Rechtsform } from "./rechtsform.ts";
 import { abziehbareSteuer, buchungsAnteil } from "./vorsteuerabzug.ts";
 import {
@@ -119,8 +120,8 @@ function documentRatePosting(
   const accounts = ACCOUNTS[kontenrahmen];
   const lines: PostingLine[] = [];
   let privatePart = 0;
-  const baseSplit = splitPrivateShare(row.base, privateShare);
-  const taxSplit = splitPrivateShare(row.tax, privateShare);
+  const baseSplit = belegAnteile(row.base, privateShare);
+  const taxSplit = belegAnteile(row.tax, privateShare);
   if (reverseCharge && row.rate !== 0) {
     // § 13b und Erwerb: Die Bemessungsgrundlage zählt in Kz 46/84 bzw. 89/93 voll, auch der private Teil. Er steht
     // deshalb mit dem Steuerschlüssel auf den Entnahmen, damit das Journal die ganze Bemessungsgrundlage trägt (#542).

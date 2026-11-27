@@ -1,4 +1,5 @@
 export * from "./money.ts";
+export * from "./beleg-anteile.ts";
 export * from "./einheit-schema.ts";
 export * from "./search-date.ts";
 export * from "./search-money.ts";

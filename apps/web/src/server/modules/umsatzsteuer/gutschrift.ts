@@ -1,9 +1,9 @@
 import {
   abziehbareSteuer,
+  betrieblicherAnteil,
   gespeicherterAnteil,
   paidTaxShares,
   periodRange,
-  splitPrivateShare,
   type Cents,
   type TaxShare,
   type VatPeriod,
@@ -182,9 +182,9 @@ export async function gutschriftAnteile(period: VatPeriod, q: Db | Tx = db): Pro
         const recorded = bisher.filter((r) => r.rate === t.rate);
         return {
           rate: t.rate,
-          base: splitPrivateShare(t.base, v.privateShare).business - recorded.reduce((sum, r) => sum + r.base, 0),
+          base: betrieblicherAnteil(t.base, v.privateShare) - recorded.reduce((sum, r) => sum + r.base, 0),
           tax:
-            abziehbareSteuer(splitPrivateShare(t.tax, v.privateShare).business, gespeicherterAnteil(v, taxes.find((a) => a.rate === t.rate)?.vorsteuerAnteil)) -
+            abziehbareSteuer(betrieblicherAnteil(t.tax, v.privateShare), gespeicherterAnteil(v, taxes.find((a) => a.rate === t.rate)?.vorsteuerAnteil)) -
             recorded.reduce((sum, r) => sum + r.tax, 0),
         };
       });

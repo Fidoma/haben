@@ -1,11 +1,10 @@
 import {
   ACCOUNTS,
   abziehbareSteuer,
+  betrieblicherAnteil,
   gespeicherterAnteil,
   leistungsdatum,
   paidTaxShares,
-  splitPrivateShare,
-  type Cents,
   type InvoiceTotals,
   type TaxShare,
   type Prozent,
@@ -34,11 +33,6 @@ export async function belegTotals(tx: Tx, doc: { id: string; net: number; tax: n
   const rows = await tx.select().from(schema.documentAmounts).where(eq(schema.documentAmounts.documentId, doc.id));
   const taxes = rows.map((r) => ({ rate: r.taxRate, base: r.net, tax: r.tax, vorsteuerAnteil: r.vorsteuerAnteil })).sort((a, b) => b.rate - a.rate);
   return { net: doc.net, tax: doc.tax, gross: doc.gross, taxes };
-}
-
-/** Der geschäftliche Teil eines Betrags, gerundet wie beim Buchen (splitPrivateShare) */
-export function geschaeftlich(betrag: Cents, privateShare: Prozent): Cents {
-  return privateShare === 0 ? betrag : splitPrivateShare(betrag, privateShare).business;
 }
 
 /** Steuersatz zum Steuerschlüssel der Vorsteuer; das Zwischenkonto trägt nur 19 % und 7 % */
@@ -173,8 +167,8 @@ export async function vorsteuerAnteile(
   // Teil gebracht, kumuliert gerundet. So endet das Konto bei null statt um diese Teile im Soll.
   const ziel = paidTaxShares(totals, (await steuerlichAusgeglichen(tx, doc.id, ausfuehrung)) + amount).map((s) => ({
     rate: s.rate,
-    base: geschaeftlich(s.base, doc.privateShare),
-    tax: abziehbareSteuer(geschaeftlich(s.tax, doc.privateShare), gespeicherterAnteil({}, totals.taxes.find((t) => t.rate === s.rate)?.vorsteuerAnteil)),
+    base: betrieblicherAnteil(s.base, doc.privateShare),
+    tax: abziehbareSteuer(betrieblicherAnteil(s.tax, doc.privateShare), gespeicherterAnteil({}, totals.taxes.find((t) => t.rate === s.rate)?.vorsteuerAnteil)),
   }));
   return ziel.map((t) => {
     const recorded = bisher.filter((r) => r.rate === t.rate);
