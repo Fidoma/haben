@@ -22,6 +22,7 @@ import { importBankCsv } from "../server/functions/bank-csv.ts";
 import { Field } from "./Field.tsx";
 import { FormDialog } from "./FormDialog.tsx";
 import { NoticeBanner } from "./NoticeBanner.tsx";
+import { type ZuordnungStart, zuordnungNachladen } from "./bank-csv-zuordnung-start.ts";
 
 export type ImportedCsv = Awaited<ReturnType<typeof importBankCsv>>;
 export type ZuordnungKonto = { id: string; name: string; csvMapping: BankCsvMapping | null };
@@ -32,8 +33,6 @@ const GEGENSEITE: readonly BankCsvField[] = ["counterpartyName", "counterpartyIb
 const WEITERE: readonly BankCsvField[] = ["valueDate", "currency", "type", "bankReference"];
 /** So viele fehlerfreie Zeilen zeigt die Vorschau; Fehler stehen alle davor */
 const SHOWN_OK = 5;
-
-type Start = { headerRow: number; mapping: BankCsvMapping; saved: boolean };
 
 /**
  * Spalten einer Bank-CSV zuordnen, die Haben nicht kennt (#1275, docs/bank-spaltenzuordnung.md). Die Vorschau rechnet der Browser mit
@@ -58,23 +57,26 @@ export function BankCsvZuordnung({
   const { busy, notice, setNotice, run } = useAction();
   const [konto, setKonto] = useState(accounts.some((a) => a.id === accountId) ? accountId : "");
   const [csv, setCsv] = useState<BankCsvFile | { error: string } | null>(null);
-  const [start, setStart] = useState<Start | null>(null);
+  const [start, setStart] = useState<ZuordnungStart | null>(null);
+  const [bearbeitet, setBearbeitet] = useState(false);
   const { form, error, check } = useSubmitCheck({ konto: konto ? null : "Wähle das Konto, zu dem die Datei gehört." });
   const stored = accounts.find((a) => a.id === konto)?.csvMapping ?? null;
 
   // Die Datei einmal lesen; danach rechnet jede Änderung nur noch im Browser
-  // biome-ignore lint/correctness/useExhaustiveDependencies: nur beim Öffnen, Konto und Zuordnung setzt danach der Dialog
   useEffect(() => {
-    void file.arrayBuffer().then((buffer) => {
-      const read = readBankCsv(new Uint8Array(buffer));
-      setCsv(read);
-      if (!("error" in read)) setStart(initialMapping(read.records, stored));
-    });
+    void file.arrayBuffer().then((buffer) => setCsv(readBankCsv(new Uint8Array(buffer))));
   }, [file]);
 
   const records = csv && !("error" in csv) ? csv.records : null;
+  useEffect(() => {
+    if (records) setStart((bisher) => zuordnungNachladen(bisher, records, stored, bearbeitet));
+  }, [records, stored, bearbeitet]);
+
   const result = useMemo(() => (records && start ? parseMappedStatement(records, start.headerRow, start.mapping) : null), [records, start]);
-  const changeMapping = (patch: Partial<BankCsvMapping>) => start && setStart({ ...start, mapping: { ...start.mapping, ...patch }, saved: false });
+  const changeMapping = (patch: Partial<BankCsvMapping>) => {
+    setBearbeitet(true);
+    setStart((bisher) => (bisher ? { ...bisher, mapping: { ...bisher.mapping, ...patch }, saved: false } : bisher));
+  };
   const setColumn = (key: BankCsvField, value: string) =>
     start && changeMapping({ columns: { ...start.mapping.columns, [key]: value === "" ? null : Number(value) } });
   // Die Datei hat die Kopfzeile der Zuordnung am Konto: „Zuordnung ändern“ statt einer unbekannten Bank
@@ -136,6 +138,7 @@ export function BankCsvZuordnung({
               required
               onChange={(e) => {
                 setKonto(e.target.value);
+                setBearbeitet(true);
                 // Nur eine Zuordnung des neuen Kontos für diese Datei ersetzt die gewählte; sonst bleibt, was man schon zugeordnet hat
                 const next = accounts.find((a) => a.id === e.target.value)?.csvMapping ?? null;
                 if (records && next && findSavedHeader(records, next.header) >= 0) setStart(initialMapping(records, next));
@@ -179,7 +182,14 @@ export function BankCsvZuordnung({
                 {WEITERE.map(columnSelect)}
                 <Field label="Kopfzeile" hint="Die Zeile mit den Spaltennamen">
                   {(control) => (
-                    <select {...control} value={start.headerRow} onChange={(e) => setStart(initialMapping(records, stored, Number(e.target.value)))}>
+                    <select
+                      {...control}
+                      value={start.headerRow}
+                      onChange={(e) => {
+                        setBearbeitet(true);
+                        setStart(initialMapping(records, stored, Number(e.target.value)));
+                      }}
+                    >
                       {records.slice(0, 40).map((r, index) => (
                         <option key={r.line} value={index}>
                           Zeile {r.line}: {headerOf(r.cells).join(" · ").slice(0, 80)}
