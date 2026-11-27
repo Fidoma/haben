@@ -2,7 +2,6 @@ import { randomBytes } from "node:crypto";
 import { mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import postgres from "postgres";
 
 /*
@@ -90,8 +89,8 @@ async function migrateTestDb(url: string): Promise<void> {
   const sql = postgres(url, { max: 1, onnotice: () => {} });
   try {
     const { drizzle } = await import("drizzle-orm/postgres-js");
-    const { migrate } = await import("drizzle-orm/postgres-js/migrator");
-    await migrate(drizzle(sql), { migrationsFolder: fileURLToPath(new URL("../../drizzle", import.meta.url)) });
+    const { applyMigrations } = await import("./db/migrations.ts");
+    await applyMigrations(drizzle(sql));
   } finally {
     await sql.end();
   }

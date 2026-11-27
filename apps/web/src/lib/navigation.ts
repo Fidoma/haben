@@ -3,6 +3,7 @@ import { ACCENT_PATTERN, inkOnAccent, needsEdgeOnNav } from "@haben/core";
 import type { IconName } from "../components/Icon.tsx";
 import { STEUERBERATUNG_START } from "./rollen.ts";
 import { ausgeblendeteSeiten } from "./bereiche.ts";
+import { MODULES } from "../modules/registry.ts";
 
 /** Bedingungen, unter denen ein Menüpunkt der Hauptnavigation erscheint */
 export interface NavBedingung {
@@ -64,16 +65,11 @@ export interface NavGroup {
 
 /** Hauptnavigation nach Arbeitsbereichen; geteilt von Seitenleiste und Befehlspalette (#617) */
 export const NAV_GROUPS: readonly NavGroup[] = [
-  {
-    label: "Externe Dienste",
-    icon: "external",
-    links: [{ to: "/webmail", icon: "mail", label: "Web-Mail" }],
-  },
-  {
-    label: "PMS",
-    icon: "company",
-    links: [{ to: "/pms/belegungsplan", icon: "calendar", label: "Belegungsplan" }],
-  },
+  ...MODULES.map(({ navigation }) => ({
+    label: navigation.label,
+    icon: navigation.icon,
+    links: [{ to: navigation.to, icon: navigation.linkIcon, label: navigation.linkLabel }],
+  })),
   {
     label: "Verkauf",
     icon: "store",

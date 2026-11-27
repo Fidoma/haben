@@ -1,8 +1,7 @@
 import { drizzle } from "drizzle-orm/postgres-js";
-import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
-import { fileURLToPath } from "node:url";
 import { recordAppVersion } from "./app-version.ts";
+import { applyMigrations } from "./migrations.ts";
 import { checkApplicationConnection, grantApplicationAccess } from "./roles.ts";
 import { routeConsoleThroughLogger } from "../log.ts";
 
@@ -24,9 +23,7 @@ const LOCK = 0x686162656e; // "haben"
 try {
   await client`select pg_advisory_lock(${LOCK})`;
   const app = application ? await checkApplicationConnection(client, application, LOCK) : null;
-  await migrate(drizzle(client), {
-    migrationsFolder: fileURLToPath(new URL("../../../drizzle", import.meta.url)),
-  });
+  await applyMigrations(drizzle(client));
   if (app) await grantApplicationAccess(client, app);
   await recordAppVersion(client);
   await client`select pg_advisory_unlock(${LOCK})`;

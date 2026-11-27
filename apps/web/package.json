@@ -10,6 +10,8 @@
     "start": "bun .output/server/index.mjs",
     "typecheck": "bun --bun tsc -p .",
     "db:generate": "bun --bun drizzle-kit generate",
+    "db:generate:pms": "bun --bun drizzle-kit generate --config=src/server/modules/pms/drizzle.config.ts",
+    "db:generate:webmail": "bun --bun drizzle-kit generate --config=src/server/modules/webmail/drizzle.config.ts",
     "db:migrate": "bun src/server/db/migrate.ts",
     "db:umstellung": "bun src/server/modules/umstellung/cli.ts",
     "e2e": "bun --bun playwright test"

@@ -8,6 +8,7 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import type postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { setupTestDb, testDatabaseUrl } from "../test-db.ts";
+import { applyMigrations } from "./migrations.ts";
 
 const migrationsFolder = fileURLToPath(new URL("../../../drizzle", import.meta.url));
 
@@ -96,7 +97,7 @@ describe.skipIf(!testDatabaseUrl)("Sollbestand der Sperrtrigger (Postgres, #764)
     await sql`drop schema drizzle cascade`;
     await migrate(drizzle(sql), { migrationsFolder: previous });
     await sql`insert into company (id, name) values (1, 'Synthetische Updateprobe')`;
-    await migrate(drizzle(sql), { migrationsFolder });
+    await applyMigrations(drizzle(sql));
     expect(await inventory.checkTriggerIntegrity(drizzle(sql))).toEqual({ problems: [], hints: [] });
   }, 120_000);
 });

@@ -123,6 +123,8 @@ Projektname und Ports gelten für jeden Befehl dieser Umgebung, auch für `run`,
 | `bunx knip@5.88.1 --include files,dependencies,unlisted` | Unbenutzte Dateien und Abhängigkeiten (Einstiegspunkte in `knip.jsonc`); nicht in der CI, vor dem Löschen mit `git grep` gegenprüfen |
 | `bun run test` | Alle Tests mit Vitest (nicht `bun test`: das wäre der Test-Runner von Bun) |
 | `bun run db:generate` | Migration aus Schemaänderungen erzeugen (drizzle-kit) |
+| `bun run --cwd apps/web db:generate:webmail` | Migration des optionalen Webmail-Moduls erzeugen |
+| `bun run --cwd apps/web db:generate:pms` | Migration des optionalen PMS-Moduls erzeugen |
 | `bun run db:migrate` | Ausstehende Migrationen anwenden |
 | `bun run e2e` | Ende-zu-Ende-Tests mit Playwright (braucht `E2E_DATABASE_URL`, siehe [Ende-zu-Ende-Tests mit Playwright](#ende-zu-ende-tests-mit-playwright)) |
 | `bun run --cwd apps/web start` | Gebaute App starten (`.output/server/index.mjs`) |
@@ -266,11 +268,13 @@ Nach einer Änderung am Aussehen startet man auf dem Branch den Workflow **Updat
 
 ## Migrationen
 
-Das Schema steht in `apps/web/src/server/db/schema.ts`, die Migrationen in `apps/web/drizzle/`.
+Das Kernschema steht in `apps/web/src/server/db/schema.ts`, die Kernmigrationen in `apps/web/drizzle/`.
 
 1. Schema anpassen.
 2. `bun run db:generate` erzeugt die SQL-Migration und den Snapshot in `drizzle/meta/`. Snapshots nie von Hand schreiben.
 3. `bun run db:migrate` wendet sie lokal an. Im Container passiert das beim Start automatisch.
+
+Optionale Erweiterungsmodule berühren diese Kernhistorie nicht. Webmail und PMS haben jeweils `schema.ts`, `drizzle.config.ts` und `migrations/` unter `apps/web/src/server/modules/<name>/`; neue Migrationen entstehen mit `bun run --cwd apps/web db:generate:webmail` beziehungsweise `db:generate:pms`. `src/modules/registry.ts` registriert Navigation und Migrationsverzeichnis gemeinsam. `db:migrate` wendet zuerst den Kern und danach jedes registrierte Modul an; die Historien liegen getrennt in `drizzle.__drizzle_migrations`, `drizzle.__webmail_migrations` und `drizzle.__pms_migrations`. Die erste Migration eines nachträglich abgetrennten Moduls bleibt wiederholbar, damit eine Installation mit bereits vorhandenen Modultabellen nur die neue Historie übernimmt.
 
 Trigger und Funktionen (Festschreibung, Versionierung, Audit-Log) kann drizzle-kit nicht aus dem Schema ableiten. Sie stehen in eigenen SQL-Migrationen, z. B. `0001_festschreibung.sql`, `0003_rechnungen_trigger.sql` oder `0010_lexoffice_trigger.sql`. Eine leere Migration dafür legst du so an und schreibst das SQL von Hand hinein:
 
@@ -344,7 +348,8 @@ Nicht geprüft werden die Seiten von esteuer.de (unvollständige Zertifikatskett
 | `scripts/modulgrenzen/` | Prüfung der Modulgrenzen, läuft mit `bun run lint` |
 | `scripts/jahreswerte/` | Prüfung der amtlichen Jahreswerte, Normen und ERiC-Version für den Workflow „Jahreswerte prüfen“ |
 | `apps/web/src/components`, `lib` | React-Komponenten, Auth-Client, Formatierung |
-| `apps/web/drizzle` | SQL-Migrationen |
+| `apps/web/drizzle` | SQL-Migrationen des Haben-Kerns |
+| `apps/web/src/server/modules/{webmail,pms}/migrations` | Eigene SQL-Migrationen der optionalen Module |
 | `packages/core` | Beträge, Zeiträume, Steuernummer, UStVA, Buchungssätze, EÜR, Zuordnungsvorschläge |
 | `packages/elster` | ERiC-Anbindung, XML für Voranmeldung und Jahreserklärungen, Worker |
 | `packages/import` | Kontoauszugs-Parser, Exporte von Zahlungsdienstleistern, Deduplizierung, DATEV, Lexoffice- und sevDesk-Client, BuchhaltungsButler-Exporte (`buchhaltungsbutler/`), Accountable-Export (`accountable/`), WISO-Buchungs-CSV und Listen aus WISO-PDFs, Anlagenverzeichnis und Kontaktliste (`wiso/`), Finanzberichte von Google Play und App Store Connect (`stores/`), Kontoabruf über Enable Banking und FinTS (`fints/`), CSV-Import von Kontakten, Artikeln und Anlagen (`csv-import/`), Spaltenzuordnung für Kontoauszüge unbekannter Banken (`bank-zuordnung/`) |

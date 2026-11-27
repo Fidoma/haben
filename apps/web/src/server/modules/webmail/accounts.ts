@@ -7,7 +7,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { decrypt, encrypt } from "../../crypto.ts";
 import { withActor } from "../../db/actor.ts";
-import { db, schema } from "../../db/index.ts";
+import { db, schema } from "./database.ts";
 
 const host = z
   .string()

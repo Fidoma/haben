@@ -3,8 +3,8 @@ import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
+import { applyMigrations } from "./migrations.ts";
 import { readTriggerInventory } from "./trigger-inventory.ts";
 
 // TEST_DATABASE_URL ist nur der Einstieg für CREATEDB. Der Bestand wird immer aus allen Migrationen neu aufgebaut;
@@ -21,7 +21,7 @@ try {
   await admin`create database ${admin(name)}`;
   created = true;
   const db = drizzle(client);
-  await migrate(db, { migrationsFolder: fileURLToPath(new URL("../../../drizzle", import.meta.url)) });
+  await applyMigrations(db);
   const inventory = await readTriggerInventory(db);
   const file = fileURLToPath(new URL("./trigger-inventory.json", import.meta.url));
   const formatted = spawnSync(process.execPath, ["--bun", "biome", "format", "--stdin-file-path", file], {

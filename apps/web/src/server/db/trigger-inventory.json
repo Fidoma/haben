@@ -2220,6 +2220,48 @@
       "function": "public.haben_seal()"
     },
     {
+      "table": "public.pms_reservation_items",
+      "name": "pms_reservation_items_audit",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER pms_reservation_items_audit AFTER INSERT OR DELETE OR UPDATE ON public.pms_reservation_items FOR EACH ROW EXECUTE FUNCTION public.haben_audit()",
+      "function": "public.haben_audit()"
+    },
+    {
+      "table": "public.pms_reservations",
+      "name": "pms_reservations_audit",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER pms_reservations_audit AFTER INSERT OR DELETE OR UPDATE ON public.pms_reservations FOR EACH ROW EXECUTE FUNCTION public.haben_audit()",
+      "function": "public.haben_audit()"
+    },
+    {
+      "table": "public.pms_rooms",
+      "name": "pms_rooms_audit",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER pms_rooms_audit AFTER INSERT OR DELETE OR UPDATE ON public.pms_rooms FOR EACH ROW EXECUTE FUNCTION public.haben_audit()",
+      "function": "public.haben_audit()"
+    },
+    {
+      "table": "public.pms_settings",
+      "name": "pms_settings_audit",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER pms_settings_audit AFTER INSERT OR DELETE OR UPDATE ON public.pms_settings FOR EACH ROW EXECUTE FUNCTION public.haben_audit()",
+      "function": "public.haben_audit()"
+    },
+    {
+      "table": "public.pms_tourism_country_values",
+      "name": "pms_tourism_country_values_audit",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER pms_tourism_country_values_audit AFTER INSERT OR DELETE OR UPDATE ON public.pms_tourism_country_values FOR EACH ROW EXECUTE FUNCTION public.haben_audit()",
+      "function": "public.haben_audit()"
+    },
+    {
+      "table": "public.pms_tourism_reports",
+      "name": "pms_tourism_reports_audit",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER pms_tourism_reports_audit AFTER INSERT OR DELETE OR UPDATE ON public.pms_tourism_reports FOR EACH ROW EXECUTE FUNCTION public.haben_audit()",
+      "function": "public.haben_audit()"
+    },
+    {
       "table": "public.postfach_documents",
       "name": "postfach_documents_append_only",
       "enabled": "O",
@@ -4006,7 +4048,7 @@
     { "table": "public.vat_returns", "column": "updated_at", "expression": "now()" }
   ],
   "builtins": {
-    "major": 19,
+    "major": 18,
     "functions": [
       {
         "name": "pg_catalog.\"overlaps\"(time without time zone, interval, time without time zone, interval)",
@@ -4053,6 +4095,10 @@
         "hash": "68e0208f7b0dc72aef65436a7d78a2058a6847580bcad630dab4df1be6d71541"
       },
       {
+        "name": "pg_catalog.big5_to_mic(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "a6b4e85a6948325bac0dcbc845bcb91818c0d42f6712eeb5aa15d8981b553499"
+      },
+      {
         "name": "pg_catalog.big5_to_utf8(integer, integer, cstring, internal, integer, boolean)",
         "hash": "040fd4c96405124ba3603eebb8e952fd5cd06efe477d4f9f318aae441b9f7b87"
       },
@@ -4067,6 +4113,10 @@
         "hash": "f7228c836e1cd570d1b9878fb8a6eb8dc135c78262188034d2eddffd69030056"
       },
       {
+        "name": "pg_catalog.euc_cn_to_mic(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "281b0eef5a6187e7eaa4aa6bc7a0ff14a2b3b86c9e663384a52779a5ff84da65"
+      },
+      {
         "name": "pg_catalog.euc_cn_to_utf8(integer, integer, cstring, internal, integer, boolean)",
         "hash": "a65380ec077114f6abfe63c90e943e0a0e6fcbeec687d0685c13b70e6e7c2216"
       },
@@ -4079,6 +4129,10 @@
         "hash": "5d2f54f6683f77e1a71144b8d36feed07b8b2875a72956cc7ca05f8da29208fd"
       },
       {
+        "name": "pg_catalog.euc_jp_to_mic(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "46547980c75584f4f746a416bcaf94df7d0d00b002bd81663f9bbf20fff9702f"
+      },
+      {
         "name": "pg_catalog.euc_jp_to_sjis(integer, integer, cstring, internal, integer, boolean)",
         "hash": "56b05a089b647c4598fc9627ceb8a260428622e7e0902d2a0e3538e0287f0cef"
       },
@@ -4087,12 +4141,20 @@
         "hash": "74d3d42f16f305e4c5ad6659dc64b528d7777be2e33fc1afab13546f653b1967"
       },
       {
+        "name": "pg_catalog.euc_kr_to_mic(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "88e83907f413a480ca4b52026eb2f7b96495d1c900b78b8606d3ad03ed9af364"
+      },
+      {
         "name": "pg_catalog.euc_kr_to_utf8(integer, integer, cstring, internal, integer, boolean)",
         "hash": "185d38529eaeb29da5158e08a36568d107a5c1fc34d67286b4ae94d49d7f093b"
       },
       {
         "name": "pg_catalog.euc_tw_to_big5(integer, integer, cstring, internal, integer, boolean)",
         "hash": "d0c11b3b6fadbf0b9e90e0528b062567f806ac268e7ce28effdef0ee2df7eb54"
+      },
+      {
+        "name": "pg_catalog.euc_tw_to_mic(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "6b140523c745100eacc03eda676ddb67bdb4843a233a04eebf43ef3dfa0fe5e3"
       },
       {
         "name": "pg_catalog.euc_tw_to_utf8(integer, integer, cstring, internal, integer, boolean)",
@@ -4129,15 +4191,19 @@
       },
       {
         "name": "pg_catalog.iso_to_koi8r(integer, integer, cstring, internal, integer, boolean)",
-        "hash": "c111192bc19ab953bc265e564c35f85509e13dc315086449b02b0c38fe8d44c1"
+        "hash": "19b65b5cb53bc9d68e88f68567f480a7e080379405f29e814fa1b1976c58d0f3"
+      },
+      {
+        "name": "pg_catalog.iso_to_mic(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "305ed4c43ce904be4a813e4f7db357489b66a31c3b5df9056dfa734b61df6ad9"
       },
       {
         "name": "pg_catalog.iso_to_win1251(integer, integer, cstring, internal, integer, boolean)",
-        "hash": "4711cca155f74b0ad6dd89ddc8e2ce741bccb90b4e156b60cb4491513add7aba"
+        "hash": "649e417f60464740a3c1d29d1d19c2ab0ba137091b590806e44a8f4731e090b9"
       },
       {
         "name": "pg_catalog.iso_to_win866(integer, integer, cstring, internal, integer, boolean)",
-        "hash": "01fbf1c6464d5f3d8b0a5ec71b04e91a104af5fcb71f9cccd21da0a0506ed8c6"
+        "hash": "0a1845c6efef0043ce811820456fa3fdda2ba9fc24aa6bb979856d48daee932a"
       },
       {
         "name": "pg_catalog.johab_to_utf8(integer, integer, cstring, internal, integer, boolean)",
@@ -4145,7 +4211,11 @@
       },
       {
         "name": "pg_catalog.koi8r_to_iso(integer, integer, cstring, internal, integer, boolean)",
-        "hash": "78a08491a7c7f9884372955f253e376e7d1039235cc4885077981f528547a9b4"
+        "hash": "0cb57136a02e761a04a644ad72ad049936ceeb47965ef23a5c8bd8a63700c6c4"
+      },
+      {
+        "name": "pg_catalog.koi8r_to_mic(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "d45b55fcc41e10520c3c75d6de95cde939c78f0147a58c30b00a100fa6233a8c"
       },
       {
         "name": "pg_catalog.koi8r_to_utf8(integer, integer, cstring, internal, integer, boolean)",
@@ -4153,23 +4223,99 @@
       },
       {
         "name": "pg_catalog.koi8r_to_win1251(integer, integer, cstring, internal, integer, boolean)",
-        "hash": "519613e0de25e3f0c1395f48a4a5cfd9ea7b0da7abc770d47f05b738538c5f54"
+        "hash": "20fd46406400a6097be55ad5dc3458dabc6c3b8078c81598f97b9ae17c829cd2"
       },
       {
         "name": "pg_catalog.koi8r_to_win866(integer, integer, cstring, internal, integer, boolean)",
-        "hash": "ebd1bcb4a3a4dc7bad9ed4a58d6b4f2eed86e36a300914c9b79c2b2232560752"
+        "hash": "69655407a175cafcdabcaab379a38071acab4aeafd0776bbb973faed7f555dba"
       },
       {
         "name": "pg_catalog.koi8u_to_utf8(integer, integer, cstring, internal, integer, boolean)",
         "hash": "73a9788ee04f786a6798086c575c97b5b710c5b356ea92c37d0db3a57c42cd81"
       },
       {
+        "name": "pg_catalog.latin1_to_mic(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "4b06685ff7581904512d02e69a141a53988fbc240182fc8e715fe34842e0bc0e"
+      },
+      {
+        "name": "pg_catalog.latin2_to_mic(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "48d18d2f9ce2ade67bd9064cf898b63c4a0456e307f41ba5aa9148f0e8c06843"
+      },
+      {
         "name": "pg_catalog.latin2_to_win1250(integer, integer, cstring, internal, integer, boolean)",
         "hash": "58166d6dd4f010fca91d6dafe37f1d3ae536132db50af099444f91850d7d08d5"
+      },
+      {
+        "name": "pg_catalog.latin3_to_mic(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "7a689295bdcd07d0ed5f066112c94e91e169440cb83891a275578a93078cad43"
+      },
+      {
+        "name": "pg_catalog.latin4_to_mic(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "f22b1e0c8fcf6db196e77daa2ff11472b856a88c1f470afe8d693e3950cf5ae7"
       },
       { "name": "pg_catalog.log(numeric)", "hash": "bde8ebac1be19b343a36469354f8dc10e220c936c07d85f069f4eb60de211124" },
       { "name": "pg_catalog.log10(numeric)", "hash": "bde8ebac1be19b343a36469354f8dc10e220c936c07d85f069f4eb60de211124" },
       { "name": "pg_catalog.lpad(text, integer)", "hash": "d6d18fe5ef166ce1ff063a9be4650a520ded4df49cbc3b94a94d7c4fe4efa8ae" },
+      {
+        "name": "pg_catalog.mic_to_big5(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "8470c118647840fdc5c03b04952307ae723a9cb7d041802ff72555d18829e756"
+      },
+      {
+        "name": "pg_catalog.mic_to_euc_cn(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "606272f72905b8b089f3267273d528c37c2c9cb5b5a092a6b9e9eebe289da288"
+      },
+      {
+        "name": "pg_catalog.mic_to_euc_jp(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "faa51f84aade57ed65b98df8084b3f4b656a221c1046c439d19570d97d9e8dce"
+      },
+      {
+        "name": "pg_catalog.mic_to_euc_kr(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "1888610173b356aae0158bfcc5029f74dc01367eadfa5cf2fbce0a12b397c49f"
+      },
+      {
+        "name": "pg_catalog.mic_to_euc_tw(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "daf9c3f31024d45bc59b6608604b95dd102d4845894fddab338c30c31338d47d"
+      },
+      {
+        "name": "pg_catalog.mic_to_iso(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "0ecc9980fcbe7a323a74a2acf9074cadb439aabd07c197f1004510fee6b790a6"
+      },
+      {
+        "name": "pg_catalog.mic_to_koi8r(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "73aca9c3ee14843f69c8a6595d4954955c6ff02809564e9e55c8a7c2501bdabf"
+      },
+      {
+        "name": "pg_catalog.mic_to_latin1(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "e9ea293465c958a77c4b14dae41fa29bde9860b985fffa12ffdbe4e45a1f4f50"
+      },
+      {
+        "name": "pg_catalog.mic_to_latin2(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "6a870405796cbbf2a92ffe92395c06332da93d6ee77ddc140f3d8c58e4acfc6a"
+      },
+      {
+        "name": "pg_catalog.mic_to_latin3(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "617787c9c2441127998214a55844bbdb9cf155a0c4dc97b21d6127aa79169d2c"
+      },
+      {
+        "name": "pg_catalog.mic_to_latin4(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "9b5965a71542eab6d2dec0e757da10fd3a8152b55a3ec71595d52ec0a30fa1ed"
+      },
+      {
+        "name": "pg_catalog.mic_to_sjis(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "a185c8123232fcad88b64ad2161b3a69b2613ec6070a2795ee6b70b23fe9531f"
+      },
+      {
+        "name": "pg_catalog.mic_to_win1250(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "e7b518587cb4e730aaffc9460e851a25b0a52fbcdd08a8c8817eeb75c2f54ca0"
+      },
+      {
+        "name": "pg_catalog.mic_to_win1251(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "4435f61daa4e66cbfb4eb96af7e1a27b47bdfed1b61b5d048a09cf5ac09a0bbd"
+      },
+      {
+        "name": "pg_catalog.mic_to_win866(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "17a321f49e2b2a46d1f300966080dd91fa0c958afa475ab37487b40abb855142"
+      },
       { "name": "pg_catalog.numeric_pl_pg_lsn(numeric, pg_lsn)", "hash": "b915351254616d2aafc7c1e21b580cd49ce29c0e3e6c837167786d84fb4abc83" },
       { "name": "pg_catalog.obj_description(oid)", "hash": "13b4d3b8cf86a13d41488d506fc4d712d77ec5d003da6ab0ce9fca4018e7c207" },
       { "name": "pg_catalog.obj_description(oid, name)", "hash": "1432a240858927533476b7856febc16613d10126da589831734f4588e9e9c97a" },
@@ -4180,6 +4326,7 @@
       { "name": "pg_catalog.plpgsql_call_handler()", "hash": "67f749acdfe57ec8df9e6f5469b40766ffd83d979e514044883b0cd8a292aca7" },
       { "name": "pg_catalog.plpgsql_inline_handler(internal)", "hash": "c42cf8ce668ce7804989723af1b1e7bdcfb94bab8988edb8749a39dfa480d469" },
       { "name": "pg_catalog.plpgsql_validator(oid)", "hash": "7438e00fe0d64bf6322b0b93ecab12b01f31335967cf56606a99173f52786474" },
+      { "name": "pg_catalog.polygon(circle)", "hash": "7f02d871dbb5c1cb1ab93bbc6bf93b7448cee5c35885f8e2bc61ce6aa95e9fdf" },
       { "name": "pg_catalog.quote_literal(anyelement)", "hash": "ec3e504b88b79091549a3bc91e5bf6da08ebdc68fad484a95c860f42cd180ec1" },
       { "name": "pg_catalog.quote_nullable(anyelement)", "hash": "673a8dd837db3361fb6e7f3f9778deaeb10326e931e3a3e6661e833d6a0a9962" },
       { "name": "pg_catalog.round(numeric)", "hash": "2e9651cfb0ad58e67f5ac32b4c09687931d507631420b0540c1dcf0c3f30a78f" },
@@ -4196,6 +4343,10 @@
       {
         "name": "pg_catalog.sjis_to_euc_jp(integer, integer, cstring, internal, integer, boolean)",
         "hash": "68c35caf5ef26d8250b3a574e9afe48e174f4018d9211ffc94b60c0ca92d56c4"
+      },
+      {
+        "name": "pg_catalog.sjis_to_mic(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "763ec0b8e533b8e55613e0f0bbf72535feaa8da56af02b248534aff3f1c57632"
       },
       {
         "name": "pg_catalog.sjis_to_utf8(integer, integer, cstring, internal, integer, boolean)",
@@ -4291,28 +4442,40 @@
         "hash": "54b6870e3ce421507ec0dadfc4a2d6f7f58291b22a859191512366fcd5aaced7"
       },
       {
+        "name": "pg_catalog.win1250_to_mic(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "64ecf299b9cb8b7e1825d494d40f68ce054efc50789a7234ed643f95c67c48b3"
+      },
+      {
         "name": "pg_catalog.win1251_to_iso(integer, integer, cstring, internal, integer, boolean)",
-        "hash": "0d73df63167d6e22770a7fcbe6bf50de9d8a654cdca366217e1678d9cfc78a81"
+        "hash": "6aafa48ace173f137d76be0b4f75d51652c846e422c181dd4073fdd03aa1e981"
       },
       {
         "name": "pg_catalog.win1251_to_koi8r(integer, integer, cstring, internal, integer, boolean)",
-        "hash": "9f0f62e7807b0133e0eac5927ad53786fd9a205e7a9f50895e238ce5d1c92d5d"
+        "hash": "d610ce8b4ee6251d2e0aa8aab8631ce58c0cae89266a2ad305704045f10ba811"
+      },
+      {
+        "name": "pg_catalog.win1251_to_mic(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "c11fa9942eb4c478908cfc495db2919634867acf36e5254d28aac6a7d9bce5f9"
       },
       {
         "name": "pg_catalog.win1251_to_win866(integer, integer, cstring, internal, integer, boolean)",
-        "hash": "125fcea07d98712cbbce9c25586c2e4f18fdfa622f883fd207d993616d49aedb"
+        "hash": "c9c9b838fe85b71a7722367d30a14850930cb1d063c4225216cbde9a43e1e92a"
       },
       {
         "name": "pg_catalog.win866_to_iso(integer, integer, cstring, internal, integer, boolean)",
-        "hash": "3609bc9c45516a1c666e7b1cb15165db6b3f72bd03ef0fd172a3d55a8c23c98c"
+        "hash": "f9b51a85e029ff77320e83bd11e1b62fdf217ea3e17a2dc8dd583883b1388c03"
       },
       {
         "name": "pg_catalog.win866_to_koi8r(integer, integer, cstring, internal, integer, boolean)",
-        "hash": "c83c3b26f8e3f50678bb328928347ba1b2313a4edc2b48cc0a4a4357a4b0752e"
+        "hash": "6fc6c48fced97c2dda5f0363fde42dba909b170f07bab4e061ad1e3d218c966c"
+      },
+      {
+        "name": "pg_catalog.win866_to_mic(integer, integer, cstring, internal, integer, boolean)",
+        "hash": "8070c2cac6a9ce0c4872b764b030ca4052190056bbba24b6e521fc6888da6e91"
       },
       {
         "name": "pg_catalog.win866_to_win1251(integer, integer, cstring, internal, integer, boolean)",
-        "hash": "74bac63ebe2bbb4603e36b45cc79344db586b509742ca7e06498ffd50d1d7eea"
+        "hash": "03fe2146e105fca8db087fa3e3b0d53368a6e813327c0b6b372f82d21d457ac3"
       },
       {
         "name": "pg_catalog.win_to_utf8(integer, integer, cstring, internal, integer, boolean)",
@@ -4324,6 +4487,377 @@
   },
   "extensions": {
     "functions": [
+      { "name": "public.cash_dist(money, money)", "hash": "719664a261e6be0035f80e84c270f62d60e14db9a211cf6afbd788bc226ab477" },
+      { "name": "public.date_dist(date, date)", "hash": "7b1e91b913597fd8af3addb82f4faaae3bb95eeafd51660e2c7999b99fa71a5f" },
+      { "name": "public.float4_dist(real, real)", "hash": "ff2148bc3a76c32df998575a6087a943fe1ba75fd3985e37b9828955a08a1267" },
+      { "name": "public.float8_dist(double precision, double precision)", "hash": "3a42fd99cb01f1120c1f672b044404b6194a9e3c9ab58dafe538122fc481fff1" },
+      { "name": "public.gbt_bit_compress(internal)", "hash": "ac612790010b69e99459e25be82b3b2548b38b48799534686b5f50c05a3e35e6" },
+      {
+        "name": "public.gbt_bit_consistent(internal, bit, smallint, oid, internal)",
+        "hash": "90c7f54ac9b55b8c111fa2e9e1df4fd5d7a7720a666d4879ced1008bcafa6901"
+      },
+      { "name": "public.gbt_bit_penalty(internal, internal, internal)", "hash": "143e1e53ea70e8c84c6b036d545262ae723fc68fbd3b23fa0b4009217ca11391" },
+      { "name": "public.gbt_bit_picksplit(internal, internal)", "hash": "8e8338f8fcf1dcb0dd76082ba1260857a376db4187dc67ba4f07020a0bf841b2" },
+      {
+        "name": "public.gbt_bit_same(public.gbtreekey_var, public.gbtreekey_var, internal)",
+        "hash": "93a806621b2e684d4deeae6fe9cd363e181fe74f44238d7f3eb0b699f661df4a"
+      },
+      { "name": "public.gbt_bit_sortsupport(internal)", "hash": "a1d303797bc3d7ad1a562ae8b34fe8c99a61aa21837ba636f93e1f26ca0105e3" },
+      { "name": "public.gbt_bit_union(internal, internal)", "hash": "bcc54c3796e1389d0e927672f5db7a2229bbe56ae35442bbc028d7e37c01f0b7" },
+      { "name": "public.gbt_bool_compress(internal)", "hash": "8243be2ff126e780b427608335df35e82c48342616a94805d6b2de4b0410a0ed" },
+      {
+        "name": "public.gbt_bool_consistent(internal, boolean, smallint, oid, internal)",
+        "hash": "107c4a5ad4a9150d472a2f0bf0a26f6d7b67763791873f6b628ce36206b92792"
+      },
+      { "name": "public.gbt_bool_fetch(internal)", "hash": "5b663acc13b4d7de2df24ad6c09aabf892c6e3d36c1d60b05bc777ffe20d7528" },
+      { "name": "public.gbt_bool_penalty(internal, internal, internal)", "hash": "0732d338f24755455617b45b097a6a90ddbc5b6cb13b1dfafe7142ad390aa5cd" },
+      { "name": "public.gbt_bool_picksplit(internal, internal)", "hash": "488c3095f8ecb5d13b168f07a616aea1bcd3131fc977f6201d1ee8dbf71f844a" },
+      {
+        "name": "public.gbt_bool_same(public.gbtreekey2, public.gbtreekey2, internal)",
+        "hash": "33afdfaf4875e401a3392ba792562753a0b0575224a30bfd2e6a6c97ac667f2e"
+      },
+      { "name": "public.gbt_bool_sortsupport(internal)", "hash": "c7b31feeb3db713eec37ec71b3a556bedb9eeb310cbdff62c7f5672ee957afad" },
+      { "name": "public.gbt_bool_union(internal, internal)", "hash": "2c9838bdc1b3a6adc4347a0163c7316c0ee668e18638ac54ff3a5a417369d201" },
+      { "name": "public.gbt_bpchar_compress(internal)", "hash": "6069228781ed2c1217d7c8fc938dd0071d2f36afa32759c0e26d5825dcdcee18" },
+      {
+        "name": "public.gbt_bpchar_consistent(internal, character, smallint, oid, internal)",
+        "hash": "a7756f06a67a73b5bb8c987e3c0cd376f92277052d8bc098ceb60af0a6a9899a"
+      },
+      { "name": "public.gbt_bpchar_sortsupport(internal)", "hash": "8cc7e41405bfaf2602a2213cf16a53c100661c269e599054938686c44cb5ed38" },
+      { "name": "public.gbt_bytea_compress(internal)", "hash": "e8520e7d8a175bee5946515f0d7a907f931fdf0633dea1a7f2a320e442a9908c" },
+      {
+        "name": "public.gbt_bytea_consistent(internal, bytea, smallint, oid, internal)",
+        "hash": "ffff490bbfc58863773324c707a1f9000d9b2b3ed8b7af34fdeb601a46b79bed"
+      },
+      { "name": "public.gbt_bytea_penalty(internal, internal, internal)", "hash": "24e3eb8c4f2f9bd507e7ff6bf231fb068005d75c074a651f3204b3237c76d809" },
+      { "name": "public.gbt_bytea_picksplit(internal, internal)", "hash": "0c4c8b0beea50793bcbbf8a13087f0de4409eaa16b6b4cfde24b72af4b58a486" },
+      {
+        "name": "public.gbt_bytea_same(public.gbtreekey_var, public.gbtreekey_var, internal)",
+        "hash": "577d7ff98f52435b0499233a1c86fae4b9139b23c45b938cb48d339b5c89c32c"
+      },
+      { "name": "public.gbt_bytea_sortsupport(internal)", "hash": "e3551cc716377207c8a2c2b9067bab1e9675829781444f6df8c85888c9567a81" },
+      { "name": "public.gbt_bytea_union(internal, internal)", "hash": "33da0163b05330d01802a9cfe561666133bd4b798c1053271d0bb0bf49975385" },
+      { "name": "public.gbt_cash_compress(internal)", "hash": "80241754ff181fba512705133343ff1b73778f7967dc32f88db7c1b4acb43177" },
+      {
+        "name": "public.gbt_cash_consistent(internal, money, smallint, oid, internal)",
+        "hash": "9b02a0e30c50bfe4e220eebba91d5c9c7e8ad359d5b118d4fc6e66dff8afc3c2"
+      },
+      {
+        "name": "public.gbt_cash_distance(internal, money, smallint, oid, internal)",
+        "hash": "caa232acf68cfec9de03e0776b1c9d3c79e4d6043b438793058cdaf38b55d373"
+      },
+      { "name": "public.gbt_cash_fetch(internal)", "hash": "907e85b9ce4391cd1b6d45b2bc082fba86ac106305e4b1e54dd53e42355183c2" },
+      { "name": "public.gbt_cash_penalty(internal, internal, internal)", "hash": "b378d10a5c2cfa7d2a8c6cdf7f4414193ab3fb474217bebf30a278a3f05433bf" },
+      { "name": "public.gbt_cash_picksplit(internal, internal)", "hash": "506bec08f2e99584bb55019cb8ee83d43049ee308202148dfe57fb8abe42a204" },
+      {
+        "name": "public.gbt_cash_same(public.gbtreekey16, public.gbtreekey16, internal)",
+        "hash": "1b626d73cbdaf8b1e4ab3cfe0e1ca624cffa679e323481e22ec1fcde988dd20a"
+      },
+      { "name": "public.gbt_cash_sortsupport(internal)", "hash": "5ae071afdd1417a6302bbaa94bcb334b55ee553d229fde94460c1b01fe51f253" },
+      { "name": "public.gbt_cash_union(internal, internal)", "hash": "37e82df330e4ba98e6dd1551ccbe889eb60a01e27d7ac7505e10959ebb1776f7" },
+      { "name": "public.gbt_date_compress(internal)", "hash": "b8e1bdb6e3c02e338fc05d34b3cc3b3542cf57fae4a75ee4b43cc6bdb8721d3d" },
+      {
+        "name": "public.gbt_date_consistent(internal, date, smallint, oid, internal)",
+        "hash": "375e3c3da48d443510b1608dbd17c12406c8244b1dcd32886d8e85c7142cb6cd"
+      },
+      {
+        "name": "public.gbt_date_distance(internal, date, smallint, oid, internal)",
+        "hash": "79da5a8a47ba1217e8fabff0dc82d9c6b2b156e7703e9d2fb800ef003e950327"
+      },
+      { "name": "public.gbt_date_fetch(internal)", "hash": "86760e9399fb6702ce54eead5d0771dfae5f001c4fadb866dc5d96f8e06787e5" },
+      { "name": "public.gbt_date_penalty(internal, internal, internal)", "hash": "1aefe4a9a0fcb6b79bc88f50fa317553c33e7e8663ffbf9ae2cac15d331d03be" },
+      { "name": "public.gbt_date_picksplit(internal, internal)", "hash": "dd775035e6681e0c10307256d5cec4ad9f7a69edc106e04a2e328629437fa6d5" },
+      {
+        "name": "public.gbt_date_same(public.gbtreekey8, public.gbtreekey8, internal)",
+        "hash": "499c31c077f28b687cc58461d594ca2778820697c165ae797decf45ae9dcf493"
+      },
+      { "name": "public.gbt_date_sortsupport(internal)", "hash": "04d075de09942009ed8f6bbe72503e50fb75a12ed6d8960c24a20d42e8c3fbdf" },
+      { "name": "public.gbt_date_union(internal, internal)", "hash": "45c676413bf5c26149fa280535c15ed81e32d3759a7554e6065dff39302520d7" },
+      { "name": "public.gbt_decompress(internal)", "hash": "6132edfc4110cf1700e1de453965a8a81515e29ce78504bdb750e09e4a53ad94" },
+      { "name": "public.gbt_enum_compress(internal)", "hash": "5d6c61f15ed90c07e850879f679b27c1ad313f6638dcd681fe02fc379ec9beb9" },
+      {
+        "name": "public.gbt_enum_consistent(internal, anyenum, smallint, oid, internal)",
+        "hash": "b121df2507b12b773a03ed865914986345baf0cee564172c33be6f6ff8c42971"
+      },
+      { "name": "public.gbt_enum_fetch(internal)", "hash": "245e14ebf61df3648751b40334c212e758555e5dc4518b2d41101923e78a6ec5" },
+      { "name": "public.gbt_enum_penalty(internal, internal, internal)", "hash": "03b12482f46bce0f48bf1118c2fc9ae316c7854694e9d6f4dffbebb9933b6a1b" },
+      { "name": "public.gbt_enum_picksplit(internal, internal)", "hash": "9d2ca0acdad59fdfa6c0646c84cff254de595b764db0321abf7de9df93fdecea" },
+      {
+        "name": "public.gbt_enum_same(public.gbtreekey8, public.gbtreekey8, internal)",
+        "hash": "a8cb249141b2229069154f4e427b934a33e3c2741cd25ae092fb0713bf976b26"
+      },
+      { "name": "public.gbt_enum_sortsupport(internal)", "hash": "f252f7631a8cbce82aabf3281d384af1e270f74712f03af57dd4a42b87e2e4f2" },
+      { "name": "public.gbt_enum_union(internal, internal)", "hash": "94097f2a4f5f995542ed623b43f000ad9b7876ff299dccbca97976a802ef13f2" },
+      { "name": "public.gbt_float4_compress(internal)", "hash": "04cee3d64fd57b9679113224cde5d1c026951d73c99e2c54f4d1538a738edc18" },
+      {
+        "name": "public.gbt_float4_consistent(internal, real, smallint, oid, internal)",
+        "hash": "5f428a84fb622afd90b719bbcebc54dec0daee7123c33ebba9a49ac116ac7e6e"
+      },
+      {
+        "name": "public.gbt_float4_distance(internal, real, smallint, oid, internal)",
+        "hash": "5bb5dc40a77a4805477243c9a2c517dac85e25a2442e8fb0b5ac5f5c401f3803"
+      },
+      { "name": "public.gbt_float4_fetch(internal)", "hash": "61a5f71825295eaac8323c9ab3a5d090e875e3d194117564c844954af538bdf4" },
+      { "name": "public.gbt_float4_penalty(internal, internal, internal)", "hash": "1096d4f1652910ab637bbbc26eb141cfc95b0826e528eecf3cb67208aebfba5a" },
+      { "name": "public.gbt_float4_picksplit(internal, internal)", "hash": "fd33bf9246323ac825527cf1f5566b9998ea81fa3e97488b797e8824b6f4b308" },
+      {
+        "name": "public.gbt_float4_same(public.gbtreekey8, public.gbtreekey8, internal)",
+        "hash": "dffce668fdf872936de5ed51386b6c30b982ff8f95008b7ddc47622cd6f97bec"
+      },
+      { "name": "public.gbt_float4_sortsupport(internal)", "hash": "e27c8b0f7ccd8eb8299a1cb04d14a6ba50b85f03450cae36cef69a8ded212570" },
+      { "name": "public.gbt_float4_union(internal, internal)", "hash": "deea8078a8473ac6823029eb1e2c8433ff8b614f1ce7ef7fb46061f0f10eec20" },
+      { "name": "public.gbt_float8_compress(internal)", "hash": "1d53dfab285dc8119f6b85e8e2f4760eda199ff5c5c0e12e7a56a8b849b816a7" },
+      {
+        "name": "public.gbt_float8_consistent(internal, double precision, smallint, oid, internal)",
+        "hash": "5979701e81ac51f962ac8d1ccd1dfba2d2b613d320cadd1a2f4c860e0b454641"
+      },
+      {
+        "name": "public.gbt_float8_distance(internal, double precision, smallint, oid, internal)",
+        "hash": "4e81689fa014b2fc0a1b94ad8be50f46a174e03f5907124d7010a8592a2a7b73"
+      },
+      { "name": "public.gbt_float8_fetch(internal)", "hash": "6f1ba5e1ab8b5e848b93de3d96a548b540842b2e12414b04467369ede1b24cfa" },
+      { "name": "public.gbt_float8_penalty(internal, internal, internal)", "hash": "84848d565fd469255aa81e5ee597cfb99757bb00490cf62d711195063454298f" },
+      { "name": "public.gbt_float8_picksplit(internal, internal)", "hash": "808a7c6ccf363b57b741b78fae22f3275963991cfe3108b8e2c95092db75f25b" },
+      {
+        "name": "public.gbt_float8_same(public.gbtreekey16, public.gbtreekey16, internal)",
+        "hash": "18139c7d0364b372d38fd48a6090c74e142224a194142846c72960949276bcb6"
+      },
+      { "name": "public.gbt_float8_sortsupport(internal)", "hash": "802ec024ccb3456aefa3324f0706804a9856759066233b33a3ed791b63b6b462" },
+      { "name": "public.gbt_float8_union(internal, internal)", "hash": "f2c486a403711d8323a4d2a15460d2f95f5e6fdde00c0bc4313b6feddb5a567b" },
+      { "name": "public.gbt_inet_compress(internal)", "hash": "1c86486c11649bbca1b3096681b556a2fca0dfcfe9f567d4fd254583f46e7e8d" },
+      {
+        "name": "public.gbt_inet_consistent(internal, inet, smallint, oid, internal)",
+        "hash": "e8434790233da45de050f7ee286a48457a618fb4e2c4fcbb355e73388f0ff130"
+      },
+      { "name": "public.gbt_inet_penalty(internal, internal, internal)", "hash": "a7e2466c8959090db29c318066b09e95e53cb87f3faaec58236139973fbb1ca7" },
+      { "name": "public.gbt_inet_picksplit(internal, internal)", "hash": "28b721d1dfcd0c9074c5b13b0ae9802354687a95aebea7613230f02225bdff4f" },
+      {
+        "name": "public.gbt_inet_same(public.gbtreekey16, public.gbtreekey16, internal)",
+        "hash": "e0f4d9d1ae1ea58b85fef6daa895c87a2938d0b7bb2cc678edc8518f95d3ac42"
+      },
+      { "name": "public.gbt_inet_sortsupport(internal)", "hash": "b79eaa568444da17c707f0611ce0a7be34a465286ab3a2bf78b98437c23a2514" },
+      { "name": "public.gbt_inet_union(internal, internal)", "hash": "0a102d237717a681058d68916184de81e7f7b44ecf7169894e18a8243f383648" },
+      { "name": "public.gbt_int2_compress(internal)", "hash": "ee17ac9b77981464dd40fe1115cf0468e656e00028e6432f452af429617e7eb5" },
+      {
+        "name": "public.gbt_int2_consistent(internal, smallint, smallint, oid, internal)",
+        "hash": "fd9e6d52b141413758827cdaf69d8fa8e30b23c6d6a298e43777f568cefc29e2"
+      },
+      {
+        "name": "public.gbt_int2_distance(internal, smallint, smallint, oid, internal)",
+        "hash": "222f659b2e234085ec133f65533f3f20514fd56acefec7855aef9fbe807f755a"
+      },
+      { "name": "public.gbt_int2_fetch(internal)", "hash": "8473413178de64cf0f83adf8e4766592ceb5b8916719ca5f85cca7e7b341b1b8" },
+      { "name": "public.gbt_int2_penalty(internal, internal, internal)", "hash": "ab17297b49e57c4f270e0f173c8cf30dd2c798569550a3764d4d264ba48604e0" },
+      { "name": "public.gbt_int2_picksplit(internal, internal)", "hash": "4ae569154afbe81090ee76daf78079b329c63d992d221be47ce2669baf6cc72e" },
+      {
+        "name": "public.gbt_int2_same(public.gbtreekey4, public.gbtreekey4, internal)",
+        "hash": "4a7eda769b63b10dfc8caa1530f76b5d761e4d89e0a1e26b98dfb8ad3102492c"
+      },
+      { "name": "public.gbt_int2_sortsupport(internal)", "hash": "94cb1de3a07a2f1600653a309db5dadd3e3be2a21178d183ebebcb738d4b4c97" },
+      { "name": "public.gbt_int2_union(internal, internal)", "hash": "e91f1b810cab2ca8f6e261734f2e2f184973de9ed4ca2d046ae8162de8b897ef" },
+      { "name": "public.gbt_int4_compress(internal)", "hash": "9428d14da5cfd51fa6ab764a3893829c7d319ab2e4974dc92188d542955f2a13" },
+      {
+        "name": "public.gbt_int4_consistent(internal, integer, smallint, oid, internal)",
+        "hash": "20f6ce07f34bab386fe82a2efcd5329b70207a0b1e113d86ce5774d9f12de45e"
+      },
+      {
+        "name": "public.gbt_int4_distance(internal, integer, smallint, oid, internal)",
+        "hash": "146e39750bd0a935827497982c865e8b217a7e17fa1ce19e7e97f25240325e57"
+      },
+      { "name": "public.gbt_int4_fetch(internal)", "hash": "02c63bef936cf4d63847c55514be7e79491e67baac95fda5c40594a053851bdd" },
+      { "name": "public.gbt_int4_penalty(internal, internal, internal)", "hash": "176c6a829c0823d3a8df9ce11b6d1eaf953dd40f026c5d1f1bb85e49e4cd78d2" },
+      { "name": "public.gbt_int4_picksplit(internal, internal)", "hash": "690cbf5b3b81624e69c30b172c2997d3eb82e34fd09c81fafa7464504227e5d6" },
+      {
+        "name": "public.gbt_int4_same(public.gbtreekey8, public.gbtreekey8, internal)",
+        "hash": "7a7e3f5f075e6adb2e8b3905927695dfea43f1b1fc64562af44367a178d30e0d"
+      },
+      { "name": "public.gbt_int4_sortsupport(internal)", "hash": "17a689d33ddfa584fa2cf9968a0f3a771b99b1eafbf4c705ab1125361f65a2e7" },
+      { "name": "public.gbt_int4_union(internal, internal)", "hash": "075790f9d1eba6afc78742a2b1a0e2e570becf661237185a16c412b49532697d" },
+      { "name": "public.gbt_int8_compress(internal)", "hash": "a64bc3d704ef8b3efb642aaddfac2286ffb49a11ebd51f473f6d8e6f0fcc9a32" },
+      {
+        "name": "public.gbt_int8_consistent(internal, bigint, smallint, oid, internal)",
+        "hash": "49ccfba86db221eac1415fcd0f46207af699f55a63e069fc88a7b841f34ba746"
+      },
+      {
+        "name": "public.gbt_int8_distance(internal, bigint, smallint, oid, internal)",
+        "hash": "8d3a832ee83b0660cadfb64a20f691a6a3a81493c66f4bcd2d1c502dfccfafc4"
+      },
+      { "name": "public.gbt_int8_fetch(internal)", "hash": "43834abfca543d52a650e92ea11c4188dfac83fd182db48435f6adad2af9c1a6" },
+      { "name": "public.gbt_int8_penalty(internal, internal, internal)", "hash": "9596d7698e6ed99faf44cbf1d6a129f1917290ff221e10e7669af14b69f9f72b" },
+      { "name": "public.gbt_int8_picksplit(internal, internal)", "hash": "edd5dddcb499ebd98ac1a4b4dea0a0978985e6d95f93a90a3353670ad6339327" },
+      {
+        "name": "public.gbt_int8_same(public.gbtreekey16, public.gbtreekey16, internal)",
+        "hash": "4a6b0372b54a36d9b1e0419d2a2664b36b6fa33876b7b29abf88e5402b7f03e6"
+      },
+      { "name": "public.gbt_int8_sortsupport(internal)", "hash": "1f9a40e4c6017a9d8d339e97394fffbb8afc29b8b50191ad09433ce3cb1c3b72" },
+      { "name": "public.gbt_int8_union(internal, internal)", "hash": "fe4baeed81f15163c295c5e5371cdb6b16c425eefcf163667cddd37c97698ce9" },
+      { "name": "public.gbt_intv_compress(internal)", "hash": "a16132c36806d04ea1bebb245991d9ad7275c7265fa82528eca7afd6c3f29383" },
+      {
+        "name": "public.gbt_intv_consistent(internal, interval, smallint, oid, internal)",
+        "hash": "a8bdc23758365a61164338e6a4ae8d4102e17f7552d49c4321e15dfbc80ce8c7"
+      },
+      { "name": "public.gbt_intv_decompress(internal)", "hash": "33334da284c7a96fc58e5d8104518c67d9b6512d2baa9f93ea35c99a666e9ba6" },
+      {
+        "name": "public.gbt_intv_distance(internal, interval, smallint, oid, internal)",
+        "hash": "f36b6312085a8334126fcbbd72fd4595f2c6428a8c063dfc83c2a3be12b8894c"
+      },
+      { "name": "public.gbt_intv_fetch(internal)", "hash": "8a8ddc51b8f7157e4573d940fbddfd770c8f9191ab9f3460059c8663e8e15d5f" },
+      { "name": "public.gbt_intv_penalty(internal, internal, internal)", "hash": "a2d179c1b6169487dca3596e7968c75652fb62d8e94e07a66da21d24d0a01401" },
+      { "name": "public.gbt_intv_picksplit(internal, internal)", "hash": "847a60b78e1d8895e185c5ecfd7e5c7696db966f1565a4a2ed1e4045e3472c2f" },
+      {
+        "name": "public.gbt_intv_same(public.gbtreekey32, public.gbtreekey32, internal)",
+        "hash": "80e18d9708b1b95672a1521510eadf62c54f4c7e4ed61d873f401e33950c8cab"
+      },
+      { "name": "public.gbt_intv_sortsupport(internal)", "hash": "8edd0a89d57628847aeb144a1f5a800dfc60b7619278e9713f0c4a662577e485" },
+      { "name": "public.gbt_intv_union(internal, internal)", "hash": "3fda6df705b38aa962b422c816e3e24d8dfde70c94ad7a920f17374bc1614d2a" },
+      { "name": "public.gbt_macad8_compress(internal)", "hash": "4f8ed55dd0eff34015bae64d3c64e01ef7f0c2d8b81879da029e236c4b1ba0da" },
+      {
+        "name": "public.gbt_macad8_consistent(internal, macaddr8, smallint, oid, internal)",
+        "hash": "575a510573e6b564ad2a04be2b7f1744923b2dfe54e7d80d9d509218cfdd6a2c"
+      },
+      { "name": "public.gbt_macad8_fetch(internal)", "hash": "0ffaa7712c45e294343fd3322fbdcb24eeba32928834d74e880f177bcfad00b0" },
+      { "name": "public.gbt_macad8_penalty(internal, internal, internal)", "hash": "0c7b4683481649761c868b666e0f19cd23146e2a91079c9860f0867a0bd77179" },
+      { "name": "public.gbt_macad8_picksplit(internal, internal)", "hash": "12946b738c38a12cebe70082c95de831fd2842b0660beb74769a8b918b2f18bb" },
+      {
+        "name": "public.gbt_macad8_same(public.gbtreekey16, public.gbtreekey16, internal)",
+        "hash": "df1b820ea4574233d11ddc37e78a39db8aba12c61712eaa656980e7a0a7cd2c3"
+      },
+      { "name": "public.gbt_macad8_sortsupport(internal)", "hash": "92e58608ba9db9a7a12af78d960715f276769e6c08b5acc106df7d74ed1ac339" },
+      { "name": "public.gbt_macad8_union(internal, internal)", "hash": "481a8081af01ae8f522eaefcb9639ce4c3fc00f3a0e3d8e49618f32cda8ff493" },
+      { "name": "public.gbt_macad_compress(internal)", "hash": "e3d5b3abee3b3442969d7e1ce2e323a670fd517bb1b68a6bedf85e3fbc137458" },
+      {
+        "name": "public.gbt_macad_consistent(internal, macaddr, smallint, oid, internal)",
+        "hash": "67c49b781e9dea1e4060b5e741145ac320d7ff7480d107bd97c25fce3ec40fbc"
+      },
+      { "name": "public.gbt_macad_fetch(internal)", "hash": "f149865e652d5d4c6ec3fce35d77654e9b49782924495142dc8427c2daefa5f4" },
+      { "name": "public.gbt_macad_penalty(internal, internal, internal)", "hash": "73d8fcc54ad904dc78dac19b3a64caa0c43bd8005592e6b098be601a7b3958f1" },
+      { "name": "public.gbt_macad_picksplit(internal, internal)", "hash": "a7eb532c8ee9b96e9039a8105fc2f801b3c3c806e81d42150cb15d4890ed9aeb" },
+      {
+        "name": "public.gbt_macad_same(public.gbtreekey16, public.gbtreekey16, internal)",
+        "hash": "ccb05415fd56dc746a8b4410e3f891928c6a05df40f6ec3499d880d90b491294"
+      },
+      { "name": "public.gbt_macad_union(internal, internal)", "hash": "9b6ea29f27121cfa49c45ba9f16022f4b75a083fcf28413be72c830d890cf2f4" },
+      { "name": "public.gbt_macaddr_sortsupport(internal)", "hash": "8e51eb70bdf9573cb2c575ef96ae75a6104604ab31124183f0cf8835d30da576" },
+      { "name": "public.gbt_numeric_compress(internal)", "hash": "e784ed3be02645e4e92c76dad7fa460f714887b3de022abf1403342aa740074b" },
+      {
+        "name": "public.gbt_numeric_consistent(internal, numeric, smallint, oid, internal)",
+        "hash": "89f29fdedfbf12e8231e2f20b63e5fe11cadf07a19a92e8b8f898ed06c7fb13d"
+      },
+      { "name": "public.gbt_numeric_penalty(internal, internal, internal)", "hash": "465dddda5b44f6663097ca9c37bca860f1b4ee7d8460ee0bdc7d72bdbf9b57e9" },
+      { "name": "public.gbt_numeric_picksplit(internal, internal)", "hash": "a542d683080a74a30395d338dc114b29ed0a4fc46bd429ee8be1d3842e750e0e" },
+      {
+        "name": "public.gbt_numeric_same(public.gbtreekey_var, public.gbtreekey_var, internal)",
+        "hash": "b7e588bcc2f5275d0950c2e952dd4a8280a1a482d96e4a096af254e5dd501905"
+      },
+      { "name": "public.gbt_numeric_sortsupport(internal)", "hash": "727f135e52bbacd2fb1c78a277991ff68b74eb21e371b0ae2a5c6562a910e6cf" },
+      { "name": "public.gbt_numeric_union(internal, internal)", "hash": "2de1c19732ad63883902944b2b0ccbe3589051677053b7297ef340c26896be0d" },
+      { "name": "public.gbt_oid_compress(internal)", "hash": "346e2682123746983ba87efd94b57c249b6f340d2b0dde531c2a7875b094f40d" },
+      {
+        "name": "public.gbt_oid_consistent(internal, oid, smallint, oid, internal)",
+        "hash": "f1e178348088e856cd6fef7e526002849851f62dd768a83e4e818787c16d384c"
+      },
+      { "name": "public.gbt_oid_distance(internal, oid, smallint, oid, internal)", "hash": "0fbda7cf542ed467b1552dbc832794f519dce929f8c556cc7d8a517586618ae7" },
+      { "name": "public.gbt_oid_fetch(internal)", "hash": "5b901853d6b56c381a7cda084d073ccdfa23c9babde66fdefadd8f6a68d9c05f" },
+      { "name": "public.gbt_oid_penalty(internal, internal, internal)", "hash": "b1653509f510dc71b0432211623acd7c651419c762fe5c7edaf7188d549e5314" },
+      { "name": "public.gbt_oid_picksplit(internal, internal)", "hash": "60f5be9ad24c239c754e207cc5c14a24f6f0f8386bdab8aaf432d94c7bc4aac6" },
+      {
+        "name": "public.gbt_oid_same(public.gbtreekey8, public.gbtreekey8, internal)",
+        "hash": "9fded33c2397ffb58650b40a8659fcb93744de867c5116954ae04908215f7a61"
+      },
+      { "name": "public.gbt_oid_sortsupport(internal)", "hash": "4d9d29a7891dc00fa7cdd5bea4101e3370109cc5014f100c64f98c2acb991458" },
+      { "name": "public.gbt_oid_union(internal, internal)", "hash": "3b2d4330611ef2db77fe4609cce670b1e59da9e1b34602877d82668190841d5a" },
+      { "name": "public.gbt_text_compress(internal)", "hash": "ad373ce309e24a5ee59464a3dd6f36ee373c785542f4ddf00ea26503e0f4c0cc" },
+      {
+        "name": "public.gbt_text_consistent(internal, text, smallint, oid, internal)",
+        "hash": "7bec876f21ca2365f9397cfee8580a1dc29072a6230511793129cc3e728fdc3a"
+      },
+      { "name": "public.gbt_text_penalty(internal, internal, internal)", "hash": "3e019c784bf04674795ce28f1dfec0d4cec0800da9cf06fa66ab04b20b235492" },
+      { "name": "public.gbt_text_picksplit(internal, internal)", "hash": "40a43b1357ce3133bba9d4473679be911f14584b0e86b4ffa05c41e1200402d8" },
+      {
+        "name": "public.gbt_text_same(public.gbtreekey_var, public.gbtreekey_var, internal)",
+        "hash": "60bceb9d452e83d1aa88f059214c15092fc72863120194d7385b2936dbd8b68f"
+      },
+      { "name": "public.gbt_text_sortsupport(internal)", "hash": "e14f6646a3835a1a0af1353bc82d27b6323312f27a7a7defd457373cc6290814" },
+      { "name": "public.gbt_text_union(internal, internal)", "hash": "6870d73cdbf5958472f3d02f7e6ed26c81e1bc2c193b84d1ae43ad5b0d3861ad" },
+      { "name": "public.gbt_time_compress(internal)", "hash": "71df9477701a06cf7d1702001b70ee0f8288dda445b83eefba475bbf5cb40eef" },
+      {
+        "name": "public.gbt_time_consistent(internal, time without time zone, smallint, oid, internal)",
+        "hash": "ebf414a6ebda814f99dbff9ced5a001c8ab90a1a5f372838c0a250a0a3fd8cc8"
+      },
+      {
+        "name": "public.gbt_time_distance(internal, time without time zone, smallint, oid, internal)",
+        "hash": "7424722c3eb4e977e936e1019fa7070d269265c864ca1a59d9af415439cb195e"
+      },
+      { "name": "public.gbt_time_fetch(internal)", "hash": "c83d2df3c6bec89e9451b461b59fb5c7d9a3cf709bf48e677c7c0e6e177dd88e" },
+      { "name": "public.gbt_time_penalty(internal, internal, internal)", "hash": "12c4b6d6775195277576c21dcc2f9a3a9c93610a730b01928435346811f8e8d8" },
+      { "name": "public.gbt_time_picksplit(internal, internal)", "hash": "a8ade24a635bf1bf4f39da4c570ac328e2008e8d230aadb11e6da823bf9b833f" },
+      {
+        "name": "public.gbt_time_same(public.gbtreekey16, public.gbtreekey16, internal)",
+        "hash": "646543c7eec79bdfcecde64f6531b088a6745359501959cfa933b556b190fe28"
+      },
+      { "name": "public.gbt_time_sortsupport(internal)", "hash": "2da3c518bf65557c9a871fc9c56192b54b77959da52a6ad94943f69ef925ff8a" },
+      { "name": "public.gbt_time_union(internal, internal)", "hash": "99ff8e880de6c1c10e6794f58e63dd4d20eb2b61ab59b07bb21629abc430dc8f" },
+      { "name": "public.gbt_timetz_compress(internal)", "hash": "889607d392b638994bf7428ed99f46d67e6dce5617115419c803d6d82b7a8946" },
+      {
+        "name": "public.gbt_timetz_consistent(internal, time with time zone, smallint, oid, internal)",
+        "hash": "2676ff7af9fdace34be66692c210f5b115581510b40070326e3af56df49dd962"
+      },
+      { "name": "public.gbt_ts_compress(internal)", "hash": "57130cf4fa98a22f0b475ec934af4690b3b9c86b52df351cb5bfc57665e5a14b" },
+      {
+        "name": "public.gbt_ts_consistent(internal, timestamp without time zone, smallint, oid, internal)",
+        "hash": "00a75ff3233982809078341c3e9c1c44ab1f922fd31e1947de561f32a44d8eef"
+      },
+      {
+        "name": "public.gbt_ts_distance(internal, timestamp without time zone, smallint, oid, internal)",
+        "hash": "941aecbb2804bbca521b74bbfd3d6464ab49c443bca4f660b4e21395fd73d22d"
+      },
+      { "name": "public.gbt_ts_fetch(internal)", "hash": "1cb6798683141324b3a9b1e17b4e983c2dc801f8571eed796952df17d8965cfa" },
+      { "name": "public.gbt_ts_penalty(internal, internal, internal)", "hash": "cfebbf0bb41e0ac657fe0e95aef97e8afe5846d0e2d754f452d8822418dadc76" },
+      { "name": "public.gbt_ts_picksplit(internal, internal)", "hash": "6b9ca11d25e6772dd6ca8548976855c33d292bd6bc0fdb5b429cd3137f83bf2e" },
+      {
+        "name": "public.gbt_ts_same(public.gbtreekey16, public.gbtreekey16, internal)",
+        "hash": "75a423608e977de2ad1721a8d4055ddf94d206fe4ba464dd392fbc80453b084c"
+      },
+      { "name": "public.gbt_ts_sortsupport(internal)", "hash": "cd64f6bfdd40cf5753cf090704ee85cc78031a3645aab67351a72ebbea07f2db" },
+      { "name": "public.gbt_ts_union(internal, internal)", "hash": "6fc06cb616ba1831f3e304d9964dcdb16c12a2c2e9119240aa75d6be191b325e" },
+      { "name": "public.gbt_tstz_compress(internal)", "hash": "8b7ecbd0f92cb96706bbf1f7d09d21980c7660815e08796fac512c6658c14d10" },
+      {
+        "name": "public.gbt_tstz_consistent(internal, timestamp with time zone, smallint, oid, internal)",
+        "hash": "1b1a3bba1628b1213b04f0c69db62b29a9eea38faee4283e9f4801884eae989d"
+      },
+      {
+        "name": "public.gbt_tstz_distance(internal, timestamp with time zone, smallint, oid, internal)",
+        "hash": "7b3eaaffd7bd7f27bf1d933a1284003ae19f76a8ba86a9dc1e2524078e9c45c0"
+      },
+      { "name": "public.gbt_uuid_compress(internal)", "hash": "4d01291fc7d137eeff2a705bcf36a4dc24f597eb55c3c2e4acd0613431987725" },
+      {
+        "name": "public.gbt_uuid_consistent(internal, uuid, smallint, oid, internal)",
+        "hash": "3274d0181b5273cf0d6b313fc6bc4cb932238122535a5ed248195e0e85c06343"
+      },
+      { "name": "public.gbt_uuid_fetch(internal)", "hash": "7f5981e2ab3a58626a862f4e50cfdd47aff11e1f91f6b770882b81b3079929d9" },
+      { "name": "public.gbt_uuid_penalty(internal, internal, internal)", "hash": "98dd802249d90b1436d0c296ecd8299886e13723f1001117d34bd94140615ded" },
+      { "name": "public.gbt_uuid_picksplit(internal, internal)", "hash": "e38bf5c901a40a3deb1f07c21dd25b825924abbc1302786f405b9196a4505ec2" },
+      {
+        "name": "public.gbt_uuid_same(public.gbtreekey32, public.gbtreekey32, internal)",
+        "hash": "a6a4bf0c3620acc8506fde34a4aa9296aa4e2185bbdddcdb8b98fcc3a82435ea"
+      },
+      { "name": "public.gbt_uuid_sortsupport(internal)", "hash": "29babf99dbfcc33e50f94dcb907a06f4c1f322f681522303bd1ab2180d2a7c1e" },
+      { "name": "public.gbt_uuid_union(internal, internal)", "hash": "e7c452c05ac9cfad21d0f656731371bc78f99e7772115e9482d4e42549a44326" },
+      { "name": "public.gbt_var_decompress(internal)", "hash": "acd43de400535d875f2eb13987eac9347cd5e3defcf1accb09d125d834875485" },
+      { "name": "public.gbt_var_fetch(internal)", "hash": "13f85962786b065f5200ffd80890a4a4b8e0cec417b76e1bcdbe1d2472466385" },
+      { "name": "public.gbt_varbit_sortsupport(internal)", "hash": "33f1b2e29a45f794886146274f92a93aeabda90b84a61d21c890329ae77b7232" },
+      { "name": "public.gbtreekey16_in(cstring)", "hash": "ba3446a58aa10a4ba450391fd3298cb9dd345a3f3ab6b426ed08317aa24e2c1a" },
+      { "name": "public.gbtreekey16_out(public.gbtreekey16)", "hash": "8a153d3b44be23ab14052f76127e96e80d67736b7ca93315bdbbf6c2376de7d4" },
+      { "name": "public.gbtreekey2_in(cstring)", "hash": "452df21475bdea875ee50cc9741c69cfec3df980368785e96afa62d9669f9f7c" },
+      { "name": "public.gbtreekey2_out(public.gbtreekey2)", "hash": "8a153d3b44be23ab14052f76127e96e80d67736b7ca93315bdbbf6c2376de7d4" },
+      { "name": "public.gbtreekey32_in(cstring)", "hash": "45871bb19d777a882866aa4901beced00a8e20c32635bb8ed05068ecc719e11b" },
+      { "name": "public.gbtreekey32_out(public.gbtreekey32)", "hash": "8a153d3b44be23ab14052f76127e96e80d67736b7ca93315bdbbf6c2376de7d4" },
+      { "name": "public.gbtreekey4_in(cstring)", "hash": "5a15e561de9f7bab69bb8bc3523fb1c6d7c2f5786dfa4518cba606c657356e12" },
+      { "name": "public.gbtreekey4_out(public.gbtreekey4)", "hash": "8a153d3b44be23ab14052f76127e96e80d67736b7ca93315bdbbf6c2376de7d4" },
+      { "name": "public.gbtreekey8_in(cstring)", "hash": "ca009e911d97d6b5e1cebecb1d644f7a51f4f7ed98304fa1ac95ab039faf91d8" },
+      { "name": "public.gbtreekey8_out(public.gbtreekey8)", "hash": "8a153d3b44be23ab14052f76127e96e80d67736b7ca93315bdbbf6c2376de7d4" },
+      { "name": "public.gbtreekey_var_in(cstring)", "hash": "e2ed444b97b01288efdf45d0e95bc2e304c78ff186cf1ae2be2f808e497b0ae8" },
+      { "name": "public.gbtreekey_var_out(public.gbtreekey_var)", "hash": "8a153d3b44be23ab14052f76127e96e80d67736b7ca93315bdbbf6c2376de7d4" },
       {
         "name": "public.gin_extract_query_trgm(text, internal, smallint, internal, internal, internal, internal)",
         "hash": "0bf31e83de9d5ff0b0309d8e743d5560711a22f069299ec3c384d289ad35c153"
@@ -4337,6 +4871,7 @@
         "name": "public.gin_trgm_triconsistent(internal, smallint, text, integer, internal, internal, internal)",
         "hash": "90c60dd11dec705e8f9519d9a51a3ec311cb6728f50b0d2d2da8afe8c34cb54b"
       },
+      { "name": "public.gist_translate_cmptype_btree(integer)", "hash": "30b877027a44c60ed811f33f6c8e1dc1beebb2b57623606ab060e45a51a915a3" },
       { "name": "public.gtrgm_compress(internal)", "hash": "d736c06d36b328e055c6a06db59e738f03dd43c2f5559a5c6ef4a1c40c4480ab" },
       {
         "name": "public.gtrgm_consistent(internal, text, smallint, oid, internal)",
@@ -4351,6 +4886,11 @@
       { "name": "public.gtrgm_picksplit(internal, internal)", "hash": "313553e432ab030e21283f70db082450fa7ef0a11873b122b0883f014809d26e" },
       { "name": "public.gtrgm_same(public.gtrgm, public.gtrgm, internal)", "hash": "fdd1c2604edbcb1e03815d058da732d796a780fe7b5a46cea99ba4f8e4f94488" },
       { "name": "public.gtrgm_union(internal, internal)", "hash": "5f2e335440c380aa04f6b78a0834b3f3760c9e2936888e3682c4c0145f9d6a8f" },
+      { "name": "public.int2_dist(smallint, smallint)", "hash": "dea982960ee324ae5bcb2fd6cf674dd09146ccb5fdea030ba2d35233b99addac" },
+      { "name": "public.int4_dist(integer, integer)", "hash": "e5dca046d3080f2b674ccad58d5e099c43c7c01fee0e0adfa928afeb8902a979" },
+      { "name": "public.int8_dist(bigint, bigint)", "hash": "0ffc9e33360c3579aec02f386508320a3d2c4a41be7c9fea8d0e9ac8ca7319d7" },
+      { "name": "public.interval_dist(interval, interval)", "hash": "1ded60fc7734065e6728e27847a1bcec2654a5ed3b609952158d8cda2e54a45e" },
+      { "name": "public.oid_dist(oid, oid)", "hash": "5f0eae1acd178bbad984d4c5bd05617537081df3489733952cc47ab5aa55f6fa" },
       { "name": "public.set_limit(real)", "hash": "23e91ee6368f817e87bab79b415ddf38b0cc658e165bc1a489fdbe9a0ae34d03" },
       { "name": "public.show_limit()", "hash": "8a7eeebbe9acf9ed33b88ff8834cb0a98727c6b6196f9decd4a63dba0aec834d" },
       { "name": "public.show_trgm(text)", "hash": "fceea575c2d87297b00c78a3bf3d30568a68ce44b4554460ddb3162bf730a4a9" },
@@ -4362,6 +4902,18 @@
       { "name": "public.strict_word_similarity_dist_commutator_op(text, text)", "hash": "7debe3195198225d7ad25529c95d68ef17ec9535a2610246d976224fe246625c" },
       { "name": "public.strict_word_similarity_dist_op(text, text)", "hash": "0c2f1ee279fa7df8c641b58752df4a5656aa3563724c9bdac7dba0c0b7d80c04" },
       { "name": "public.strict_word_similarity_op(text, text)", "hash": "da4c0d8fbeb1a11a95a991a02f105c885271fcec590ba58e2c14bab0e62ff01e" },
+      {
+        "name": "public.time_dist(time without time zone, time without time zone)",
+        "hash": "b156c33086bcc5ab2926e42f29f62cb8072b3fbb7f66c728b096614ac9b93fe0"
+      },
+      {
+        "name": "public.ts_dist(timestamp without time zone, timestamp without time zone)",
+        "hash": "1b28e3640367cceb883c4a83b91cb5bf68d4fcf13da0b2dc28564edb346058f9"
+      },
+      {
+        "name": "public.tstz_dist(timestamp with time zone, timestamp with time zone)",
+        "hash": "dbfbe88309789dad0ef7e523ee3d997d5ee964da7886eda38d072d56160bbf28"
+      },
       { "name": "public.unaccent(regdictionary, text)", "hash": "fbeea445e21eaa9cbc9ad6f6c97f2fcdedb40b86e55d8e9fefc36b8200b1dc6c" },
       { "name": "public.unaccent(text)", "hash": "fbeea445e21eaa9cbc9ad6f6c97f2fcdedb40b86e55d8e9fefc36b8200b1dc6c" },
       { "name": "public.unaccent_init(internal)", "hash": "b9e97122eba83a786064099a8fd77364b81564571b348fcdfa006aadc6c73b3b" },
@@ -4377,7 +4929,22 @@
       { "name": "public.%>(text, text)", "hash": "ea74853379e58967a6d61c14d4e326c6baad2f178bd77c905625f18de9f231b8" },
       { "name": "public.%>>(text, text)", "hash": "b066eaa2eec1b7f2284eaa688c5220225d2658efa1ceeeb987ad1bd5ec74e91c" },
       { "name": "public.<%(text, text)", "hash": "d2cf27721090d0ca36051da4ff141df3c087eebe87056ace7096ac49521b7374" },
+      { "name": "public.<->(bigint, bigint)", "hash": "09c4cc4b5a54fd5f23a759fa894b3dada3fee88a8ca078663e39c57ec49193f5" },
+      { "name": "public.<->(date, date)", "hash": "7d4a2025e2c1252d297937f96c492773d2454fb7dfe96bd570a342cd7153463c" },
+      { "name": "public.<->(double precision, double precision)", "hash": "7a79fdadb01c82a6badd011048b2067fbfede69654dcd4cfe7c8d916040737d6" },
+      { "name": "public.<->(integer, integer)", "hash": "b509e167fd6630565e2b6e0a82aa5e2abf178af5b2e5a81bccc8ce00b6e854ea" },
+      { "name": "public.<->(interval, interval)", "hash": "05b1ef0b18caa6a54d1cd7fc76bbcef9bf4185e6c93dc1092e037103a056ebb7" },
+      { "name": "public.<->(money, money)", "hash": "db92cc952ed87fe1c3c57122e2fb97c2891fadaed69dc89359fe54aa0ccf5c33" },
+      { "name": "public.<->(oid, oid)", "hash": "1551300324489a9405bff55e41bd27e16335782fbc4c55e2bc10c969ada64c21" },
+      { "name": "public.<->(real, real)", "hash": "85e4018238cbf26dc9e9a359b8fc705081edc3eafdfa5203813598efbbc6ee08" },
+      { "name": "public.<->(smallint, smallint)", "hash": "8d0fff1eb7786717fe71a64c9e46aa957b794848d87102e66e8f3e622ed07f03" },
       { "name": "public.<->(text, text)", "hash": "2b5d96cc3603d9e0b34da5979d03d379efb2bfdb3dd51e1a6e8ebeb1ba73ed8b" },
+      { "name": "public.<->(time without time zone, time without time zone)", "hash": "6a7ed424485f8aa1e55ab21d49db2fa2ef4c302642161dec48dab484f61e2a2a" },
+      { "name": "public.<->(timestamp with time zone, timestamp with time zone)", "hash": "cfad34dbd4da3df3d5547d18638d3f42fc31b52c22b4e48796ce83448441b311" },
+      {
+        "name": "public.<->(timestamp without time zone, timestamp without time zone)",
+        "hash": "1a7ba165d71b6bab08c1157f4a2b8cdd1adf805c1be5ddd2efb1c04b5b8ea709"
+      },
       { "name": "public.<->>(text, text)", "hash": "be517e2fd228852e65cfc60f683d472ca097fc7c426f09d689d4b4de570ff78a" },
       { "name": "public.<->>>(text, text)", "hash": "8dd6273256b5bf0854568d017deb02e21282dc0c065d1ae762c5b1cb88a1982c" },
       { "name": "public.<<%(text, text)", "hash": "c04378bba1fd0c8afbc0537afdb1874f8ed0dbf15b352f16aead01c6ce965f8e" },

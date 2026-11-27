@@ -1,4 +1,4 @@
-CREATE TABLE "pms_reservation_items" (
+CREATE TABLE IF NOT EXISTS "pms_reservation_items" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"reservation_id" uuid NOT NULL,
 	"position" smallint NOT NULL,
@@ -17,7 +17,7 @@ CREATE TABLE "pms_reservation_items" (
 	CONSTRAINT "pms_reservation_items_unit_price" CHECK ("pms_reservation_items"."unit_price" between 0 and 999999999)
 );
 --> statement-breakpoint
-CREATE TABLE "pms_reservations" (
+CREATE TABLE IF NOT EXISTS "pms_reservations" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"room_id" uuid NOT NULL,
 	"contact_id" uuid NOT NULL,
@@ -36,7 +36,7 @@ CREATE TABLE "pms_reservations" (
 	CONSTRAINT "pms_reservations_canceled_at" CHECK (("pms_reservations"."status" = 'confirmed' and "pms_reservations"."canceled_at" is null) or ("pms_reservations"."status" = 'canceled' and "pms_reservations"."canceled_at" is not null))
 );
 --> statement-breakpoint
-CREATE TABLE "pms_rooms" (
+CREATE TABLE IF NOT EXISTS "pms_rooms" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"number" text NOT NULL,
 	"name" text DEFAULT '' NOT NULL,
@@ -51,14 +51,14 @@ CREATE TABLE "pms_rooms" (
 	CONSTRAINT "pms_rooms_cleaning_status" CHECK ("pms_rooms"."cleaning_status" in ('clean', 'dirty'))
 );
 --> statement-breakpoint
-CREATE TABLE "pms_settings" (
+CREATE TABLE IF NOT EXISTS "pms_settings" (
 	"id" smallint PRIMARY KEY DEFAULT 1 NOT NULL,
 	"default_article_id" uuid,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "pms_settings_single_row" CHECK ("pms_settings"."id" = 1)
 );
 --> statement-breakpoint
-CREATE TABLE "pms_tourism_country_values" (
+CREATE TABLE IF NOT EXISTS "pms_tourism_country_values" (
 	"report_id" uuid NOT NULL,
 	"country_key" text NOT NULL,
 	"arrivals" integer DEFAULT 0 NOT NULL,
@@ -68,7 +68,7 @@ CREATE TABLE "pms_tourism_country_values" (
 	CONSTRAINT "pms_tourism_country_values_amounts" CHECK ("pms_tourism_country_values"."arrivals" >= 0 and "pms_tourism_country_values"."overnight_stays" >= "pms_tourism_country_values"."arrivals")
 );
 --> statement-breakpoint
-CREATE TABLE "pms_tourism_reports" (
+CREATE TABLE IF NOT EXISTS "pms_tourism_reports" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"year" smallint NOT NULL,
 	"month" smallint NOT NULL,
@@ -84,15 +84,27 @@ CREATE TABLE "pms_tourism_reports" (
 	CONSTRAINT "pms_tourism_reports_remarks" CHECK (char_length("pms_tourism_reports"."remarks") <= 1000)
 );
 --> statement-breakpoint
-ALTER TABLE "pms_reservation_items" ADD CONSTRAINT "pms_reservation_items_reservation_id_pms_reservations_id_fk" FOREIGN KEY ("reservation_id") REFERENCES "public"."pms_reservations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "pms_reservation_items" ADD CONSTRAINT "pms_reservation_items_room_id_pms_rooms_id_fk" FOREIGN KEY ("room_id") REFERENCES "public"."pms_rooms"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "pms_reservations" ADD CONSTRAINT "pms_reservations_room_id_pms_rooms_id_fk" FOREIGN KEY ("room_id") REFERENCES "public"."pms_rooms"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "pms_reservations" ADD CONSTRAINT "pms_reservations_invoice_id_invoices_id_fk" FOREIGN KEY ("invoice_id") REFERENCES "public"."invoices"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "pms_tourism_country_values" ADD CONSTRAINT "pms_tourism_country_values_report_id_pms_tourism_reports_id_fk" FOREIGN KEY ("report_id") REFERENCES "public"."pms_tourism_reports"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE UNIQUE INDEX "pms_reservation_items_position_unique" ON "pms_reservation_items" USING btree ("reservation_id","position");--> statement-breakpoint
-CREATE INDEX "pms_reservation_items_room_period" ON "pms_reservation_items" USING btree ("room_id","arrival_date","departure_date");--> statement-breakpoint
-CREATE INDEX "pms_reservations_room_period" ON "pms_reservations" USING btree ("room_id","arrival_date","departure_date");--> statement-breakpoint
-CREATE INDEX "pms_reservations_contact" ON "pms_reservations" USING btree ("contact_id");--> statement-breakpoint
-CREATE INDEX "pms_reservations_status" ON "pms_reservations" USING btree ("status");--> statement-breakpoint
-CREATE UNIQUE INDEX "pms_rooms_number_unique" ON "pms_rooms" USING btree (lower("number"));--> statement-breakpoint
-CREATE UNIQUE INDEX "pms_tourism_reports_period_unique" ON "pms_tourism_reports" USING btree ("year","month");
+DO $$ BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pms_reservation_items_reservation_id_pms_reservations_id_fk') THEN
+		ALTER TABLE "pms_reservation_items" ADD CONSTRAINT "pms_reservation_items_reservation_id_pms_reservations_id_fk" FOREIGN KEY ("reservation_id") REFERENCES "public"."pms_reservations"("id") ON DELETE no action ON UPDATE no action;
+	END IF;
+	IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pms_reservation_items_room_id_pms_rooms_id_fk') THEN
+		ALTER TABLE "pms_reservation_items" ADD CONSTRAINT "pms_reservation_items_room_id_pms_rooms_id_fk" FOREIGN KEY ("room_id") REFERENCES "public"."pms_rooms"("id") ON DELETE no action ON UPDATE no action;
+	END IF;
+	IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pms_reservations_room_id_pms_rooms_id_fk') THEN
+		ALTER TABLE "pms_reservations" ADD CONSTRAINT "pms_reservations_room_id_pms_rooms_id_fk" FOREIGN KEY ("room_id") REFERENCES "public"."pms_rooms"("id") ON DELETE no action ON UPDATE no action;
+	END IF;
+	IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pms_reservations_invoice_id_invoices_id_fk') THEN
+		ALTER TABLE "pms_reservations" ADD CONSTRAINT "pms_reservations_invoice_id_invoices_id_fk" FOREIGN KEY ("invoice_id") REFERENCES "public"."invoices"("id") ON DELETE set null ON UPDATE no action;
+	END IF;
+	IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pms_tourism_country_values_report_id_pms_tourism_reports_id_fk') THEN
+		ALTER TABLE "pms_tourism_country_values" ADD CONSTRAINT "pms_tourism_country_values_report_id_pms_tourism_reports_id_fk" FOREIGN KEY ("report_id") REFERENCES "public"."pms_tourism_reports"("id") ON DELETE cascade ON UPDATE no action;
+	END IF;
+END $$;--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "pms_reservation_items_position_unique" ON "pms_reservation_items" USING btree ("reservation_id","position");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "pms_reservation_items_room_period" ON "pms_reservation_items" USING btree ("room_id","arrival_date","departure_date");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "pms_reservations_room_period" ON "pms_reservations" USING btree ("room_id","arrival_date","departure_date");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "pms_reservations_contact" ON "pms_reservations" USING btree ("contact_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "pms_reservations_status" ON "pms_reservations" USING btree ("status");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "pms_rooms_number_unique" ON "pms_rooms" USING btree (lower("number"));--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "pms_tourism_reports_period_unique" ON "pms_tourism_reports" USING btree ("year","month");

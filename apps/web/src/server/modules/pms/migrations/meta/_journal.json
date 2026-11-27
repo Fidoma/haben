@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1795766240682,
+      "tag": "0000_pms",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795766245296,
+      "tag": "0001_pms_constraints_audit",
+      "breakpoints": true
+    }
+  ]
+}

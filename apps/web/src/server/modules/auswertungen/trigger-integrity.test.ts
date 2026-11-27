@@ -34,9 +34,8 @@ describe.skipIf(!testDatabaseUrl)("Sperrtrigger in Kette prüfen (Postgres, #764
   it("ist nach frischer Migration und nach erneutem Migrationslauf befundfrei", async () => {
     expect(await problems()).toEqual([]);
     const { drizzle } = await import("drizzle-orm/postgres-js");
-    const { migrate } = await import("drizzle-orm/postgres-js/migrator");
-    const { fileURLToPath } = await import("node:url");
-    await migrate(drizzle(sql), { migrationsFolder: fileURLToPath(new URL("../../../../drizzle", import.meta.url)) });
+    const { applyMigrations } = await import("../../db/migrations.ts");
+    await applyMigrations(drizzle(sql));
     expect(await problems()).toEqual([]);
   });
 

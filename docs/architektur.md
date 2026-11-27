@@ -76,10 +76,10 @@ Das Firmenportal über den Instanzen der eigenen Firmen (#504, Stufe 2), ein eig
 | `src/routes/api/` | HTTP-Routen für Better Auth (`auth/$`), Dateien (`rechnung`, `rechnungsanhang`, `angebot`, `angebotsanhang`, `standardanhang`, `dokument` für Auftragsbestätigung und Lieferschein, `mahnung`, `beleg`, `dauerbeleg`, `altbeleg`, `archiv`, `protokoll`, `postfach`, `vast`, `logo`, `ustva` für den XML-Import in Mein ELSTER, `ueberweisung` für SEPA-Dateien, `lohn/…` für Entgeltabrechnung, Lohnkonto und Lohnsteuerbescheinigung, `steuerbescheinigung`, `sv-protokoll`, `hinterlegung/$jahr`), CSV und DATEV (`kasse/$jahr`, `konten/$jahr`, `datev/$jahr`), Rückleitung der Bank beim Kontoabruf (`bank/callback`), Kalender-Abo der Fristen (`fristen/kalender`, mit geheimem Token statt Sitzung), MCP-Endpunkt für KI-Assistenten (`mcp`, mit API-Token statt Sitzung), REST-API (`v1/$`, mit API-Token statt Sitzung), Teilen-Ziel der PWA (`belege/teilen`), EÜR als CSV (`auswertungen/$jahr`) und Jahresarchiv (`export/$jahr`) |
 | `src/components/` | React-Komponenten, die mehrere Seiten nutzen (Rechnungseditor, Vorschau, Upload, Statusanzeigen), dazu `archiv/` für die Umzugsseite |
 | `src/server/functions/` | Server Functions je Bereich: Eingaben mit Zod prüfen, `authMiddleware` anhängen, Dienst aufrufen. Keine Fachlogik |
-| `src/server/modules/<name>/` | Dienste je Fachbereich, jeweils mit öffentlicher `index.ts` (siehe [Module im Server](#module-im-server)) |
+| `src/server/modules/<name>/` | Dienste je Fachbereich, jeweils mit öffentlicher `index.ts` (siehe [Module im Server](#module-im-server)); optionale Erweiterungsmodule besitzen zusätzlich `schema.ts`, `drizzle.config.ts` und `migrations/` |
 | `src/server/*.ts` | Gemeinsame Infrastruktur ohne Fachlogik: `auth`, `anmeldung`, `rollen`, `middleware`, `lese-route`, `csrf`, `setup-code`, `crypto`, `storage`, `file-response`, `env`, `errors`, `today`, `security-headers`, `metriken` (Zähler für `/api/metrics`), `log` (leitet `console.*` durch Stufe, Format und Filter), `log-kontext` (Bereich einer Logzeile aus dem Kontext); dazu `scheduler.ts`, der die Hintergrundarbeit der Module zusammensetzt |
 | `src/server/db/` | Drizzle-Schema (`schema.ts`, `auth-schema.ts`), Verbindung, `withActor` für das Audit-Log, Migrationsskript |
-| `apps/web/drizzle/` | SQL-Migrationen; Trigger und Funktionen stehen in eigenen Dateien (`0001_festschreibung.sql`, `*_trigger.sql`) |
+| `apps/web/drizzle/` | SQL-Migrationen des Haben-Kerns; Trigger und Funktionen stehen in eigenen Dateien (`0001_festschreibung.sql`, `*_trigger.sql`) |
 | `src/styles/`, `styles.css` | Globales Stylesheet und seitenbezogene Stylesheets (Auswertungen, Archiv). Farben stehen als CSS-Variablen in `:root`; eine Farbe überschreibt sie per `[data-theme="…"]`, der dunkle Modus per `[data-mode="dark"]`. Klassen, die mehr als eine Seite nutzt, gehören ins globale Stylesheet, sonst fehlen sie auf Seiten, die das seitenbezogene nicht laden |
 | `src/lib/theme.ts` | Farbe und Modus: Listen, Speicherung im `localStorage` und ein Inline-Skript, das `<html data-theme data-mode>` vor dem ersten Zeichnen setzt (`__root.tsx`) |
 | `vite.config.ts` | Setzt `__HABEN_VERSION__` aus der Root-`package.json`; die Navigation zeigt so die ausgelieferte Version. Das Plugin `redact()` ersetzt React beim Bauen durch TanStack Redact |
@@ -88,6 +88,8 @@ Das Firmenportal über den Instanzen der eigenen Firmen (#504, Stufe 2), ein eig
 ### Module im Server
 
 Die Dienste liegen in `apps/web/src/server/modules/`, ein Ordner je Fachbereich. Ein Modul besitzt seine Tabellen und bietet nach außen nur an, was in seiner `index.ts` steht.
+
+Optionale Erweiterungsmodule werden zentral in `src/modules/registry.ts` registriert. Daraus entstehen ihre Navigation und die Migrationsreihenfolge. Webmail und PMS führen Schema, Drizzle-Konfiguration, Migrationen und Migrationstabelle jeweils im eigenen Modulverzeichnis; ihre Tabellen bleiben zur eindeutigen Zuordnung mit `webmail_` beziehungsweise `pms_` präfigiert. Beim Start läuft zuerst die unveränderte Kernhistorie in `apps/web/drizzle/`, danach jede Modulhistorie in einer eigenen Tabelle im Schema `drizzle`. Dadurch verursachen neue Upstream-Migrationen keine Nummern- oder Snapshot-Konflikte mit den Erweiterungen.
 
 | Modul | Inhalt |
 | --- | --- |
