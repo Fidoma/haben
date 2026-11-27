@@ -68,6 +68,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   ...MODULES.map(({ navigation }) => ({
     label: navigation.label,
     icon: navigation.icon,
+    hinweis: navigation.hint,
     links: [{ to: navigation.to, icon: navigation.linkIcon, label: navigation.linkLabel }],
   })),
   {

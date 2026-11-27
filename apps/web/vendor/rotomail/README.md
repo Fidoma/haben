@@ -57,7 +57,7 @@ Bun + Hono server ──IMAP (993)──▶ Dovecot   (read, flags, folders, sea
 
 ## Requirements
 
-- A mail server with IMAP + SMTP submission (e.g. mailcow). 
+- A mail server with IMAP + SMTP submission (e.g. mailcow).
 - [Bun](https://bun.sh) (for local dev) or Docker (to run the container).
 
 ## Configuration

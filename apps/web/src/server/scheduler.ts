@@ -190,15 +190,6 @@ const JOBS: ScheduledJob[] = [
     },
   },
   {
-    task: "pms_housekeeping",
-    label: "PMS-Housekeeping",
-    run: async () => {
-      const result = await runDueHousekeeping();
-      if (result.processed > 0) console.log(`Housekeeping: ${result.processed} Abreise(n) als schmutzig markiert`);
-      return true;
-    },
-  },
-  {
     // USt-IdNrn. aus Rechnungen beim BZSt bestätigen, höchstens einmal am Tag; vor der Erinnerung, damit eine ungültige Nummer gleich in der Mail steht
     task: "vat_id_check",
     label: "USt-IdNrn. beim BZSt",
