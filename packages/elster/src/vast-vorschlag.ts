@@ -1,7 +1,8 @@
 import type { Cents } from "@haben/core";
 import type { EstErsatzleistung, EstLohnsteuerbescheinigung, EstVorsorgePerson } from "./est.ts";
 import { vastBelegartLabel } from "./vast.ts";
-import { abrunden, alle, aufrunden, belegWurzel, betrag, wert, type XmlKnoten } from "./vast-lesen.ts";
+import { abrunden, aufrunden } from "./est-werte.ts";
+import { alle, belegWurzel, betrag, wert, type XmlKnoten } from "./vast-lesen.ts";
 import { type KrvBeitrag, krvBeitraege, krvOhneFeld, krvSumme } from "./vast-vorschlag-krv.ts";
 
 /*

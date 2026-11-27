@@ -51,10 +51,3 @@ export function cents(text: string | undefined): Cents | undefined {
 
 /** Betrag unter dem Pfad in Cent */
 export const betrag = (knoten: unknown, ...pfad: string[]) => cents(wert(knoten, ...pfad));
-
-/**
- * Rundung der Zuordnung (ZI-Plausi Tabelle 4-12): Aufrunden auf die nächste größere, Abrunden auf die nächste kleinere ganze
- * Zahl, auch bei negativen Beträgen; Ergebnis in Cent auf volle Euro
- */
-export const abrunden = (c: Cents): Cents => c - (((c % 100) + 100) % 100);
-export const aufrunden = (c: Cents): Cents => -abrunden(-c);

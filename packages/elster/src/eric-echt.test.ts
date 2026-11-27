@@ -615,6 +615,21 @@ const faelle: [string, () => string][] = [
     "ESt 2025 nur Kapitalerträge ohne Steuerabzug",
     est(2025, { angaben: { ...leereAngaben, kap: { ertraegeOhneSteuerabzugInland: 30_000, ertraegeAusland: 20_000 } } }),
   ],
+  [
+    // Regel 100240078: Haben schreibt 0 zum fehlenden Zuschuss, bei Person A (privat, nur 24 c) in 24 b, bei Person B
+    // (gesetzlich, nur 24 a) in 24 c
+    "ESt 2025 Arbeitgeberzuschuss nur zur Pflege- bzw. nur zur Krankenversicherung",
+    est(2025, {
+      angaben: {
+        ...alleAngaben(2025),
+        vorsorge: {
+          a: { pkv: 600_000, ppv: 40_049, agZuschussPv: 12_000 },
+          b: { gkv: 300_000, gpv: 60_000, agZuschussGkv: 84_000 },
+          sonstige: 25_000,
+        },
+      },
+    }),
+  ],
   ["ESt 2025 ohne weitere Angaben", est(2025, { angaben: leereAngaben, telefon: undefined })],
   [
     "ESt 2025 Einkommensersatzleistungen mit Cent (Summe der gerundeten Einzelbeträge)",

@@ -1,5 +1,6 @@
 import { roundHalfAwayFromZero, type Cents } from "@haben/core";
-import { abrunden, alle, aufrunden, betrag, wert, type XmlKnoten } from "./vast-lesen.ts";
+import { abrunden, aufrunden } from "./est-werte.ts";
+import { alle, betrag, wert, type XmlKnoten } from "./vast-lesen.ts";
 
 /*
  * Kranken- und Pflegeversicherung aus VaSt_KRV (#1328), nach VAST_Vorberechnungen_<Jahr>.ods, Blatt „VaSt_KRV_Gesamt -

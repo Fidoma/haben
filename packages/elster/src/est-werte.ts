@@ -10,6 +10,15 @@ export const euro = (cents: Cents | undefined): string | undefined => {
   const value = roundHalfAwayFromZero(cents / 100);
   return value === 0 ? undefined : String(value);
 };
+/**
+ * Rundung der Zuordnung (ZI-Plausi Tabelle 4-12): Aufrunden auf die nächste größere, Abrunden auf die nächste kleinere ganze
+ * Zahl, auch bei negativen Beträgen; Ergebnis in Cent auf volle Euro
+ */
+export const abrunden = (c: Cents): Cents => c - (((c % 100) + 100) % 100);
+export const aufrunden = (c: Cents): Cents => -abrunden(-c);
+/** Ganze Euro zugunsten der Person wie die amtliche Zuordnung: Beiträge aufgerundet, Abzüge abgerundet; leer bei 0 */
+export const euroAuf = (cents: Cents | undefined) => euro(cents && aufrunden(cents));
+export const euroAb = (cents: Cents | undefined) => euro(cents && abrunden(cents));
 export const mitCent = (cents: Cents | undefined) => (cents ? elsterDecimal(cents) : undefined);
 export const isIsoDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value);
 

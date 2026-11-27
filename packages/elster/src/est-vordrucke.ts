@@ -2,7 +2,7 @@ import { roundHalfAwayFromZero } from "@haben/core";
 import { germanDate, isValidIdnr } from "./bankverbindung.ts";
 import type { XmlNode } from "./erklaerung.ts";
 import type { EstAngaben, EstErsatzleistung, EstKind, EstPerson, EstXmlInput } from "./est.ts";
-import { einzelUndSumme, euro, isIsoDate, kindZeitraum, mitCent } from "./est-werte.ts";
+import { einzelUndSumme, euro, euroAuf, isIsoDate, kindZeitraum, mitCent } from "./est-werte.ts";
 import type { splitStrasse } from "./nachricht.ts";
 import { ElsterEingabeError } from "./xml.ts";
 
@@ -77,7 +77,8 @@ export function sonderausgaben(x: EstAngaben): XmlNode[] {
       [
         "KiSt",
         [
-          ["Gezahlt", [["Sum", [["E0107601", euro(x.sonderausgaben.kirchensteuerGezahlt)]]]]],
+          // aufgerundet, sonst meldet Hinweisregel 101180001 sie kleiner als die Lohnkirchensteuer mit Cent
+          ["Gezahlt", [["Sum", [["E0107601", euroAuf(x.sonderausgaben.kirchensteuerGezahlt)]]]]],
           ["Erstattet", [["E0107602", euro(x.sonderausgaben.kirchensteuerErstattet)]]],
         ],
       ],

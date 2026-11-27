@@ -1,32 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { buildEstXml, kindZeitraum, type EstXmlInput } from "./est.ts";
+import { estInput } from "./est.testdaten.ts";
 import { datenartVersionFromXml, ElsterEingabeError, hasTestmerker } from "./xml.ts";
 import { checkXml } from "./fake-client.ts";
-
-const estInput = (overrides: Partial<EstXmlInput> = {}): EstXmlInput => ({
-  year: 2025,
-  steuernummer13: "2836216146249",
-  bundesland: "BW",
-  herstellerId: "74931",
-  produktVersion: "0.1.0",
-  test: true,
-  personA: { idnr: "86095742719", vorname: "Max", name: "Muster", geburtsdatum: "1985-04-12", religion: "11", beruf: "IT-Berater" },
-  personB: { idnr: "65929970489", vorname: "Erika", name: "Muster", geburtsdatum: "1987-09-01", religion: "02", beruf: "" },
-  verheiratetSeit: "2015-06-20",
-  anschrift: { strasse: "Hauptstraße 12a", plz: "77815", ort: "Bühl" },
-  telefon: "07223 12345",
-  iban: "DE89 3704 0044 0532 0130 00",
-  gewinn: { einkunftsart: "selbstaendig", taetigkeit: "IT-Beratung", betrag: 8_543_250 },
-  angaben: {
-    vorsorge: { a: { pkv: 600_000, ppv: 40_049, pkvErstattung: 50_000 }, b: { gkv: 300_000, gpv: 60_000 }, sonstige: 25_000 },
-    sonderausgaben: { kirchensteuerGezahlt: 12_000, spenden: 10_000 },
-    krankheitskosten: 150_000,
-    haushaltsnah: { handwerker: 80_000 },
-    kinder: [{ idnr: "57286403713", vorname: "Lena", geburtsdatum: "2025-03-05", familienkasse: "Familienkasse BW", kinderbetreuung: 200_000 }],
-    kap: { ertraegeMitSteuerabzug: 120_000, sparerPauschbetrag: 100_000, kapitalertragsteuer: 5_000, soli: 275 },
-  },
-  ...overrides,
-});
 
 describe("buildEstXml", () => {
   it("baut E10 mit Hauptvordruck, Zusammenveranlagung und Anlagen", () => {
@@ -69,6 +45,13 @@ describe("buildEstXml", () => {
     // §35a mit Einzelposten und Summe
     expect(xml).toMatch(/<Handw_L>\s*<Einz>\s*<E0111217>Handwerkerleistungen<\/E0111217>\s*<E0111214>800<\/E0111214>\s*<\/Einz>\s*<Sum>\s*<E0111215>800/);
     expect(xml).toMatch(/<Unterfallart>10<\/Unterfallart>[\s\S]*<StNr>2836216146249<\/StNr>[\s\S]*<Zeitraum>2025<\/Zeitraum>/);
+  });
+
+  it("rundet die gezahlte Kirchensteuer auf volle Euro auf (Hinweisregel 101180001)", () => {
+    // Der Hinweis greift, wenn E0107601 kleiner ist als die Lohnkirchensteuer mit Cent („Beträge bitte aufrunden“)
+    const fest = estInput();
+    const xml = buildEstXml(estInput({ angaben: { ...fest.angaben, sonderausgaben: { kirchensteuerGezahlt: 48_920 } } }));
+    expect(xml).toMatch(/<Gezahlt>\s*<Sum>\s*<E0107601>490<\/E0107601>/);
   });
 
   it("überträgt Basisrente, private Wahlleistungen und die Arbeitgeberzuschüsse in die Anlage Vorsorgeaufwand", () => {
@@ -249,12 +232,12 @@ describe("buildEstXml", () => {
     // N steht nach S und vor KAP
     expect(xml.indexOf("<S>")).toBeLessThan(xml.indexOf("<N>"));
     expect(xml.indexOf("<N>")).toBeLessThan(xml.indexOf("<KAP>"));
-    // Vorsorge: Arbeitnehmeranteile laut Bescheinigung bei Person B
-    expect(xml).toMatch(/<AVor>\s*<Person>PersonB<\/Person>\s*<E2000401>3906<\/E2000401>\s*<E2000801>3906<\/E2000801>\s*<\/AVor>/);
+    // Vorsorge: Arbeitnehmeranteile laut Bescheinigung bei Person B, aufgerundet; der Arbeitgeberanteil abgerundet
+    expect(xml).toMatch(/<AVor>\s*<Person>PersonB<\/Person>\s*<E2000401>3907<\/E2000401>\s*<E2000801>3906<\/E2000801>\s*<\/AVor>/);
     expect(xml).toMatch(
-      /<Beitr_g_KV_PV_Inl>\s*<Person>PersonB<\/Person>\s*<AN>\s*<E2001203>3412<\/E2001203>\s*<E2001505>756<\/E2001505>\s*<\/AN>\s*<And_Pers>/,
+      /<Beitr_g_KV_PV_Inl>\s*<Person>PersonB<\/Person>\s*<AN>\s*<E2001203>3413<\/E2001203>\s*<E2001505>757<\/E2001505>\s*<\/AN>\s*<And_Pers>/,
     );
-    expect(xml).toMatch(/<Weit_Sons_VorAW>\s*<Pers>\s*<Person>PersonB<\/Person>\s*<E2004403>546<\/E2004403>\s*<\/Pers>\s*<A_B_LP>/);
+    expect(xml).toMatch(/<Weit_Sons_VorAW>\s*<Pers>\s*<Person>PersonB<\/Person>\s*<E2004403>547<\/E2004403>\s*<\/Pers>\s*<A_B_LP>/);
   });
 
   it("trennt ab 2026 Gewerkschaftsbeiträge von den Berufsverbänden (Gewerksch_Beit), bis 2025 eine Zeile", () => {
